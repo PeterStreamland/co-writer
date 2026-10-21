@@ -188,8 +188,43 @@ export const numeralCases: NumeralCase[] = [
     mode: 'major',
     root: 'D',
     quality: '7sus4',
-    numeral: 'II7sus4',
+    numeral: 'ii7sus4',
     kind: 'diatonic',
+  },
+  // A 3rd-less chord takes the case of the key's own chord on its degree.
+  {
+    tonic: 'C',
+    mode: 'major',
+    root: 'D',
+    quality: 'sus4',
+    numeral: 'iisus4',
+    kind: 'diatonic',
+  },
+  {
+    tonic: 'C',
+    mode: 'natural-minor',
+    root: 'G',
+    quality: 'sus4',
+    numeral: 'vsus4',
+    kind: 'diatonic',
+  },
+  {
+    tonic: 'C',
+    mode: 'natural-minor',
+    root: 'G',
+    quality: '7sus4',
+    numeral: 'v7sus4',
+    kind: 'diatonic',
+  },
+  // On a degree with no chord in the key, upper case (SPEC 4's ♭VI5).
+  {
+    tonic: 'C',
+    mode: 'major',
+    root: 'Ab',
+    quality: 'sus2',
+    numeral: '♭VIsus2',
+    kind: 'borrowed',
+    sources: ['natural-minor', 'phrygian', 'locrian'],
   },
   {
     tonic: 'C',
@@ -453,6 +488,27 @@ export const numeralCases: NumeralCase[] = [
     sources: ['harmonic-minor', 'melodic-minor', 'major', 'lydian'],
   },
 
+  // A chord on the tonic comes from the parallel major or minor when that
+  // holds it: the Picardy third.
+  {
+    tonic: 'E',
+    mode: 'natural-minor',
+    root: 'E',
+    quality: 'M',
+    numeral: 'I',
+    kind: 'borrowed',
+    sources: ['major', 'mixolydian', 'lydian'],
+  },
+  {
+    tonic: 'C',
+    mode: 'major',
+    root: 'C',
+    quality: 'm',
+    numeral: 'i',
+    kind: 'borrowed',
+    sources: ['natural-minor', 'dorian', 'phrygian'],
+  },
+
   // Chromatic: none of the above
   {
     tonic: 'C',
@@ -675,6 +731,13 @@ export const numeralDescriptions: {
     root: 'F',
     quality: 'M',
     text: '♭II, borrowed from E Phrygian',
+  },
+  {
+    tonic: 'E',
+    mode: 'natural-minor',
+    root: 'E',
+    quality: 'M',
+    text: 'I, borrowed from E major',
   },
   {
     tonic: 'C',

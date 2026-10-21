@@ -12,9 +12,10 @@ export type ChordQualityData = {
   // before the number, and the alterations that follow it (m7b5 → Cm9b5).
   extends?: { prefix: string; alterations: string[] }
   // Roman-numeral form: upper case (I) or lower (i), and what follows it
-  // (ø7 for viiø7). A 3rd-less chord is upper case, as SPEC 4's ♭VI5. An
+  // (ø7 for viiø7). A 3rd-less chord takes the case of the key's own chord on
+  // its degree ('key': ii7sus4 in C), or upper case off the scale (♭VI5). An
   // extended chord takes its 7th chord's suffix with the 7 replaced (V13).
-  numeral: { upper: boolean; suffix: string }
+  numeral: { upper: boolean | 'key'; suffix: string }
   // A chord that can tonicise another: a dominant a 5th above its target,
   // or a leading-note chord a semitone below it (V/vi, vii°7/V).
   secondary?: 'dominant' | 'leading-note'
@@ -129,28 +130,28 @@ export const CHORD_QUALITIES: ChordQualityData[] = [
     symbol: 'sus2',
     name: 'sus2',
     intervals: ['P1', 'M2', 'P5'],
-    numeral: { upper: true, suffix: 'sus2' },
+    numeral: { upper: 'key', suffix: 'sus2' },
   },
   {
     id: 'sus4',
     symbol: 'sus4',
     name: 'sus4',
     intervals: ['P1', 'P4', 'P5'],
-    numeral: { upper: true, suffix: 'sus4' },
+    numeral: { upper: 'key', suffix: 'sus4' },
   },
   {
     id: '7sus4',
     symbol: '7sus4',
     name: 'dominant 7th sus4',
     intervals: ['P1', 'P4', 'P5', 'm7'],
-    numeral: { upper: true, suffix: '7sus4' },
+    numeral: { upper: 'key', suffix: '7sus4' },
   },
   {
     id: 'maj7sus4',
     symbol: 'maj7sus4',
     name: 'major 7th sus4',
     intervals: ['P1', 'P4', 'P5', 'M7'],
-    numeral: { upper: true, suffix: 'maj7sus4' },
+    numeral: { upper: 'key', suffix: 'maj7sus4' },
   },
   {
     id: 'add9',

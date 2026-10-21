@@ -94,6 +94,16 @@ function numeralBody(tonic: Note, root: Note, upper: boolean): string {
   return label.slice(0, -1) + (upper ? roman : roman.toLowerCase())
 }
 
+// A 3rd-less chord's case follows the key's own triad on its root: lower
+// where that is minor or diminished (ii7sus4 in C), upper elsewhere,
+// including off the scale (♭VI5).
+function isUpper(key: Key, root: Note, upper: boolean | 'key'): boolean {
+  if (upper !== 'key') return upper
+  if (!hasDiatonicChords(key.mode)) return true
+  const triad = diatonicChords(key, 'triad').find((t) => sameNote(t.root, root))
+  return !triad || triad.quality === 'M' || triad.quality === 'aug'
+}
+
 // Whether every note sits in the key: by spelling for a scale that stacks in
 // thirds, by pitch otherwise (as chordsInScale does).
 function inKey(key: Key, notes: Note[]): boolean {
@@ -139,8 +149,13 @@ function isMinorKey(key: Key): boolean {
 }
 
 // Parallel keys whose notes hold the chord, fewest notes changed from the
-// key's scale first.
-function borrowedSources(key: Key, notes: Note[]): Key[] | undefined {
+// key's scale first. A chord on the tonic comes from the parallel major or
+// minor first when that holds it: E in E minor is borrowed from E major.
+function borrowedSources(
+  key: Key,
+  notes: Note[],
+  onTonic: boolean,
+): Key[] | undefined {
   if (!hasDiatonicChords(key.mode)) return undefined
   const own = scaleId(key.mode)
   const scale = scaleNotes(key.tonic, key.mode)
@@ -158,9 +173,12 @@ function borrowedSources(key: Key, notes: Note[]): Key[] | undefined {
   const changed = (source: Note[]) =>
     source.filter((n, i) => !sameNote(n, scale[i])).length
   const order = [...MAJOR_MODES, ...MINOR_SCALES]
+  const parallel = isMinorKey(key) ? 'major' : 'natural-minor'
+  const first = (mode: string) => (onTonic && mode === parallel ? 0 : 1)
   return found
     .sort(
       (a, b) =>
+        first(a.mode) - first(b.mode) ||
         changed(a.notes) - changed(b.notes) ||
         order.indexOf(a.mode) - order.indexOf(b.mode),
     )
@@ -188,14 +206,21 @@ export function romanNumeral(
   let sources: Key[] | undefined
   if (inKey(key, sounding)) kind = 'diatonic'
   else if ((target = secondaryTarget(key, chord, secondary))) kind = 'secondary'
-  else if ((sources = borrowedSources(key, sounding))) kind = 'borrowed'
+  else if (
+    (sources = borrowedSources(key, sounding, sameNote(chord.root, key.tonic)))
+  )
+    kind = 'borrowed'
 
   // A secondary chord is numbered from its target: V of vi, vii° of V.
   const body = target
     ? target.role === 'dominant'
       ? 'V'
       : 'vii'
-    : numeralBody(key.tonic, chord.root, numeral.upper)
+    : numeralBody(
+        key.tonic,
+        chord.root,
+        isUpper(key, chord.root, numeral.upper),
+      )
   let head = body + numeral.suffix
   const of = target ? `/${target.numeral}` : ''
 
