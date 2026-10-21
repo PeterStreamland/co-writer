@@ -97,7 +97,7 @@ These are the musical truths the golden tests check. `.claude/skills/music-conve
   - \+ for augmented
 - Extensions go after the numeral (V7, ii7, ♭VIImaj7). Inversions use figures (V⁶₅) or a slash (V7/3); classical figures are the default.
 - Secondary chords are written V/vi or vii°7/V. Borrowed chords show their source mode in ⓘ ("♭VI, borrowed from E Aeolian").
-- In modal keys, the numerals are relative to the modal tonic: in E Dorian, A is IV and C♯m is vi.
+- In modal keys, the numerals are relative to the modal tonic: in E Dorian, A is IV and C♯° is vi°.
 - **Nashville numbers** are a label option from Phase 10, and use the same "from the major scale" reference.
 
 ### Chord symbols
@@ -266,7 +266,7 @@ Accepting a pivot or modulation suggestion shows a one-tap prompt: **"Continue i
   - guitar lead or keys lead
   - custom low/high
 
-  The default is tenor, A2–A4. Suggestions stay inside the preset and also lean towards the range already used.
+  The default is tenor, C3–A4. Suggestions stay inside the preset and also lean towards the range already used.
 
 - Next-note rules, motif options and the next-token interface follow the plan, and use the same grouped list, wildcard, preview and ⓘ as chords.
 
@@ -317,7 +317,7 @@ Accepting a pivot or modulation suggestion shows a one-tap prompt: **"Continue i
 | Fingering span / fret range | 3–6 frets / 0–24                                                                            | 4 / 0–15    |
 | Guitar playback             | strum (fixed)                                                                               | strum       |
 | Theme                       | system, dark, light                                                                         | system      |
-| Melody range                | part presets, custom                                                                        | tenor A2–A4 |
+| Melody range                | part presets, custom                                                                        | tenor C3–A4 |
 | Grid                        | 1/8, 1/16, triplets, off                                                                    | 1/16        |
 
 ## 12. Core data model (refines the plan)
