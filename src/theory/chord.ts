@@ -6,9 +6,20 @@ import {
   DIATONIC_SHAPES,
   type ChordQualityData,
 } from './chord-data'
-import { formatInterval, intervalBetween, semitones } from './interval'
+import {
+  formatInterval,
+  intervalBetween,
+  parseInterval,
+  semitones,
+  transpose,
+} from './interval'
 import type { Interval } from './interval'
-import { formatAccidental, formatNote, type FormatOptions } from './note'
+import {
+  formatAccidental,
+  formatNote,
+  pitchClass,
+  type FormatOptions,
+} from './note'
 import type { Note } from './note'
 import { getScale, scaleNotes, type Key } from './scale'
 
@@ -23,6 +34,16 @@ const BY_ID = new Map(CHORD_QUALITIES.map((q) => [q.id, q]))
 const BY_INTERVALS = new Map<string, ChordQualityData>(
   CHORD_QUALITIES.map((q) => [q.intervals.join(' '), q]),
 )
+
+// Each quality's intervals, parsed once.
+const QUALITY_INTERVALS = CHORD_QUALITIES.map((q) => ({
+  id: q.id,
+  intervals: q.intervals.map((text) => {
+    const interval = parseInterval(text)
+    if (!interval) throw new Error(`bad chord interval ${text}`)
+    return interval
+  }),
+}))
 
 // Unaltered 9th, 11th and 13th, in semitones above the root.
 const NATURAL_EXTENSIONS: Record<number, number> = { 9: 14, 11: 17, 13: 21 }
@@ -92,7 +113,7 @@ function stackChords(key: Key, kind: DiatonicKind): DiatonicChord[] {
 // degree, and a dictionary triad and 7th on every degree. That covers major,
 // harmonic and melodic minor and all their modes, plus harmonic major and
 // Lydian diminished from tonal's wider dictionary. Other scales use the
-// "every dictionary chord in the scale" policy (Phase 1 task 4).
+// "every dictionary chord in the scale" policy: chordsInScale.
 export function hasDiatonicChords(mode: string): boolean {
   if (!isSevenLetterScale(mode)) return false
   const key: Key = { tonic: { letter: 'C', accidental: 0 }, mode }
@@ -110,4 +131,25 @@ export function diatonicChords(key: Key, kind: DiatonicKind): DiatonicChord[] {
     throw new Error(`${key.mode} has no chords stacked in thirds`)
   }
   return stackChords(key, kind)
+}
+
+// Every dictionary chord whose notes all sit in the scale, for any scale: the
+// policy for scales that don't stack in thirds (pentatonics, blues,
+// whole-tone, diminished, bebop, Hungarian minor). A note sits in the scale if
+// its pitch does, but chords are spelled from their root so the name matches
+// the notes: C whole-tone holds E7♯5 as E G♯ B♯ D. Roots are the scale's own
+// notes; chords come in degree order, then dictionary order.
+export function chordsInScale(key: Key): DiatonicChord[] {
+  const notes = scaleNotes(key.tonic, key.mode)
+  const pitches = new Set(notes.map(pitchClass))
+  const chords: DiatonicChord[] = []
+  notes.forEach((root, i) => {
+    for (const { id, intervals } of QUALITY_INTERVALS) {
+      const tones = intervals.map((interval) => transpose(root, interval))
+      if (tones.every((tone) => pitches.has(pitchClass(tone)))) {
+        chords.push({ root, quality: id, notes: tones, degree: i + 1 })
+      }
+    }
+  })
+  return chords
 }
