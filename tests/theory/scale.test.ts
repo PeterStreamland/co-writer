@@ -5,6 +5,7 @@ import {
   formatNote,
   getScale,
   intervalBetween,
+  keySignature,
   parentKey,
   parseNote,
   pitchClass,
@@ -201,5 +202,37 @@ describe('parentKey', () => {
     const parent = parentKey({ tonic: note('A'), mode: 'minor-pentatonic' })
     expect(parent.mode).toBe('minor-pentatonic')
     expect(formatNote(parent.tonic)).toBe('A')
+  })
+})
+
+describe('keySignature', () => {
+  it.each(majorKeys)('$tonic major has $signature', (key) => {
+    expect(keySignature({ tonic: note(key.tonic), mode: 'major' })).toBe(
+      key.signature,
+    )
+  })
+
+  it.each(minorKeys)('$tonic minor has $signature', (key) => {
+    expect(
+      keySignature({ tonic: note(key.tonic), mode: 'natural-minor' }),
+    ).toBe(key.signature)
+  })
+
+  it.each([
+    ['E', 'dorian', 2],
+    ['F', 'locrian', -6],
+    ['Bb', 'lydian', -1],
+    ['D#', 'harmonic-minor', 6],
+    ['Ab', 'harmonic-minor', -7],
+    ['E', 'phrygian-dominant', 0],
+    ['G', 'altered', -7],
+  ] as const)('%s %s shows its parent signature, %i', (tonic, mode, n) => {
+    expect(keySignature({ tonic: note(tonic), mode })).toBe(n)
+  })
+
+  it('has none for a scale that is not a mode', () => {
+    expect(
+      keySignature({ tonic: note('A'), mode: 'minor-pentatonic' }),
+    ).toBeUndefined()
   })
 })

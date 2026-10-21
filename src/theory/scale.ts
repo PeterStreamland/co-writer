@@ -131,3 +131,23 @@ export function parentKey(key: Key): Key {
   const offset = parent.intervals[scale.modeOf.degree - 1]
   return { tonic: transposeDown(key.tonic, offset), mode: parent.id }
 }
+
+// Sharps (positive) or flats (negative) in the key signature, which is the
+// parent scale's (SPEC 4): E Dorian has 2, F Locrian 6. Harmonic and melodic
+// minor, and their modes, show the natural minor's signature: D♯ harmonic
+// minor has 6 sharps, its C𝄪 written as an accidental. A scale that isn't a
+// mode (pentatonics, blues, whole-tone) has no signature of its own.
+export function keySignature(key: Key): number | undefined {
+  const parent = parentKey(key)
+  const mode =
+    parent.mode === 'major'
+      ? 'major'
+      : parent.mode === 'harmonic-minor' || parent.mode === 'melodic-minor'
+        ? 'natural-minor'
+        : undefined
+  if (!mode) return undefined
+  return scaleNotes(parent.tonic, mode).reduce(
+    (sum, note) => sum + note.accidental,
+    0,
+  )
+}
