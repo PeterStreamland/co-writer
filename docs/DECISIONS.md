@@ -40,11 +40,11 @@ Why: saving is local to each browser, so a file is the way to back up and to mov
 
 ## 2026-10-21 — Phase 0 library spike
 
-Status: tonal and Tone.js confirmed; Web MIDI passes a simulated test, and the real keyboard test is still to do. Updated 2026-10-21.
+Status: tonal and Tone.js confirmed on laptop and phone; Web MIDI passes a simulated test, and the real keyboard test is still to do. Updated 2026-10-21.
 
 - **tonal: passes spelling.** Automated tests (`tests/spike/tonal-keys.test.ts`) check all 15 major and 15 minor key signatures against a hand-written golden fixture, including F♯ major (E♯), C♭ major (F♭), C♯ major (B♯), A♭ minor (F♭) and D♯ harmonic minor (C𝄪). All 35 pass.
 - **tonal: chord naming needs our own ranking.** `Chord.detect` for E–G–C returns `Em#5` before `CM/E`, ignoring spelling (Em♯5 needs B♯, not C). We keep tonal, but Phase 1's chord namer must rank names itself (key-aware, bass-aware, spelling-correct) per SPEC section 4.
-- **Tone.js playback: passes on the laptop.** David heard the C major chord on the published page. The phone test is still to do. We keep Tone.js.
+- **Tone.js playback: passes on laptop and Android phone.** David heard the C major chord on the published page on both. We keep Tone.js.
 - **Web MIDI: passes a simulated test; real keyboard still to check.** David couldn't test his USB keyboard yet. Instead, a headless Chromium run of the production build replaced `navigator.requestMIDIAccess` with a fake keyboard that sends real MIDI bytes. Thirteen checks passed with no page errors:
   - device list, including plugging in and unplugging devices
   - middle C read as C4, black keys, and the A0 and C8 extremes
