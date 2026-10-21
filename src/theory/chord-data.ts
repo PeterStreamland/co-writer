@@ -98,6 +98,12 @@ export const CHORD_QUALITIES: ChordQualityData[] = [
     intervals: ['P1', 'P4', 'P5', 'm7'],
   },
   {
+    id: 'maj7sus4',
+    symbol: 'maj7sus4',
+    name: 'major 7th sus4',
+    intervals: ['P1', 'P4', 'P5', 'M7'],
+  },
+  {
     id: 'add9',
     symbol: 'add9',
     name: 'major add9',

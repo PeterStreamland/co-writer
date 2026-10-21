@@ -103,8 +103,8 @@ export function hasDiatonicChords(mode: string): boolean {
 
 // The key's diatonic chords of one kind, in degree order. Triads, 7ths and
 // 9th, 11th and 13th chords sit on every degree; a sus, add or 6th chord is
-// left out where the shape isn't a dictionary chord (C major has no Fsus4, and
-// no Cmaj7sus4 until the dictionary grows in task 6).
+// left out where the shape isn't a dictionary chord (C major has no Fsus4). The
+// 7sus4 kind takes a major or minor 7th: Cmaj7sus4 and D7sus4 in C major.
 export function diatonicChords(key: Key, kind: DiatonicKind): DiatonicChord[] {
   if (!hasDiatonicChords(key.mode)) {
     throw new Error(`${key.mode} has no chords stacked in thirds`)
