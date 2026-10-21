@@ -172,7 +172,7 @@ David went through the audit table on the published app (`#/audit`) and found no
 
 ## 2026-10-21 — Phase 1 gate passed
 
-The theory-reviewer checked all of Phase 1 (`v0.0-setup` to `d375b0c`) against SPEC 4 and 13 and found nothing blocking. It confirmed each exit criterion with evidence: all 30 key signatures spell correctly, the diatonic qualities are right for every scale and mode, 3,927 chord symbols round-trip (at least 200 were needed), and the core imports only `tonal`. 910 tests, lint and typecheck all pass, and no golden fixture was changed to make a test pass. That commit is tagged `v0.1-theory-core`.
+The theory-reviewer checked all of Phase 1 (`v0.0-setup` to `d375b0c`) against SPEC 4 and 13 and found nothing blocking. It confirmed each exit criterion with evidence: all 30 key signatures spell correctly, the diatonic qualities are right for every scale and mode, 3,927 chord symbols round-trip (at least 200 were needed), and the core imports only `tonal`. 910 tests, lint and typecheck all pass, and no golden fixture was changed to make a test pass. Phase 1 is released as `v0.1-theory-core`, tagged on `main` once this record is merged.
 
 - **Power-chord numerals:** SPEC 4 and the music-conventions skill still said power-chord numerals "show the root only". They now match David's recorded choice: the case of the key's chord on that degree (i5 in E minor), upper case where the key has none (♭VI5).
 - **Open questions for David (not blocking):**
