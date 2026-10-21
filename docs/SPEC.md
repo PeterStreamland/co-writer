@@ -266,7 +266,7 @@ Accepting a pivot or modulation suggestion shows a one-tap prompt: **"Continue i
   - guitar lead or keys lead
   - custom low/high
 
-  The default is tenor, A2–A4. Suggestions stay inside the preset and also lean towards the range already used.
+  The default is tenor, C3–A4. Suggestions stay inside the preset and also lean towards the range already used.
 
 - Next-note rules, motif options and the next-token interface follow the plan, and use the same grouped list, wildcard, preview and ⓘ as chords.
 
@@ -317,7 +317,7 @@ Accepting a pivot or modulation suggestion shows a one-tap prompt: **"Continue i
 | Fingering span / fret range | 3–6 frets / 0–24                                                                            | 4 / 0–15    |
 | Guitar playback             | strum (fixed)                                                                               | strum       |
 | Theme                       | system, dark, light                                                                         | system      |
-| Melody range                | part presets, custom                                                                        | tenor A2–A4 |
+| Melody range                | part presets, custom                                                                        | tenor C3–A4 |
 | Grid                        | 1/8, 1/16, triplets, off                                                                    | 1/16        |
 
 ## 12. Core data model (refines the plan)
