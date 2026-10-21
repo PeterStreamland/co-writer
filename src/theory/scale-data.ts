@@ -23,6 +23,22 @@ export type ScaleData = {
   modeOf?: { scale: string; degree: number }
 }
 
+// The scales a picker shows first; the rest sit behind "More…" (SPEC 2).
+export const COMMON_SCALE_IDS = [
+  'major',
+  'natural-minor',
+  'harmonic-minor',
+  'melodic-minor',
+  'dorian',
+  'phrygian',
+  'lydian',
+  'mixolydian',
+  'locrian',
+  'major-pentatonic',
+  'minor-pentatonic',
+  'minor-blues',
+]
+
 export const CORE_SCALES: ScaleData[] = [
   // Major and its modes
   {

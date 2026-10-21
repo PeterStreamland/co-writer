@@ -128,7 +128,7 @@ Gate passed: the theory-reviewer confirmed every exit criterion, and the release
 
 Goal: the first usable screen, covering your first feature request.
 
-1. Key and scale picker showing the interval pattern and degree names.
+1. Key and scale picker showing the interval pattern and degree names. ✅
 2. Rows of diatonic triads, 7ths and extended chords; click any chord to hear it.
 3. Keyboard view and full-neck fretboard view with an instrument toggle; scale notes highlighted, root marked, labels switchable between note names and degrees.
 4. Playback through Tone.js with a piano and a clean-guitar sound.

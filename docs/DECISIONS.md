@@ -186,3 +186,17 @@ David's choice: E5 in E minor pentatonic is i5, as it is in E minor. Before this
 
 - Lower case when every triad there is minor or diminished: i5 and isus4 in E minor pentatonic, i5 in E blues (Em and E°), vi5 for F♯ in A major pentatonic.
 - Upper case when there is no triad on the root (IV5 for A in E minor pentatonic) or when there are both a major and a minor one (I5 for C in C major blues, which holds C and Cm).
+
+## 2026-10-21 — The key and scale picker
+
+Phase 2 task 1 (`src/theory/key.ts`, `src/workspace/`, golden fixture `tests/fixtures/key-picker.ts`). SPEC 4 sets the picker's rules (common spellings, both F♯ and G♭ major, an enharmonic swap, all 30 signatures reachable); these choices it didn't settle:
+
+- **Which tonics are listed:** the twelve pitches from C to B. A natural tonic is always the one listed. On a black key, the spelling with fewer sharps and flats in its notes wins, and both are listed on a tie. So major lists C D♭ D E♭ E F F♯ G♭ G A♭ A B♭ B, minor lists C C♯ D D♯ E♭ E F F♯ G G♯ A B♭ B, and every other scale follows the same rule (G♯ and A♭ Dorian are both listed).
+- **The swap** goes to the other spelling with one sharp or flat at most, but only to a key people write in: a key signature of seven sharps or flats at most, or for a scale with no signature (pentatonics, blues), seven at most in its notes and no double sharps or flats. D♭ major swaps to C♯, B to C♭, B♭ minor to A♯ minor, E♭ melodic minor to D♯; C, E and E♭ major have no swap, nor has C blues (B♯ blues needs F𝄪). Major and minor together reach exactly the 30 key signatures.
+- **Changing scale keeps the spelling** where the new scale can use it (C♯ major to C♯ Dorian), and otherwise moves to the listed spelling (D♭ major to C♯ minor, since D♭ minor needs B𝄫).
+- **Scale list:** twelve common scales first (major, the three minors, the other major modes, both pentatonics and blues); "More…" adds every other scale by family. Scales are data: the common list sits in `scale-data.ts`.
+- **Interval pattern:** each degree shows its interval from the tonic (P1 M2 m3…), and the steps between neighbouring notes use British tones and semitones: T T S T T T S for major, T+S for an augmented 2nd, 2T for a major 3rd gap.
+- **Degree names** follow spelling, like the degree labels: tonic, supertonic, mediant, subdominant, dominant, submediant; a major 7th is the leading note and a minor 7th the subtonic. The 3rd and 6th keep their names whether major or minor. Any other alteration is named: ♭2 is the flattened supertonic, ♯4 the sharpened subdominant, ♭5 the flattened dominant.
+- **The workspace is now the home page.** The key picker sits in its header and the scale view in what will become the Explore panel (SPEC 2). The last key chosen is remembered in the browser. The audit table and spike stay, linked from the footer.
+
+Why: these give the spellings a guitarist or pianist would reach for while keeping every real key signature one tap away. David can flag any spelling or name when he tries the picker.
