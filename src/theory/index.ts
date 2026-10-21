@@ -2,6 +2,7 @@
 export * from './chord'
 export * from './chord-symbol'
 export * from './interval'
+export * from './inversion'
 export * from './note'
 export * from './numeral'
 export * from './scale'
