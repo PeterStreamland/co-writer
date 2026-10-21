@@ -94,7 +94,7 @@ Goal: an empty app that builds and deploys, an agreed spec, and verified librari
 5. Run Claude's interview (kick-off prompt below) to produce `docs/SPEC.md`. ✅
 6. Add `CLAUDE.md` (starter below) and `docs/DECISIONS.md`. ✅
 7. Add hooks: typecheck and tests after edits; a Stop hook that won't let a task finish while tests fail. ✅
-8. Library spike: tonal spells every key correctly, Tone.js plays a chord in your browser, Web MIDI sees your USB keyboard in Chrome or Edge.
+8. Library spike: tonal spells every key correctly, Tone.js plays a chord in your browser, Web MIDI sees your USB keyboard in Chrome or Edge. (Progress: tonal ✅, Tone.js ✅ on laptop; Web MIDI passes a simulated test; your keyboard and phone tests are still to do.)
 
 - [x] `npm run dev`, `npm test`, `npm run lint` and `npm run typecheck` all succeed
 - [x] You have agreed `SPEC.md`
