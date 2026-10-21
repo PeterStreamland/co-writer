@@ -112,12 +112,12 @@ Goal: a pure, fully tested TypeScript module that is the single source of musica
 3. Diatonic chords for seven-note scales: triads, 7ths, 9/11/13 extensions, sus and add chords. ✅
 4. A policy for scales that aren't seven notes: show every dictionary chord whose notes all sit in the scale. ✅
 5. Roman-numeral labels, including borrowed and secondary chords. ✅
-6. A chord-symbol parser and namer that returns every valid name (C6 and Am7 are the same notes).
+6. A chord-symbol parser and namer that returns every valid name (C6 and Am7 are the same notes). ✅
 7. Inversions for any chord.
 
 - [ ] Golden tests pass for all 15 major and 15 minor key signatures (F# major spells E#, C♭ major spells F♭)
 - [x] Diatonic chord qualities are correct for major, natural/harmonic/melodic minor and all seven modes
-- [ ] At least 200 chord symbols round-trip: parse, name, parse again
+- [x] At least 200 chord symbols round-trip: parse, name, parse again
 - [ ] The core imports no UI, audio or DOM code
 
 Your test: Claude generates a table of every key's scales and chords; you audit it as a musician and flag anything wrong.

@@ -52,22 +52,45 @@ const INTERVALS_BY_ID = new Map(
 // Unaltered 9th, 11th and 13th, in semitones above the root.
 const NATURAL_EXTENSIONS: Record<number, number> = { 9: 14, 11: 17, 13: 21 }
 
-// Lead-sheet plain symbol: F♯m7♭5, A♭maj9♯11; with ascii, F#m7b5.
+export type ChordStyle = 'lead-sheet' | 'jazz'
+export type SymbolOptions = FormatOptions & { style?: ChordStyle }
+
+// A quality's symbol after the root, in ASCII: 'm7b5' lead-sheet, 'ø7' jazz.
+// An extended chord follows its 7th chord with the 7 replaced: Cm9♭5 is Cø9.
+function qualitySymbol(quality: string, style: ChordStyle): string {
+  const known = BY_ID.get(quality)
+  if (known) return style === 'jazz' ? known.jazz : known.symbol
+  if (style === 'lead-sheet') return quality
+  const extended = parseExtended(quality)
+  if (!extended) return quality
+  const { seventh, number, altered } = extended
+  return (
+    seventh.jazz.replace('7', String(number)) +
+    altered
+      .map((a) => formatAccidental(a.offset, { ascii: true }) + a.number)
+      .join('')
+  )
+}
+
+// A chord symbol, lead-sheet plain by default (F♯m7♭5, A♭maj9♯11/C) or jazz
+// (F♯ø7, A♭△9♯11/C); with ascii, F#m7b5. A slash shows the bass (SPEC 4).
 export function chordSymbol(
-  chord: { root: Note; quality: string },
-  options: FormatOptions = {},
+  chord: { root: Note; quality: string; bass?: Note },
+  options: SymbolOptions = {},
 ): string {
-  const suffix = BY_ID.get(chord.quality)?.symbol ?? chord.quality
+  const suffix = qualitySymbol(chord.quality, options.style ?? 'lead-sheet')
   const shown = options.ascii
     ? suffix
     : suffix.replace(/b/g, '♭').replace(/#/g, '♯')
-  return formatNote(chord.root, options) + shown
+  const bass = chord.bass ? `/${formatNote(chord.bass, options)}` : ''
+  return formatNote(chord.root, options) + shown + bass
 }
 
 // A 9th, 11th or 13th chord is named from its 7th chord: the number is the
 // highest unaltered extension and altered ones follow it, so a major 7th with
 // a 9th, ♯11 and 13th is maj13#11, and a dominant 7th with ♭9, 11 and ♭13 is
-// 11b9b13.
+// 11b9b13. Unaltered extensions below the number are implied; altered ones
+// above it are not, so a dominant 7th with only a ♯11 is 7#11.
 function extendedQuality(intervals: Interval[]): string | undefined {
   if (intervals.length <= 4) return undefined
   const seventh = BY_INTERVALS.get(
@@ -105,9 +128,7 @@ function stackChords(key: Key, kind: DiatonicKind): DiatonicChord[] {
       quality: intervalBetween(root, tone).quality,
       number: DIATONIC_SHAPES[kind][t],
     }))
-    const quality =
-      BY_INTERVALS.get(intervals.map(formatInterval).join(' '))?.id ??
-      extendedQuality(intervals)
+    const quality = qualityFromIntervals(intervals)
     if (quality) chords.push({ root, quality, notes: tones, degree: i + 1 })
   })
   return chords
@@ -185,6 +206,11 @@ function parseExtended(quality: string) {
   const number = Number(digits)
   if (number === 7 && altered.length === 0) return undefined
   if (altered.some((a) => !(a.number in NATURAL_EXTENSIONS))) return undefined
+  // Each extension once, and the number itself unaltered: no 7b9#9 or 9b9.
+  const numbers = altered.map((a) => a.number)
+  if (new Set(numbers).size < numbers.length || numbers.includes(number)) {
+    return undefined
+  }
   return { seventh, number, altered }
 }
 
@@ -196,22 +222,87 @@ const EXTENSION_INTERVALS: Record<number, Record<number, string>> = {
 
 // The intervals above the root for a quality id, including extended ones
 // that diatonicChords names (G13, Fmaj13♯11): every stacked tone up to the
-// highest extension is kept, so a 13th chord has its 9th and 11th.
+// number is kept, so a 13th chord has its 9th and 11th. An alteration adds
+// only its own note: C7♯11 is C E G B♭ F♯, with no 9th.
 export function chordIntervals(quality: string): Interval[] | undefined {
   const known = INTERVALS_BY_ID.get(quality)
   if (known) return known
   const extended = parseExtended(quality)
   if (!extended) return undefined
   const { seventh, number, altered } = extended
-  const top = Math.max(number, ...altered.map((a) => a.number))
   const intervals = [...(INTERVALS_BY_ID.get(seventh.id) ?? [])]
-  for (let n = 9; n <= top; n += 2) {
-    const offset = altered.find((a) => a.number === n)?.offset ?? 0
-    const interval = parseInterval(EXTENSION_INTERVALS[n][offset] ?? '')
+  for (const n of [9, 11, 13]) {
+    const offset = altered.find((a) => a.number === n)?.offset
+    if (offset === undefined && n > number) continue
+    const interval = parseInterval(EXTENSION_INTERVALS[n][offset ?? 0] ?? '')
     if (!interval) return undefined
     intervals.push(interval)
   }
   return intervals
+}
+
+// The quality id for intervals above a root: a dictionary chord, or a 7th
+// chord with extensions. Undefined when no symbol fits.
+export function qualityFromIntervals(
+  intervals: Interval[],
+): string | undefined {
+  return (
+    BY_INTERVALS.get(intervals.map(formatInterval).join(' '))?.id ??
+    extendedQuality(intervals)
+  )
+}
+
+// The alterations each extension can take in an extended chord's name.
+const EXTENSION_ALTERATIONS: Record<number, number[]> = {
+  9: [-1, 1],
+  11: [1],
+  13: [-1],
+}
+
+// Every extended quality of each 7th chord: a number (7, 9, 11 or 13) with
+// the extensions below it natural or altered and those above it absent or
+// altered. A name whose notes double a pitch (7♯5♭13, m7♯9) is left out.
+function extendedQualityIds(): string[] {
+  const ids: string[] = []
+  for (const seventh of CHORD_QUALITIES) {
+    if (!seventh.extends) continue
+    const { prefix, alterations } = seventh.extends
+    for (const number of [7, 9, 11, 13]) {
+      let combos: number[][] = [[]]
+      for (const n of [9, 11, 13]) {
+        const options: (number | undefined)[] =
+          n === number
+            ? [0]
+            : [n < number ? 0 : undefined, ...EXTENSION_ALTERATIONS[n]]
+        combos = combos.flatMap((combo) =>
+          options.map((o) => (o === undefined ? combo : [...combo, n, o])),
+        )
+      }
+      for (const combo of combos) {
+        let tail = ''
+        for (let i = 0; i < combo.length; i += 2) {
+          if (combo[i + 1] !== 0) {
+            tail += formatAccidental(combo[i + 1], { ascii: true }) + combo[i]
+          }
+        }
+        if (number === 7 && !tail) continue
+        const id = prefix + number + alterations.join('') + tail
+        const intervals = chordIntervals(id)
+        if (!intervals) continue
+        const pitches = new Set(intervals.map((i) => semitones(i) % 12))
+        if (pitches.size === intervals.length) ids.push(id)
+      }
+    }
+  }
+  return ids
+}
+
+let QUALITY_IDS: string[] | undefined
+
+// Every quality the namer knows: the dictionary, then the extended chords.
+export function chordQualityIds(): string[] {
+  QUALITY_IDS ??= [...CHORD_QUALITIES.map((q) => q.id), ...extendedQualityIds()]
+  return QUALITY_IDS
 }
 
 // How a quality reads after a Roman numeral (see chord-data.ts), and whether
@@ -230,8 +321,7 @@ export function qualityNumeral(
   return {
     numeral: {
       upper: seventh.numeral.upper,
-      suffix:
-        seventh.numeral.suffix.replace(/7$/, String(number)) + alterations,
+      suffix: seventh.numeral.suffix.replace('7', String(number)) + alterations,
     },
     secondary: seventh.secondary,
   }

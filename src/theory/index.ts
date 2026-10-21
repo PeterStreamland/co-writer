@@ -1,5 +1,6 @@
 // The theory core: pure TypeScript, no UI, audio or DOM imports.
 export * from './chord'
+export * from './chord-symbol'
 export * from './interval'
 export * from './note'
 export * from './numeral'

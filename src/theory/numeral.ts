@@ -231,11 +231,13 @@ export function romanNumeral(
   if (chord.bass && bassIndex < 0) {
     text += ` (bass ${degreeLabel(key.tonic, chord.bass)})`
   } else if (bassIndex > 0) {
+    // Figures absorb a 7th chord's 7; one whose symbol goes on past the 7
+    // (V7♭5) takes the slash form instead.
     const numbers = intervals.map((i) => i.number).join(' ')
     const figures =
       numbers === '1 3 5'
         ? TRIAD_FIGURES
-        : numbers === '1 3 5 7'
+        : numbers === '1 3 5 7' && numeral.suffix.endsWith('7')
           ? SEVENTH_FIGURES
           : undefined
     const tone = intervals[bassIndex].number
