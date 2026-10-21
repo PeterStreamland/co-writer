@@ -179,3 +179,10 @@ The theory-reviewer checked all of Phase 1 (`v0.0-setup` to `d375b0c`) against S
   - In a minor key, F♯7 in E minor reads V7/v, because minor keys are read as natural minor. Most charts write V7/V, because the chord usually resolves to a major B. This should be settled before Phase 4's engine relies on it.
   - SPEC 3 says the sketch data model (sections, chord events) comes "from Phase 1", but no Phase 1 task built it. It will be built when Phase 2 or 4 first needs it.
   - C2, Cadd2, C7alt and C7no5 don't parse yet. C2 and Cadd2 are common in guitar charts and could join the dictionary later.
+
+## 2026-10-21 — Power and sus chord numerals in pentatonic and blues scales
+
+David's choice: E5 in E minor pentatonic is i5, as it is in E minor. Before this, a 3rd-less chord (a power or sus chord) in a scale that doesn't stack in thirds always came out upper case (I5), because the "key's own chord on its degree" rule only looked at seven-note scales. Now the scale's own triads on that root decide:
+
+- Lower case when every triad there is minor or diminished: i5 and isus4 in E minor pentatonic, i5 in E blues (Em and E°), vi5 for F♯ in A major pentatonic.
+- Upper case when there is no triad on the root (IV5 for A in E minor pentatonic) or when there are both a major and a minor one (I5 for C in C major blues, which holds C and Cm).

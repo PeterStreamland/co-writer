@@ -216,6 +216,66 @@ export const numeralCases: NumeralCase[] = [
     numeral: 'v7sus4',
     kind: 'diatonic',
   },
+  // Scales that don't stack in thirds: the scale's own triad on the root
+  // sets the case (David's choice). Lower only when every triad there is
+  // minor or diminished; upper with none (A in E minor pentatonic) or with
+  // both a major and a minor one (C in C major blues).
+  {
+    tonic: 'E',
+    mode: 'minor-pentatonic',
+    root: 'E',
+    quality: '5',
+    numeral: 'i5',
+    kind: 'diatonic',
+  },
+  {
+    tonic: 'E',
+    mode: 'minor-pentatonic',
+    root: 'G',
+    quality: '5',
+    numeral: '♭III5',
+    kind: 'diatonic',
+  },
+  {
+    tonic: 'E',
+    mode: 'minor-pentatonic',
+    root: 'A',
+    quality: '5',
+    numeral: 'IV5',
+    kind: 'diatonic',
+  },
+  {
+    tonic: 'E',
+    mode: 'minor-pentatonic',
+    root: 'E',
+    quality: 'sus4',
+    numeral: 'isus4',
+    kind: 'diatonic',
+  },
+  {
+    tonic: 'E',
+    mode: 'minor-blues',
+    root: 'E',
+    quality: '5',
+    numeral: 'i5',
+    kind: 'diatonic',
+  },
+  {
+    tonic: 'C',
+    mode: 'major-blues',
+    root: 'C',
+    quality: '5',
+    numeral: 'I5',
+    kind: 'diatonic',
+  },
+  {
+    tonic: 'A',
+    mode: 'major-pentatonic',
+    root: 'F#',
+    quality: '5',
+    numeral: 'vi5',
+    kind: 'diatonic',
+  },
   // On a degree with no chord in the key, upper case (SPEC 4's ♭VI5).
   {
     tonic: 'C',
