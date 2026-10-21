@@ -96,3 +96,18 @@ So C whole-tone has an augmented and a 7♯5 chord on every note (E7♯5 is E G�
 The "dictionary" is the chord-quality list in `src/theory/chord-data.ts`. When task 6 widens it (power chords, 6/9 and altered dominants), these scales gain those chords with no further code. The function works on any scale, and for scales that stack in thirds it finds every diatonic triad, 7th, sus, add and 6th chord too.
 
 Why: the plan didn't say whether "sit in the scale" means pitch or spelling; pitch keeps the symmetrical scales' chords, which are what those scales are used for.
+
+## 2026-10-21 — Roman numerals: borrowed sources, secondary chords and inversions
+
+Phase 1 task 5 (`src/theory/numeral.ts`, golden fixture `tests/fixtures/numerals.ts`). The plan and SPEC 4 set the numeral conventions; these choices they didn't settle:
+
+- **Reading order:** a chord is diatonic if its notes are in the key, as spelled; otherwise secondary, then borrowed, otherwise chromatic. These match SPEC 6.2's categories.
+- **Secondary chords** tonicise a major or minor diatonic triad other than the tonic: a major triad or dominant chord a 5th above it (V/vi, V7/V), or a dim, dim7 or m7♭5 chord a semitone below it (vii°7/vi). A plain major triad on the tonic reads as I, but C7 in C is V7/IV. ♭VII is never a target, so A in E minor is the Dorian IV, not V/♭VII. Secondaries of borrowed chords (E♭7 as V7/♭VI in C) wait for Phase 4.
+- **Borrowed source (David's choice):** the parallel mode that changes the fewest notes of the key, with the other sources listed after it. Harmonic and melodic minor count as sources for minor keys, or when no major mode holds the chord. In C major, B♭ is borrowed from C Mixolydian, Fm and A♭ from C Aeolian, E♭ from C Dorian and D♭ from C Phrygian. In E minor, B7 is borrowed from E harmonic minor and A from E Dorian. Ties go in this order: major, Aeolian, Mixolydian, Dorian, Lydian, Phrygian, Locrian, harmonic minor, melodic minor. One exception, also David's choice: a chord on the tonic comes from the parallel major or minor first when that holds it, so E in E minor (a Picardy third) is borrowed from E major, not E Mixolydian, and Cm in C from C Aeolian.
+- **Marks (David's choice for 3rd-less chords):** sus chords, and power chords when task 6 adds them, take the case of the key's own chord on their degree: ii7sus4 and iisus4 in C, vsus4 in C minor, Vsus4 in C major. On a degree with no chord in the key they are upper case, as SPEC 4 writes ♭VI5. Extensions follow the numeral as in the chord symbol: V13, IVmaj13♯11, viiø11♭9♭13, ♭III+maj7.
+- **Inversions:** figures for triads and 7th chords, with the 7 absorbed: I⁶, I⁶₄, V⁶₅, V⁴₃, V⁴₂, IVmaj⁶₅, viiø⁶₅, V⁶₅/vi. Other chords, and the slash setting, name the chord tone in the bass: V7/3, Isus4/5, V9/3, (V7/vi)/3.
+- **Bass outside the chord (David's choice):** the bass's degree in the key, IV (bass 5) for F/G in C. The bass counts towards the reading, so F/F♯ in C is chromatic, and C/B♭ is I (bass ♭7), borrowed from C Mixolydian.
+- **Added 6ths:** Dm6 in C is ii6, which differs from the first inversion ii⁶ only by the superscript; plain-text export (Phase 10) must keep the two apart.
+- **Augmented dominants** count as secondaries: E7♯5 in C is V+7/vi.
+
+Why: these are the readings a rock or pop musician would give, and the borrowed rule picks the smallest change of colour. David can flag any numeral in the Phase 1 audit table.
