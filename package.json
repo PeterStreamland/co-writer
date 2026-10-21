@@ -13,7 +13,9 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
-    "preact": "^10.29.8"
+    "preact": "^10.29.8",
+    "tonal": "^6.5.1",
+    "tone": "^15.1.22"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

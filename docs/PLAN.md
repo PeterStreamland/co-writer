@@ -87,17 +87,17 @@ These four phases produce a correct theory core and the first two features you a
 
 Goal: an empty app that builds and deploys, an agreed spec, and verified libraries.
 
-1. On GitHub, create a public repo with a README (GitHub Pages is free only for public repos on the Free plan: [source](https://docs.github.com/en/get-started/learning-about-github/githubs-plans)); start a Claude Code session on it at claude.ai/code.
-2. Paste this plan, exported as Markdown, for Claude to save as `docs/PLAN.md`.
-3. Have Claude scaffold Vite, TypeScript, Vitest, ESLint and Prettier.
-4. Have Claude add a GitHub Actions workflow that runs the checks and publishes the app to GitHub Pages after every merge; you switch Pages on once.
-5. Run Claude's interview (kick-off prompt below) to produce `docs/SPEC.md`.
-6. Add `CLAUDE.md` (starter below) and `docs/DECISIONS.md`.
-7. Add hooks: typecheck and tests after edits; a Stop hook that won't let a task finish while tests fail.
+1. On GitHub, create a public repo with a README (GitHub Pages is free only for public repos on the Free plan: [source](https://docs.github.com/en/get-started/learning-about-github/githubs-plans)); start a Claude Code session on it at claude.ai/code. ✅
+2. Paste this plan, exported as Markdown, for Claude to save as `docs/PLAN.md`. ✅
+3. Have Claude scaffold Vite, TypeScript, Vitest, ESLint and Prettier. ✅
+4. Have Claude add a GitHub Actions workflow that runs the checks and publishes the app to GitHub Pages after every merge; you switch Pages on once. ✅
+5. Run Claude's interview (kick-off prompt below) to produce `docs/SPEC.md`. ✅
+6. Add `CLAUDE.md` (starter below) and `docs/DECISIONS.md`. ✅
+7. Add hooks: typecheck and tests after edits; a Stop hook that won't let a task finish while tests fail. ✅
 8. Library spike: tonal spells every key correctly, Tone.js plays a chord in your browser, Web MIDI sees your USB keyboard in Chrome or Edge.
 
-- [ ] `npm run dev`, `npm test`, `npm run lint` and `npm run typecheck` all succeed
-- [ ] You have agreed `SPEC.md`
+- [x] `npm run dev`, `npm test`, `npm run lint` and `npm run typecheck` all succeed
+- [x] You have agreed `SPEC.md`
 - [ ] Spike results are in `DECISIONS.md`, with any failed library replaced
 - [ ] The published app opens on your laptop and phone, and updates after each merge
 
