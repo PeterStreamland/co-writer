@@ -1,15 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import {
   allScales,
+  chordIntervals,
   chordSymbol,
   chordsInScale,
   diatonicChords,
+  formatInterval,
   formatNote,
   getScale,
   hasDiatonicChords,
   parseNote,
   pitchClass,
   scaleNotes,
+  transpose,
   DIATONIC_KINDS,
   type DiatonicKind,
   type Key,
@@ -259,6 +262,57 @@ describe('chords in any scale', () => {
   it('finds chords in every core scale', () => {
     for (const scale of allScales().filter((s) => s.family !== 'other')) {
       expect(inScale('C', scale.id).length, scale.id).toBeGreaterThan(0)
+    }
+  })
+})
+
+describe('chordIntervals', () => {
+  it('reads extended qualities back into intervals', () => {
+    expect(chordIntervals('maj13#11')?.map(formatInterval)).toEqual([
+      'P1',
+      'M3',
+      'P5',
+      'M7',
+      'M9',
+      'A11',
+      'M13',
+    ])
+    expect(chordIntervals('m11b5b9b13')?.map(formatInterval)).toEqual([
+      'P1',
+      'm3',
+      'd5',
+      'm7',
+      'm9',
+      'P11',
+      'm13',
+    ])
+    expect(chordIntervals('m7b9')?.map(formatInterval)).toEqual([
+      'P1',
+      'm3',
+      'P5',
+      'm7',
+      'm9',
+    ])
+    expect(chordIntervals('xyz')).toBeUndefined()
+  })
+
+  it('rebuilds the notes of every diatonic chord in every key', () => {
+    const modes = allScales()
+      .map((s) => s.id)
+      .filter(hasDiatonicChords)
+    for (const { tonic } of [...majorKeys, ...minorKeys]) {
+      for (const mode of modes) {
+        for (const kind of DIATONIC_KINDS) {
+          for (const chord of diatonicChords(key(tonic, mode), kind)) {
+            const intervals = chordIntervals(chord.quality)
+            expect(intervals, chord.quality).toBeDefined()
+            const notes = intervals?.map((i) => transpose(chord.root, i))
+            expect(notes?.map((n) => formatNote(n))).toEqual(
+              chord.notes.map((n) => formatNote(n)),
+            )
+          }
+        }
+      }
     }
   })
 })

@@ -2,4 +2,5 @@
 export * from './chord'
 export * from './interval'
 export * from './note'
+export * from './numeral'
 export * from './scale'

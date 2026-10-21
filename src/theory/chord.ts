@@ -45,6 +45,10 @@ const QUALITY_INTERVALS = CHORD_QUALITIES.map((q) => ({
   }),
 }))
 
+const INTERVALS_BY_ID = new Map(
+  QUALITY_INTERVALS.map((q) => [q.id, q.intervals]),
+)
+
 // Unaltered 9th, 11th and 13th, in semitones above the root.
 const NATURAL_EXTENSIONS: Record<number, number> = { 9: 14, 11: 17, 13: 21 }
 
@@ -152,4 +156,83 @@ export function chordsInScale(key: Key): DiatonicChord[] {
     }
   })
   return chords
+}
+
+// An extended quality id read back into its 7th chord, its number and the
+// alterations past the 7th chord's own: 'maj13#11' is maj7, 13 and ♯11;
+// 'm11b5b9b13' is m7b5, 11, ♭9 and ♭13.
+function parseExtended(quality: string) {
+  const match = /^([A-Za-z]*)(7|9|11|13)((?:[b#]+\d+)*)$/.exec(quality)
+  if (!match) return undefined
+  const [, prefix, digits, tail] = match
+  const alterations = tail.match(/[b#]+\d+/g) ?? []
+  let seventh: ChordQualityData | undefined
+  for (const q of CHORD_QUALITIES) {
+    const own = q.extends?.alterations
+    if (q.extends?.prefix !== prefix || !own) continue
+    if (own.some((a, i) => alterations[i] !== a)) continue
+    if (!seventh || own.length > (seventh.extends?.alterations.length ?? 0)) {
+      seventh = q
+    }
+  }
+  if (!seventh) return undefined
+  const altered = alterations
+    .slice(seventh.extends?.alterations.length)
+    .map((text) => ({
+      number: Number(text.replace(/[b#]+/, '')),
+      offset: (text.match(/#/g)?.length ?? 0) - (text.match(/b/g)?.length ?? 0),
+    }))
+  const number = Number(digits)
+  if (number === 7 && altered.length === 0) return undefined
+  if (altered.some((a) => !(a.number in NATURAL_EXTENSIONS))) return undefined
+  return { seventh, number, altered }
+}
+
+const EXTENSION_INTERVALS: Record<number, Record<number, string>> = {
+  9: { [-1]: 'm9', 0: 'M9', 1: 'A9' },
+  11: { [-1]: 'd11', 0: 'P11', 1: 'A11' },
+  13: { [-1]: 'm13', 0: 'M13', 1: 'A13' },
+}
+
+// The intervals above the root for a quality id, including extended ones
+// that diatonicChords names (G13, Fmaj13♯11): every stacked tone up to the
+// highest extension is kept, so a 13th chord has its 9th and 11th.
+export function chordIntervals(quality: string): Interval[] | undefined {
+  const known = INTERVALS_BY_ID.get(quality)
+  if (known) return known
+  const extended = parseExtended(quality)
+  if (!extended) return undefined
+  const { seventh, number, altered } = extended
+  const top = Math.max(number, ...altered.map((a) => a.number))
+  const intervals = [...(INTERVALS_BY_ID.get(seventh.id) ?? [])]
+  for (let n = 9; n <= top; n += 2) {
+    const offset = altered.find((a) => a.number === n)?.offset ?? 0
+    const interval = parseInterval(EXTENSION_INTERVALS[n][offset] ?? '')
+    if (!interval) return undefined
+    intervals.push(interval)
+  }
+  return intervals
+}
+
+// How a quality reads after a Roman numeral (see chord-data.ts), and whether
+// it can be a secondary chord. Extended chords follow their 7th chord.
+export function qualityNumeral(
+  quality: string,
+): Pick<ChordQualityData, 'numeral' | 'secondary'> | undefined {
+  const known = BY_ID.get(quality)
+  if (known) return known
+  const extended = parseExtended(quality)
+  if (!extended) return undefined
+  const { seventh, number, altered } = extended
+  const alterations = altered
+    .map((a) => formatAccidental(a.offset) + a.number)
+    .join('')
+  return {
+    numeral: {
+      upper: seventh.numeral.upper,
+      suffix:
+        seventh.numeral.suffix.replace(/7$/, String(number)) + alterations,
+    },
+    secondary: seventh.secondary,
+  }
 }
