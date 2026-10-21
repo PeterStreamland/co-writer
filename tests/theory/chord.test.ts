@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest'
 import {
   allScales,
   chordSymbol,
+  chordsInScale,
   diatonicChords,
   formatNote,
   getScale,
   hasDiatonicChords,
   parseNote,
+  pitchClass,
   scaleNotes,
   DIATONIC_KINDS,
   type DiatonicKind,
@@ -19,6 +21,7 @@ import {
   susAndAddChords,
 } from '../fixtures/diatonic-chords'
 import { majorKeys, minorKeys } from '../fixtures/key-signatures'
+import { scaleChords, spelledScaleChords } from '../fixtures/scale-chords'
 
 function note(text: string) {
   const parsed = parseNote(text)
@@ -183,6 +186,79 @@ describe('which scales stack in thirds', () => {
           `${scale.id} ${kind}`,
         ).toHaveLength(7)
       }
+    }
+  })
+})
+
+describe('chords in any scale', () => {
+  const inScale = (tonic: string, mode: string) =>
+    chordsInScale(key(tonic, mode))
+
+  it.each(scaleChords)('$tonic $mode', ({ tonic, mode, degrees }) => {
+    const chords = inScale(tonic, mode)
+    expect(
+      degrees.map((_, i) =>
+        chords
+          .filter((c) => c.degree === i + 1)
+          .map((c) => chordSymbol(c, { ascii: true })),
+      ),
+    ).toEqual(degrees)
+    expect(chords.every((c) => c.degree <= degrees.length)).toBe(true)
+  })
+
+  it.each(spelledScaleChords)(
+    '$symbol in $tonic $mode is spelled from its root',
+    ({ tonic, mode, symbol, notes }) => {
+      const chord = inScale(tonic, mode).find(
+        (c) => chordSymbol(c, { ascii: true }) === symbol,
+      )
+      expect(chord?.notes.map((n) => formatNote(n, { ascii: true }))).toEqual(
+        notes,
+      )
+    },
+  )
+
+  it('only uses pitches from the scale', () => {
+    for (const scale of allScales()) {
+      const pitches = new Set(scaleNotes(note('F#'), scale.id).map(pitchClass))
+      for (const chord of inScale('F#', scale.id)) {
+        expect(
+          chord.notes.every((n) => pitches.has(pitchClass(n))),
+          `${scale.id} ${chordSymbol(chord)}`,
+        ).toBe(true)
+      }
+    }
+  })
+
+  it('roots each chord on its degree, spelled as in the scale', () => {
+    for (const scale of allScales()) {
+      const notes = scaleNotes(note('Eb'), scale.id)
+      for (const chord of inScale('Eb', scale.id)) {
+        expect(chord.root).toEqual(notes[chord.degree - 1])
+      }
+    }
+  })
+
+  it('agrees with the stacked chords of scales that have them', () => {
+    const kinds = DIATONIC_KINDS.filter(
+      (k) => !['ninth', 'eleventh', 'thirteenth'].includes(k),
+    )
+    for (const scale of allScales().filter((s) => hasDiatonicChords(s.id))) {
+      const found = new Set(
+        inScale('Ab', scale.id).map((c) => chordSymbol(c, { ascii: true })),
+      )
+      for (const kind of kinds) {
+        for (const chord of diatonicChords(key('Ab', scale.id), kind)) {
+          const symbol = chordSymbol(chord, { ascii: true })
+          expect(found.has(symbol), `${scale.id} ${symbol}`).toBe(true)
+        }
+      }
+    }
+  })
+
+  it('finds chords in every core scale', () => {
+    for (const scale of allScales().filter((s) => s.family !== 'other')) {
+      expect(inScale('C', scale.id).length, scale.id).toBeGreaterThan(0)
     }
   })
 })

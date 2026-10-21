@@ -86,3 +86,13 @@ Phase 1 task 3 builds each degree's chords from the scale's own notes, so they k
 Chord qualities are stored as lead-sheet symbols in ASCII ('m7b5', 'maj13#11'), with 'M' for a plain major triad; the jazz display style comes with the parser in task 6.
 
 Why: these are the conventions a lead sheet uses, they name every chord the core scales produce, and David can flag any name in the Phase 1 audit table.
+
+## 2026-10-21 — Chords for scales that don't stack in thirds
+
+Phase 1 task 4: a scale that doesn't stack in thirds (pentatonics, blues, whole-tone, diminished, bebop, Hungarian minor and the rest) shows every dictionary chord whose notes sit in the scale. David chose to match by pitch, not by written spelling: a chord counts if every note's pitch is in the scale, and its notes are spelled from its root so the name matches them. Roots are the scale's own notes, spelled as the scale spells them.
+
+So C whole-tone has an augmented and a 7♯5 chord on every note (E7♯5 is E G♯ B♯ D, though the scale writes C); the half-whole diminished scale has dim7 on every note and major, minor, 7th and 6th chords on every other one; C Hungarian minor has A♭m spelled A♭ C♭ E♭ though the scale writes B. Matching by spelling would have given cleaner names but dropped chords from symmetrical scales (C whole-tone would only have C and D augmented).
+
+The "dictionary" is the chord-quality list in `src/theory/chord-data.ts`. When task 6 widens it (power chords, 6/9 and altered dominants), these scales gain those chords with no further code. The function works on any scale, and for scales that stack in thirds it finds every diatonic triad, 7th, sus, add and 6th chord too.
+
+Why: the plan didn't say whether "sit in the scale" means pitch or spelling; pitch keeps the symmetrical scales' chords, which are what those scales are used for.
