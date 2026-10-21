@@ -5,6 +5,7 @@
 // mode, and otherwise as chromatic.
 import {
   chordIntervals,
+  chordsInScale,
   diatonicChords,
   hasDiatonicChords,
   qualityNumeral,
@@ -96,12 +97,22 @@ function numeralBody(tonic: Note, root: Note, upper: boolean): string {
 
 // A 3rd-less chord's case follows the key's own triad on its root: lower
 // where that is minor or diminished (ii7sus4 in C), upper elsewhere,
-// including off the scale (♭VI5).
+// including off the scale (♭VI5). A scale that doesn't stack in thirds may
+// hold no triad on the root, or both a major and a minor one (C major blues):
+// it is lower only when every triad there is minor or diminished, so E5 in
+// E minor pentatonic is i5.
 function isUpper(key: Key, root: Note, upper: boolean | 'key'): boolean {
   if (upper !== 'key') return upper
-  if (!hasDiatonicChords(key.mode)) return true
-  const triad = diatonicChords(key, 'triad').find((t) => sameNote(t.root, root))
-  return !triad || triad.quality === 'M' || triad.quality === 'aug'
+  const triads = hasDiatonicChords(key.mode)
+    ? diatonicChords(key, 'triad')
+    : chordsInScale(key).filter((c) =>
+        ['M', 'm', 'dim', 'aug'].includes(c.quality),
+      )
+  const onRoot = triads.filter((t) => sameNote(t.root, root))
+  return (
+    !onRoot.some((t) => t.quality === 'm' || t.quality === 'dim') ||
+    onRoot.some((t) => t.quality === 'M' || t.quality === 'aug')
+  )
 }
 
 // Whether every note sits in the key: by spelling for a scale that stacks in
