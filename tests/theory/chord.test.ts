@@ -16,7 +16,7 @@ import {
   chordsOnC,
   extendedChords,
   spelledChords,
-  susAndAddInC,
+  susAndAddChords,
 } from '../fixtures/diatonic-chords'
 import { majorKeys, minorKeys } from '../fixtures/key-signatures'
 
@@ -105,8 +105,10 @@ describe('9th, 11th and 13th chords', () => {
 })
 
 describe('sus, add and 6th chords', () => {
-  it.each(Object.entries(susAndAddInC))('C major %s', (kind, expected) => {
-    expect(symbols('C', 'major', kind as DiatonicKind)).toEqual(expected)
+  it.each(susAndAddChords)('$tonic $mode', ({ tonic, mode, chords }) => {
+    for (const [kind, expected] of Object.entries(chords)) {
+      expect(symbols(tonic, mode, kind as DiatonicKind), kind).toEqual(expected)
+    }
   })
 })
 

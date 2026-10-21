@@ -112,16 +112,38 @@ export const extendedChords: {
   },
 ]
 
-// Sus, add and 6th chords on each degree of C major. A degree is left out when
-// the shape isn't diatonic there (no Fsus4: C major has B, not Bb).
-export const susAndAddInC: Record<string, string[]> = {
-  sus2: ['Csus2', 'Dsus2', 'Fsus2', 'Gsus2', 'Asus2'],
-  sus4: ['Csus4', 'Dsus4', 'Esus4', 'Gsus4', 'Asus4'],
-  '7sus4': ['D7sus4', 'E7sus4', 'G7sus4', 'A7sus4'],
-  add9: ['Cadd9', 'Dmadd9', 'Fadd9', 'Gadd9', 'Amadd9'],
-  add11: ['Cadd11', 'Dmadd11', 'Emadd11', 'Gadd11', 'Amadd11'],
-  '6': ['C6', 'Dm6', 'F6', 'G6'],
-}
+// Sus, add and 6th chords on each degree. A degree is left out when the shape
+// isn't a dictionary chord there (no Fsus4 in C major: C major has B, not Bb).
+export const susAndAddChords: {
+  tonic: string
+  mode: string
+  chords: Record<string, string[]>
+}[] = [
+  {
+    tonic: 'C',
+    mode: 'major',
+    chords: {
+      sus2: ['Csus2', 'Dsus2', 'Fsus2', 'Gsus2', 'Asus2'],
+      sus4: ['Csus4', 'Dsus4', 'Esus4', 'Gsus4', 'Asus4'],
+      '7sus4': ['D7sus4', 'E7sus4', 'G7sus4', 'A7sus4'],
+      add9: ['Cadd9', 'Dmadd9', 'Fadd9', 'Gadd9', 'Amadd9'],
+      add11: ['Cadd11', 'Dmadd11', 'Emadd11', 'Gadd11', 'Amadd11'],
+      '6': ['C6', 'Dm6', 'F6', 'G6'],
+    },
+  },
+  {
+    tonic: 'A',
+    mode: 'harmonic-minor',
+    chords: {
+      sus2: ['Asus2', 'Dsus2'],
+      sus4: ['Asus4', 'Esus4'],
+      '7sus4': ['E7sus4'],
+      add9: ['Amadd9', 'Dmadd9'],
+      add11: ['Amadd11', 'Eadd11'],
+      '6': ['Dm6', 'F6'],
+    },
+  },
+]
 
 // Chords spelled in awkward keys: functional spelling stands (SPEC 4 and 13).
 export const spelledChords: {
