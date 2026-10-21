@@ -154,3 +154,14 @@ Phase 1 task 7 (`src/theory/inversion.ts`, golden fixture `tests/fixtures/invers
 - **Numerals** for inversions were settled in task 5 (I⁶, V⁶₅, V7/3); the tests now check them against every inversion this module produces.
 
 Why: these match the conventions already in the core and give Phase 2 a ready voicing to play and Phase 3 a bass note to filter fingerings by. David can flag any of them in the Phase 1 audit table.
+
+## 2026-10-21 — The Phase 1 audit table
+
+Phase 1's "Your test" (`src/audit/`, at `#/audit` on the published app). The plan asks for "a table of every key's scales and chords"; these choices it didn't settle:
+
+- **A page in the app, not a document:** the table is built live from the theory core, so it can never drift from what the code does, and David checks it on the published app as he does everything else. It shows one key in full (scale, degrees, every kind of stacked chord with its numeral, or every chord in the scale for scales that don't stack in thirds), any chord's names, numeral line and inversions, and every key of the chosen scale side by side.
+- **Flags:** David flags anything wrong on the page; flags stay in his browser and copy out as text to paste into the next session.
+- **Key signatures:** a new core function, `keySignature`, gives the parent scale's signature (SPEC 4). Harmonic and melodic minor and their modes show the natural minor's signature, with raised notes as accidentals (D♯ harmonic minor: 6 sharps, C𝄪 written in). Scales that aren't modes (pentatonics, blues, whole-tone, bebop and the wider dictionary) have no signature of their own.
+- **"Every key":** a mode is listed on the 15 tonics whose parent key has a real signature (C♭ to C♯ for major, A♭ to A♯ for minor); a scale that isn't a mode on the 18 tonics of the 30 signatures. The single-key view accepts any of the 21 tonics with one sharp or flat.
+
+Why: the audit is David's check that the core is musically right before Phases 2 onwards build on it. The page is temporary in the same way as the spike: Phase 2's key explorer may absorb or replace it.

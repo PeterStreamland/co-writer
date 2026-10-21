@@ -7,6 +7,7 @@ body {
   margin: 0;
   min-height: 100vh;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
 }
 
@@ -31,4 +32,142 @@ body {
 .spike .log {
   font-family: ui-monospace, monospace;
   opacity: 0.8;
+}
+
+.audit {
+  --line: #8884;
+  --accent: #2563eb;
+  --muted: #6b7280;
+  max-width: 72rem;
+  width: 100%;
+  min-width: 0;
+  padding: 1rem;
+  box-sizing: border-box;
+  align-self: start;
+}
+
+.audit .controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  align-items: center;
+}
+
+.audit select {
+  max-width: 100%;
+}
+
+.audit select,
+.audit input,
+.audit button {
+  font: inherit;
+}
+
+.audit .scroll {
+  overflow-x: auto;
+}
+
+.audit table {
+  border-collapse: collapse;
+}
+
+.audit th,
+.audit td {
+  border: 1px solid var(--line);
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.audit thead th {
+  white-space: nowrap;
+}
+
+.audit td.empty {
+  color: var(--muted);
+  text-align: center;
+}
+
+.audit .list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.audit .list button.chord {
+  width: auto;
+}
+
+.audit button.chord {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  padding: 0.15rem 0.3rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.audit button.chord:hover {
+  border-color: var(--accent);
+}
+
+.audit .symbol {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.audit .numeral {
+  font-family: Georgia, serif;
+  white-space: nowrap;
+}
+
+.audit .notes,
+.audit .muted {
+  color: var(--muted);
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
+.audit button.link {
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.audit button.small {
+  font-size: 0.85em;
+}
+
+.audit .flags,
+.audit .detail {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 1rem 1rem;
+  margin: 1rem 0;
+}
+
+.audit .flags textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: ui-monospace, monospace;
+}
+
+.audit .flag-form {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+#app {
+  max-width: 100%;
+  min-width: 0;
 }
