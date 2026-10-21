@@ -9,3 +9,26 @@ body {
   display: grid;
   place-items: center;
 }
+
+.spike {
+  max-width: 40rem;
+  padding: 1rem;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.spike button {
+  font-size: 1.1rem;
+  padding: 0.6rem 1rem;
+}
+
+.spike .held {
+  font-size: 2rem;
+  font-weight: bold;
+  min-height: 2.5rem;
+}
+
+.spike .log {
+  font-family: ui-monospace, monospace;
+  opacity: 0.8;
+}
