@@ -111,8 +111,8 @@ These are the musical truths the golden tests check. `.claude/skills/music-conve
   - Every other valid name is listed underneath. C6 and Am7/C are the same notes; Cdim7 has four names.
 - **Power chords and other incomplete chords** (C5, a 3rd-less triad) are quality-neutral:
   - They count as either major or minor in key finding.
-  - Their numerals show the root only (♭VI5).
-  - They are never forced into a quality.
+  - They are never forced into a quality in naming or key finding.
+  - Their numerals take the case of the key's own chord on that degree (i5 and iv5 in E minor), and upper case on a degree with no chord in the key (♭VI5): David's choice, recorded in DECISIONS.md.
 - **Slash chords** show the bass note (C/E). Whether a chord is an inversion or a slash chord over a non-chord bass is worked out by the theory core.
 
 ## 5. Instruments (Phases 2–3)

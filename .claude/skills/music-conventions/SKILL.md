@@ -40,7 +40,7 @@ Summary of docs/SPEC.md section 4. SPEC.md is the authority; if this file and th
 - Display setting: lead-sheet (default: Cmaj7, Cm7, Cm7♭5, Cdim7, Caug) or jazz (C△7, C–7, Cø7, C°7, C+). The parser accepts both always.
 - Ambiguous notes: the primary name fits the current key and keeps the lowest note as root where possible; with no key, lowest note is root. List every other valid name underneath (C6 = Am7/C; Cdim7 has four names).
 - Don't trust tonal's `Chord.detect` order: it ranks Em♯5 above C/E for E–G–C and ignores spelling. Rank names ourselves.
-- Power chords and other 3rd-less chords are quality-neutral: either major or minor in key finding, numerals show the root only (♭VI5), never forced into a quality.
+- Power chords and other 3rd-less chords are quality-neutral: either major or minor in key finding and never forced into a quality; their numerals take the case of the key's chord on that degree (i5 in E minor), upper case where the key has no chord on that degree (♭VI5).
 - Slash chords show the bass (C/E); the core decides inversion vs non-chord bass.
 
 ## Edge cases tests must cover (SPEC section 13)
@@ -48,4 +48,4 @@ Summary of docs/SPEC.md section 4. SPEC.md is the authority; if this file and th
 - F♭ in A♭ minor; G♯°7 in C; double sharps in D♯ harmonic minor
 - Modal keys numbered from their own tonic; enharmonic key swap keeps every chord's function
 - Every name of symmetrical chords (dim7, aug)
-- Power chords quality-neutral through naming, key finding and numerals, including all-power-chord progressions
+- Power chords quality-neutral through naming and key finding, numerals cased as above, including all-power-chord progressions
