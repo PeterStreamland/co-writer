@@ -284,6 +284,14 @@ export const numeralCases: NumeralCase[] = [
   {
     tonic: 'C',
     mode: 'major',
+    root: 'E',
+    quality: '7#5',
+    numeral: 'V+7/vi',
+    kind: 'secondary',
+  },
+  {
+    tonic: 'C',
+    mode: 'major',
     root: 'F#',
     quality: 'dim',
     numeral: 'vii°/V',
@@ -591,7 +599,8 @@ export const numeralCases: NumeralCase[] = [
     kind: 'diatonic',
   },
 
-  // A bass outside the chord, shown as its degree in the key
+  // A bass outside the chord, shown as its degree in the key. It counts
+  // towards the reading: the B♭ makes C/B♭ borrowed from C Mixolydian.
   {
     tonic: 'C',
     mode: 'major',
@@ -608,7 +617,26 @@ export const numeralCases: NumeralCase[] = [
     quality: 'M',
     bass: 'Bb',
     numeral: 'I (bass ♭7)',
+    kind: 'borrowed',
+    sources: ['mixolydian'],
+  },
+  {
+    tonic: 'C',
+    mode: 'major',
+    root: 'C',
+    quality: 'M',
+    bass: 'D',
+    numeral: 'I (bass 2)',
     kind: 'diatonic',
+  },
+  {
+    tonic: 'C',
+    mode: 'major',
+    root: 'F',
+    quality: 'M',
+    bass: 'F#',
+    numeral: 'IV (bass ♯4)',
+    kind: 'chromatic',
   },
 ]
 
@@ -682,5 +710,12 @@ export const numeralDescriptions: {
     root: 'G',
     quality: 'M',
     text: '♭III, diatonic in E minor',
+  },
+  {
+    tonic: 'A',
+    mode: 'harmonic-minor',
+    root: 'E',
+    quality: '7',
+    text: 'V7, diatonic in A harmonic minor',
   },
 ]

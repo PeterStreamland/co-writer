@@ -120,6 +120,7 @@ export const CHORD_QUALITIES: ChordQualityData[] = [
     intervals: ['P1', 'M3', 'A5', 'm7'],
     extends: { prefix: '', alterations: ['#5'] },
     numeral: { upper: true, suffix: '+7' },
+    secondary: 'dominant',
   },
 
   // Sus, add and 6th chords

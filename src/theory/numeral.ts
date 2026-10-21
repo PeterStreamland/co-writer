@@ -51,15 +51,15 @@ const MAJOR_MODES = [
 const MINOR_SCALES = ['harmonic-minor', 'melodic-minor']
 
 // How keys and sources are named in descriptions.
-const KEY_NAMES: Record<string, string> = {
-  major: 'major',
-  'natural-minor': 'minor',
-}
 const SOURCE_NAMES: Record<string, string> = {
   major: 'major',
   'natural-minor': 'Aeolian',
   'harmonic-minor': 'harmonic minor',
   'melodic-minor': 'melodic minor',
+}
+const KEY_NAMES: Record<string, string> = {
+  ...SOURCE_NAMES,
+  'natural-minor': 'minor',
 }
 
 // Figured-bass inversions for triads and 7th chords, by bass chord tone.
@@ -176,13 +176,19 @@ export function romanNumeral(
 ): RomanNumeral {
   const { numeral, secondary, intervals } = requireQuality(chord.quality)
   const notes = intervals.map((i) => transpose(chord.root, i))
+  // A bass outside the chord counts too: F/F♯ in C isn't diatonic, and
+  // C/B♭ is borrowed from C Mixolydian.
+  const sounding =
+    chord.bass && !notes.some((n) => sameNote(n, chord.bass as Note))
+      ? [...notes, chord.bass]
+      : notes
 
   let kind: NumeralKind = 'chromatic'
   let target: RomanNumeral['target']
   let sources: Key[] | undefined
-  if (inKey(key, notes)) kind = 'diatonic'
+  if (inKey(key, sounding)) kind = 'diatonic'
   else if ((target = secondaryTarget(key, chord, secondary))) kind = 'secondary'
-  else if ((sources = borrowedSources(key, notes))) kind = 'borrowed'
+  else if ((sources = borrowedSources(key, sounding))) kind = 'borrowed'
 
   // A secondary chord is numbered from its target: V of vi, vii° of V.
   const body = target
