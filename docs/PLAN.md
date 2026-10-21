@@ -122,6 +122,8 @@ Goal: a pure, fully tested TypeScript module that is the single source of musica
 
 Your test: Claude generates a table of every key's scales and chords; you audit it as a musician and flag anything wrong. The table is ready at `#/audit` on the published app. ✅
 
+Gate passed: the theory-reviewer confirmed every exit criterion, and the release is tagged `v0.1-theory-core`. ✅
+
 ### Phase 2 — Key explorer and playback
 
 Goal: the first usable screen, covering your first feature request.

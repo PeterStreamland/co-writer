@@ -169,3 +169,13 @@ Why: the audit is David's check that the core is musically right before Phases 2
 ## 2026-10-21 — Phase 1 audit passed
 
 David went through the audit table on the published app (`#/audit`) and found nothing wrong, so Phase 1's "Your test" is ticked. The audit page stays until Phase 2's key explorer replaces it. Phase 1's gate still needs the theory-reviewer check and the release tag.
+
+## 2026-10-21 — Phase 1 gate passed
+
+The theory-reviewer checked all of Phase 1 (`v0.0-setup` to `d375b0c`) against SPEC 4 and 13 and found nothing blocking. It confirmed each exit criterion with evidence: all 30 key signatures spell correctly, the diatonic qualities are right for every scale and mode, 3,927 chord symbols round-trip (at least 200 were needed), and the core imports only `tonal`. 910 tests, lint and typecheck all pass, and no golden fixture was changed to make a test pass. Phase 1 is released as `v0.1-theory-core`, tagged on `main` once this record is merged.
+
+- **Power-chord numerals:** SPEC 4 and the music-conventions skill still said power-chord numerals "show the root only". They now match David's recorded choice: the case of the key's chord on that degree (i5 in E minor), upper case where the key has none (♭VI5).
+- **Open questions for David (not blocking):**
+  - In a minor key, F♯7 in E minor reads V7/v, because minor keys are read as natural minor. Most charts write V7/V, because the chord usually resolves to a major B. This should be settled before Phase 4's engine relies on it.
+  - SPEC 3 says the sketch data model (sections, chord events) comes "from Phase 1", but no Phase 1 task built it. It will be built when Phase 2 or 4 first needs it.
+  - C2, Cadd2, C7alt and C7no5 don't parse yet. C2 and Cadd2 are common in guitar charts and could join the dictionary later.
