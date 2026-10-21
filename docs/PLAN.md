@@ -108,7 +108,7 @@ Your test: open the app, hear a C major chord, and see a note you play on your k
 Goal: a pure, fully tested TypeScript module that is the single source of musical truth.
 
 1. Note and interval types that keep spelling (letter, accidental, octave); pitch numbers are derived, never stored alone. ✅
-2. Scale dictionary as data: major and its modes, harmonic and melodic minor and their modes, pentatonics, blues, whole-tone, diminished, bebop and tonal's wider dictionary.
+2. Scale dictionary as data: major and its modes, harmonic and melodic minor and their modes, pentatonics, blues, whole-tone, diminished, bebop and tonal's wider dictionary. ✅
 3. Diatonic chords for seven-note scales: triads, 7ths, 9/11/13 extensions, sus and add chords.
 4. A policy for scales that aren't seven notes: show every dictionary chord whose notes all sit in the scale.
 5. Roman-numeral labels, including borrowed and secondary chords.
