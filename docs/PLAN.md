@@ -94,14 +94,14 @@ Goal: an empty app that builds and deploys, an agreed spec, and verified librari
 5. Run Claude's interview (kick-off prompt below) to produce `docs/SPEC.md`. ✅
 6. Add `CLAUDE.md` (starter below) and `docs/DECISIONS.md`. ✅
 7. Add hooks: typecheck and tests after edits; a Stop hook that won't let a task finish while tests fail. ✅
-8. Library spike: tonal spells every key correctly, Tone.js plays a chord in your browser, Web MIDI sees your USB keyboard in Chrome or Edge. (Progress: tonal ✅, Tone.js ✅ on laptop; Web MIDI passes a simulated test; your keyboard and phone tests are still to do.)
+8. Library spike: tonal spells every key correctly, Tone.js plays a chord in your browser, Web MIDI sees your USB keyboard in Chrome or Edge. ✅
 
 - [x] `npm run dev`, `npm test`, `npm run lint` and `npm run typecheck` all succeed
 - [x] You have agreed `SPEC.md`
-- [ ] Spike results are in `DECISIONS.md`, with any failed library replaced
-- [ ] The published app opens on your laptop and phone, and updates after each merge
+- [x] Spike results are in `DECISIONS.md`, with any failed library replaced
+- [x] The published app opens on your laptop and phone, and updates after each merge
 
-Your test: open the app, hear a C major chord, and see a note you play on your keyboard appear on screen.
+Your test: open the app, hear a C major chord, and see a note you play on your keyboard appear on screen. ✅
 
 ### Phase 1 — Theory core (no UI)
 
