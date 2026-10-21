@@ -165,3 +165,7 @@ Phase 1's "Your test" (`src/audit/`, at `#/audit` on the published app). The pla
 - **"Every key":** a mode is listed on the 15 tonics whose parent key has a real signature (C♭ to C♯ for major, A♭ to A♯ for minor); a scale that isn't a mode on the 18 tonics of the 30 signatures. The single-key view accepts any of the 21 tonics with one sharp or flat.
 
 Why: the audit is David's check that the core is musically right before Phases 2 onwards build on it. The page is temporary in the same way as the spike: Phase 2's key explorer may absorb or replace it.
+
+## 2026-10-21 — Phase 1 audit passed
+
+David went through the audit table on the published app (`#/audit`) and found nothing wrong, so Phase 1's "Your test" is ticked. The audit page stays until Phase 2's key explorer replaces it. Phase 1's gate still needs the theory-reviewer check and the release tag.

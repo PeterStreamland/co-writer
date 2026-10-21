@@ -120,7 +120,7 @@ Goal: a pure, fully tested TypeScript module that is the single source of musica
 - [x] At least 200 chord symbols round-trip: parse, name, parse again
 - [x] The core imports no UI, audio or DOM code
 
-Your test: Claude generates a table of every key's scales and chords; you audit it as a musician and flag anything wrong. The table is ready at `#/audit` on the published app.
+Your test: Claude generates a table of every key's scales and chords; you audit it as a musician and flag anything wrong. The table is ready at `#/audit` on the published app. ✅
 
 ### Phase 2 — Key explorer and playback
 
