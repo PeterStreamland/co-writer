@@ -142,3 +142,15 @@ Phase 1 task 6 (`src/theory/chord-symbol.ts`, golden fixture `tests/fixtures/cho
 - **Names left out:** no name puts a 9th, 11th or 13th in the bass (Fadd9/G is F/G; Em7♭5♭13/C is C9). A chord over a bass outside it (F/G) is only offered when no complete name has a chord tone in the bass, so C E G B♭ is C7, not also Edim/C.
 
 Why: these follow SPEC 4's rule that the primary name fits the key and keeps the lowest note as root, and they give the names a guitarist would write for common voicings. David can flag any name in the Phase 1 audit table.
+
+## 2026-10-21 — Inversions
+
+Phase 1 task 7 (`src/theory/inversion.ts`, golden fixture `tests/fixtures/inversions.ts`). The plan says only "inversions for any chord"; these choices it didn't settle:
+
+- **Which notes invert:** a chord inverts on its root, 3rd (or the 2nd or 4th of a sus chord), 5th, and 6th or 7th, in that order. A 9th, 11th or 13th in the bass makes a slash chord, not an inversion, as the namer already decided (Fadd9/G is F/G). So C has three positions, G7 and G13 four (G13/F is the third inversion), C5 two (C5/G), and Cadd9 three.
+- **Spelling:** the bass keeps the chord's own spelling: B♭dim7 in third inversion is B♭dim7/A𝄫, E7♯5 in second inversion is E7♯5/B♯.
+- **Recognising an inversion:** a slash chord whose bass matches a chord tone by pitch is that inversion, as chord symbols already read it (Caug/A♭ is a second inversion). A bass outside the chord, or on a 9th, 11th or 13th, is a slash chord with no inversion number.
+- **Close-position voicing:** each inversion can be voiced with octaves for playback and the keyboard view: the bass at the octave asked for, the other chord tones each the next one up, then any 9th, 11th or 13th above them. C/E from octave 4 is E4 G4 C5; G13/B from octave 3 is B3 D4 F4 G4 A4 C5 E5. A slash chord puts its bass under the chord in root position: F/G from octave 2 is G2 F3 A3 C4. Phase 5's voicing lenses will offer other spacings.
+- **Numerals** for inversions were settled in task 5 (I⁶, V⁶₅, V7/3); the tests now check them against every inversion this module produces.
+
+Why: these match the conventions already in the core and give Phase 2 a ready voicing to play and Phase 3 a bass note to filter fingerings by. David can flag any of them in the Phase 1 audit table.
