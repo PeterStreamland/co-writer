@@ -29,7 +29,7 @@ Summary of docs/SPEC.md section 4. SPEC.md is the authority; if this file and th
 ## Roman numerals
 
 - Always measured from the major scale on the tonic, flats shown: E minor is i – ii° – ♭III – iv – v – ♭VI – ♭VII.
-- Modal keys number from their own tonic: in E Dorian, A is IV and C♯m is vi.
+- Modal keys number from their own tonic: in E Dorian, A is IV and C♯° is vi°.
 - Case and marks: I major, ii minor, ° diminished, ø half-diminished, + augmented.
 - Extensions follow the numeral (V7, ii7, ♭VIImaj7). Inversions use figures by default (V⁶₅), slash optional (V7/3).
 - Secondary chords: V/vi, vii°7/V. Borrowed chords name their source mode in ⓘ ("♭VI, borrowed from E Aeolian").

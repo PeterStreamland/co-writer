@@ -54,3 +54,9 @@ Status: complete. All three libraries pass; none is replaced. Updated 2026-10-21
     - C–E–G named CM and A–C–E named Am
 
 The spike page (`#/spike`) is temporary and is removed in Phase 2.
+
+## 2026-10-21 — Correction to SPEC.md: E Dorian's vi chord is diminished
+
+SPEC.md section 4 said "in E Dorian, A is IV and C♯m is vi". E Dorian is E F♯ G A B C♯ D, so the triad on its 6th degree is C♯–E–G, a diminished chord: vi°, not vi. SPEC.md and the music-conventions skill now read "C♯° is vi°". The rule the example illustrates (modal numerals count from the modal tonic) is unchanged.
+
+Why: the Phase 0 gate review found it, and David agreed to correct it; accuracy comes first. Phase 1's diatonic-chord fixtures must record vi° for Dorian explicitly.
