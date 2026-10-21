@@ -111,3 +111,34 @@ Phase 1 task 5 (`src/theory/numeral.ts`, golden fixture `tests/fixtures/numerals
 - **Augmented dominants** count as secondaries: E7♯5 in C is V+7/vi.
 
 Why: these are the readings a rock or pop musician would give, and the borrowed rule picks the smallest change of colour. David can flag any numeral in the Phase 1 audit table.
+
+## 2026-10-21 — Chord symbols: the parser, the namer and the wider dictionary
+
+Phase 1 task 6 (`src/theory/chord-symbol.ts`, golden fixture `tests/fixtures/chord-symbols.ts`). SPEC 4 sets the two display styles and the ranking principle; these choices it didn't settle:
+
+- **Wider dictionary:** power chords (C5), 7♭5, 6/9, m6/9 and 9sus4 join the dictionary, and altered dominants (C7♭9, C7♯9, C7♯11, C7♭13, C7♯5♭9 and so on) come from the extended-chord names. The namer knows 187 qualities: every 7th chord with natural or altered 9ths, 11ths and 13ths, minus names that double a pitch (7♯5♭13). Power chord numerals take the case of the key's chord on their degree, as already decided: E5 C5 D5 A5 in E minor reads i5 ♭VI5 ♭VII5 iv5. A 7♭5 inversion uses the slash form (V7♭5/3), not figures.
+- **Scales that don't stack in thirds gain the new chords (David's choice).** The task 4 fixture now also lists, in order after the existing chords:
+  - C major pentatonic: C5 and C6/9 on C, D5 and D9sus4 on D, G5, A5. A minor pentatonic gets the same chords.
+  - C minor blues: C5; E♭5, E♭6/9 and E♭m6/9; F5 and F9sus4; B♭5.
+  - C whole-tone: a 7♭5 on every note.
+  - C half-whole diminished: a power chord and a 7♭5 on C, E♭, F♯ and A.
+  - C Hungarian minor: C5, D7♭5, G5, A♭5 and A♭7♭5, B5.
+- **An alteration adds only its own note:** C7♯11 is C E G B♭ F♯, with no 9th, and C7♭9 has no 11th. A natural extension still keeps the ones below it (C13 has its 9th and 11th, as decided in task 3). Every chord the diatonic stacks name keeps its notes.
+- **The parser** reads both styles always: CM7, C△7, C△, Cma7, C-7, C–7, Cmin7, Cø, Cø9, C°7, Co7, C+, C+7, C7+5, C7-9, Cm(maj7), C–△7, C69, Csus, C7(♭9,♯11) and so on, in any order of alterations. A slash with a note after it is a bass (C/E); 6/9 is not. The jazz display style writes C–, C°, C+, C△7, C–7, Cø7, C°7, C–△7, C+△7, C+7, C△13♯11, Cø9.
+- **The namer's ranking**, after fit with the key (diatonic, then secondary or borrowed, then chromatic):
+  1. fewest notes respelled
+  2. the lowest note as root, then as another chord tone, then a bass outside the chord
+  3. fewest notes left out
+
+  So C E G A is C6 then Am7/C, and Cdim7 lists Cdim7, E♭dim7/C, Adim7/C and G♭dim7/C. A root with a double accidental is respelled (B𝄫 reads as A). The bass keeps the spelling given (A♭ C E in A minor is Caug/A♭), but key fit reads it as the chord spells it, so Caug/A♭ counts as III+.
+
+- **Left-out notes (David's choice):**
+  - The 5th can go from any chord of four or more notes, unless it has a ♯11 or ♭13, which would then sound as a ♭5 or ♯5.
+  - The 9th can go from 11th and 13th chords, and the 11th from 13th chords.
+  - The 3rd, the 7th and altered notes always stay.
+
+  Examples: C E B♭ is C7, C B♭ E A is C13, and E A D G B E is Em11. Each name lists the notes it leaves out (`omitted`). David asked for the instrument views to show these as notes that belong to the chord but can be left out; that is UI work for Phase 2 (keyboard) and Phase 3 (fretboard shapes).
+
+- **Names left out:** no name puts a 9th, 11th or 13th in the bass (Fadd9/G is F/G; Em7♭5♭13/C is C9). A chord over a bass outside it (F/G) is only offered when no complete name has a chord tone in the bass, so C E G B♭ is C7, not also Edim/C.
+
+Why: these follow SPEC 4's rule that the primary name fits the key and keeps the lowest note as root, and they give the names a guitarist would write for common voicings. David can flag any name in the Phase 1 audit table.
