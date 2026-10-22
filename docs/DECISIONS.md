@@ -235,7 +235,7 @@ Why: where things sit shapes how Phase 4's progression strip and suggestion pane
 
 ## 2026-10-22 — Chord-tone colour and chord boxes (David's choice)
 
-- **Chord tones are filled orange** on the keyboard and fretboard, not ringed, so the current chord stands out. When the key's root is also in the chord, it is orange with a red ring, so the root stays visible.
+- **Chord tones are filled orange** on the keyboard and fretboard, not ringed, so the current chord stands out. The key's root always stays plain red, even when it is in the chord.
 - **Chord boxes join Phase 3** as task 8. The current chord's shape appears as a small vertical chord box to the right of the full neck, with ◀ ▶ arrows to step through its shapes, positions and inversions, and the shape on show is also marked on the neck. The fingering search, scoring and filters of Phase 3 tasks 1–4 supply the shapes; SPEC 5 already set the box style (nut at the top, low string on the left, fret dots only).
 
 Why: David's request after trying the fretboard view. The boxes need Phase 3's fingering search, so they arrive with it rather than in Phase 2.

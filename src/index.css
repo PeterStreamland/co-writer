@@ -464,13 +464,6 @@ body:has(.workspace) {
   background: var(--chord);
 }
 
-/* The key's root keeps a red ring when it is also in the current chord. */
-.instrument .dot.root.chord-tone {
-  box-shadow:
-    0 0 0 2px Canvas,
-    0 0 0 4px var(--root);
-}
-
 .instrument .legend .dot {
   min-width: 0.9rem;
   height: 0.9rem;
