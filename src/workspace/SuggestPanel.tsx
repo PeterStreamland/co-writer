@@ -27,7 +27,7 @@ export function SuggestPanel({
 }: {
   keyValue: Key
   chord: ChordName | undefined
-  weights: StyleWeights
+  weights: StyleWeights | undefined
   preview: NextChordSuggestion | undefined
   onPreview: (s: NextChordSuggestion) => void
   onAccept: (s: NextChordSuggestion) => void

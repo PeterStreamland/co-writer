@@ -37,12 +37,15 @@ function key(text: string): Key {
 const ruleIds = NEXT_CHORD_RULES.map((r) => r.id)
 
 describe('built-in styles', () => {
-  it('weighs every rule in pop, rock and metal', () => {
+  it('weighs every rule in every style', () => {
     expect(styleSetProblems(BUILT_IN_STYLES)).toEqual([])
     expect(BUILT_IN_STYLES.styles.map((s) => s.id)).toEqual([
       'pop',
       'rock',
       'metal',
+      'jazz',
+      'blues',
+      'classical',
     ])
     for (const style of BUILT_IN_STYLES.styles) {
       expect(Object.keys(style.weights).sort()).toEqual([...ruleIds].sort())
@@ -84,7 +87,7 @@ describe('readStyleSet', () => {
     const read = readStyleSet({
       styles: [
         { id: 'metal', weights: { 'rock.flat-six': 1, 'pedal.sus': 9 } },
-        { id: 'jazz', weights: { 'rock.flat-six': 0 } },
+        { id: 'polka', weights: { 'rock.flat-six': 0 } },
       ],
     })
     const metal = read.styles.find((s) => s.id === 'metal')
@@ -92,7 +95,9 @@ describe('readStyleSet', () => {
     expect(metal?.weights['pedal.sus']).toBe(
       BUILT_IN_STYLES.styles[2].weights['pedal.sus'],
     )
-    expect(read.styles.map((s) => s.id)).toEqual(['pop', 'rock', 'metal'])
+    expect(read.styles.map((s) => s.id)).toEqual(
+      BUILT_IN_STYLES.styles.map((s) => s.id),
+    )
     expect(read.styles[0]).toEqual(BUILT_IN_STYLES.styles[0])
   })
 
@@ -131,7 +136,9 @@ describe('blending', () => {
   })
 
   it('rejects an unknown style', () => {
-    expect(() => blendWeights(BUILT_IN_STYLES, { a: 'jazz', mix: 0 })).toThrow()
+    expect(() =>
+      blendWeights(BUILT_IN_STYLES, { a: 'polka', mix: 0 }),
+    ).toThrow()
   })
 })
 

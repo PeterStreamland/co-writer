@@ -31,6 +31,14 @@ export const NEXT_CHORD_RULES = [
     template: '{chord} is {numeral}, {role}; {flow}.',
   },
   {
+    id: 'diatonic.sevenths',
+    label: 'Diatonic 7th chords (Imaj7, ii7, vi7)',
+    category: 'diatonic',
+    weight: 0,
+    template:
+      '{chord} is {numeral}, {role}; {flow}. The 7th adds colour without changing its job.',
+  },
+  {
     id: 'diatonic.deceptive',
     label: 'Deceptive cadence: V to vi',
     category: 'diatonic',
@@ -204,6 +212,14 @@ export const NEXT_CHORD_RULES = [
     template:
       '{chord} is {numeral}: straight back home after {previous}, the riff-style return to the tonic.',
   },
+  {
+    id: 'rock.blues-sevenths',
+    label: 'Blues dominant 7ths (I7, IV7, V7)',
+    category: 'rock',
+    weight: 3,
+    template:
+      '{chord} is {numeral}: a dominant 7th on {degree}, the blues sound where every chord takes a flat 7th.',
+  },
   // Pedal and static harmony.
   {
     id: 'pedal.static',
@@ -302,6 +318,17 @@ export const DEGREE_ADJUSTMENTS: Record<string, number> = {
   '7': -1,
 }
 
+// Diatonic 7th chords fit a little less than their triads, so without a
+// style the plain triads lead; jazz weights them up.
+export const SEVENTH_OFFSET = 0.5
+
+// The blues dominant 7ths: on the tonic, IV and V.
+export const BLUES_STEPS = [
+  { interval: 'P1', degree: 'the tonic' },
+  { interval: 'P4', degree: 'IV' },
+  { interval: 'P5', degree: 'V' },
+]
+
 // Where a song tends to start, by degree label, when nothing is picked yet.
 export const START_SCORES: Record<string, number> = {
   '1': 5,
@@ -325,6 +352,10 @@ export const SECONDARY_TARGET_FITS: Record<number, number> = {
   4: 3,
   3: 2,
 }
+
+// A tritone substitute heading home (D♭7 to C) fits like V7/V; one aimed
+// at another chord fits half a point below that chord's secondary dominant.
+export const TRITONE_SUB_HOME_FIT = 3.5
 
 // Parallel modes chords are borrowed from, closest first, with each one's
 // rule. Locrian is left out: its ♭V and ♭iii are too far from the key to be

@@ -606,3 +606,24 @@ Phase 4 task 4 (`src/theory/ranker.ts`, settings in `src/theory/ranker-data.ts`)
   - - makes it the current chord. A pivot asks "Continue in G major from here?" (SPEC 6.4).
   - With no strip yet, only the current chord counts as history, so phrase and overuse effects show once the strip (task 5) keeps the whole progression.
 - **Style blend control:** sits in the header. It is remembered in this browser until each section keeps its own.
+
+## 2026-10-22 — Jazz, blues and classical styles; blending optional (David's request)
+
+David asked for a way to turn the style slider off and for jazz, blues and classical styles. The plan had jazz and classical "later"; they arrive now as styles over the existing rules, plus two new rules.
+
+- **The style control:**
+  - It picks one style by default.
+  - Ticking **Blend** brings back the slider and a second style.
+  - **No style** weighs every move at full strength, as the engine did before styles.
+- **New styles:** jazz, blues and classical, alongside pop, rock and metal, all tunable on the Style weights page.
+  - **Jazz:** favours 7th chords, secondary dominants and tritone substitutes.
+  - **Blues:** favours dominant 7ths on I, IV and V, the ♭III and falling-4th steps.
+  - **Classical:** favours functional harmony, the deceptive cadence, leading-note 7ths, pivots, suspensions and pedal points, with no rock moves or tritone substitutes.
+- **New rules:**
+  - **Diatonic 7th chords** (Imaj7, ii7, vi7). They fit half a point below their triads, so without a style the plain triads still lead. Dominant 7ths other than V7 are left out, because the next-chord fixture says D7 must not be offered in E minor.
+  - **Blues dominant 7ths** (I7, IV7, V7). They sit under Rock moves, as SPEC 6.2's categories have no blues group.
+- **Fits:**
+  - A tritone substitute heading home (D♭7 to C) now fits like V7/V. Others fit half a point below their target's secondary dominant.
+  - Classical rates leading-note chords at 5, so vii°7/V outranks V7/ii there.
+- **Golden fixture:** `tests/fixtures/style-rankings.ts` gains five rows for the new styles.
+- **Question for David:** should ♭VII7 in a minor key (D7 in E minor) be offered as an ordinary diatonic 7th? The next-chord fixture currently rules it out.

@@ -1044,7 +1044,7 @@ body:has(.workspace) #app {
   --line: #8884;
   --accent: #2563eb;
   --muted: #6b7280;
-  max-width: 56rem;
+  max-width: 80rem;
   width: 100%;
   min-width: 0;
   padding: 1rem;
@@ -1146,6 +1146,12 @@ body:has(.workspace) #app {
   gap: 0.4rem 0.6rem;
   align-items: center;
   min-width: 0;
+}
+
+.style-blend label {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
 }
 
 .style-blend input[type='range'] {

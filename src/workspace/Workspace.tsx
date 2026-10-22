@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'preact/hooks'
 import {
-  blendWeights,
   formatNote,
   inversions,
   keyName as nameOfKey,
@@ -38,7 +37,7 @@ import { SidePanel } from './SidePanel'
 import { SuggestPanel } from './SuggestPanel'
 import { StyleBlendControl } from './StyleBlendControl'
 import { loadStyles } from './style-editor'
-import { loadBlend, saveBlend } from './style-blend'
+import { blendedWeights, loadBlend, saveBlend } from './style-blend'
 import { useNarrow } from './useNarrow'
 import { played } from './played'
 import {
@@ -76,7 +75,7 @@ export function Workspace() {
   const styles = useMemo(() => loadStyles(), [])
   const [blend, setBlend] = useState<StyleBlend>(() => loadBlend(styles))
   useEffect(() => saveBlend(blend), [blend])
-  const weights = useMemo(() => blendWeights(styles, blend), [styles, blend])
+  const weights = useMemo(() => blendedWeights(styles, blend), [styles, blend])
   const [instrument, setInstrument] = useState<Instrument>('keyboard')
   const [sheetOpen, setSheetOpen] = useState(true)
   const [settings, setSettings] = useState<GuitarSettings>(DEFAULT_GUITAR)

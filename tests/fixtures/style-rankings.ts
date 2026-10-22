@@ -87,4 +87,43 @@ export const styleRankings: {
     higherIn: 'pop',
     lowerIn: 'metal',
   },
+  // Added 2026-10-22 with the jazz, blues and classical styles.
+  // Jazz reaches for 7th chords and tritone substitutes.
+  {
+    key: 'C major',
+    previous: 'C',
+    chord: 'Dm7',
+    higherIn: 'jazz',
+    lowerIn: 'pop',
+  },
+  {
+    key: 'C major',
+    previous: 'C',
+    chord: 'Db7',
+    higherIn: 'jazz',
+    lowerIn: 'pop',
+  },
+  // Blues puts a dominant 7th on IV.
+  {
+    key: 'C major',
+    previous: 'C',
+    chord: 'F7',
+    higherIn: 'blues',
+    lowerIn: 'pop',
+  },
+  // Classical uses leading-note 7ths; rock's ♭VII is not classical.
+  {
+    key: 'C major',
+    previous: 'C',
+    chord: 'F#dim7',
+    higherIn: 'classical',
+    lowerIn: 'rock',
+  },
+  {
+    key: 'C major',
+    previous: 'C',
+    chord: 'Bb',
+    higherIn: 'rock',
+    lowerIn: 'classical',
+  },
 ]
