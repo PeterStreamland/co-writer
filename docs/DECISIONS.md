@@ -410,3 +410,12 @@ Phase 3 task 4 (`FingeringOptions` in `src/instruments/fingering.ts`). The filte
 - **String set:** any set of strings, not just neighbouring ones, so "low E plus the top three" works. The strings left out are muted.
 - **Open strings off:** with a capo, the capo's fret counts as open, so it's off too.
 - **Omit the 5th:** leaves out the perfect 5th wherever a shape could already drop it. A power chord keeps its 5th, as do diminished and augmented chords, whose 5th isn't perfect. A 5th asked for in the bass (C/G) stays in the bass and nowhere else. With "any" inversion, no shape has the 5th in the bass. A 5th you asked to leave out costs no points.
+
+## 2026-10-22 — CAGED shapes and shape names
+
+Phase 3 task 5 (`src/instruments/caged.ts`, golden fixture `tests/fixtures/caged.ts`). Shapes can now be grouped by the open chord they're played from, and named as SPEC 5 asks. Choices the plan and SPEC didn't settle:
+
+- **How a shape is recognised:** by where its roots sit. Open C has its roots on the A string's 3rd fret and the B string's 1st, so any fingering with its roots in that pattern, anywhere up the neck, is a C shape. Every fretted note must sit within four frets of the shape's base. When more than one shape fits, the one closest to its open chord, fret by fret, wins. This works for any chord, not just major: Am is an A shape, B7 (x21202) a C shape.
+- **Which tunings:** standard, and any tuning with standard's intervals: E♭, D and C standard, and the top six strings of a 7-string. Drop and open tunings have no CAGED shapes, and their shapes are named by the chord alone.
+- **Grouping:** C, A, G, E, D, then shapes that fit none, each group easiest first.
+- **Names:** the chord as it sounds, then the shape with the chord's quality and any capo: "A (G shape, capo 2)", "Bm (Am shape)", "C7 (A7 shape)". With a capo, shapes are read from the capo, as if it were the nut. SPEC 5's example covers only a major chord; giving the shape the chord's quality (Am shape, not A shape) is Claude's choice, and David can ask for plain letters.
