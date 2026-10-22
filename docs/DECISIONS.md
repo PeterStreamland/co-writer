@@ -831,3 +831,43 @@ Phase 5 task 3 (`src/theory/voice-rules.ts`, settings in `src/theory/voice-rules
 Jazz doesn't charge for the leading note, because in G7 to Cmaj7 it often stays as the major 7th. Task 4 builds the lenses on these weights, along with task 2's voice-leading cost.
 
 - **New golden fixture:** `tests/fixtures/voice-rules.ts` has 22 hand-worked cases, including G7 to C in four parts, the frustrated leading note, A minor's G♯, and an open E chord under distortion.
+
+## 2026-10-22 — The voicing lenses
+
+Phase 5 task 4. The keyboard side is `src/theory/lens.ts` with settings in `src/theory/lens-data.ts`; the guitar side is `src/instruments/lens-guitar.ts` with settings in `lens-guitar-data.ts`. Choices the plan and SPEC 8 didn't settle:
+
+- **How a lens works:**
+  - It offers its own voicings for each chord.
+  - It then picks one per chord so the whole progression costs least. The cost adds each voicing's own cost (how much less the lens likes that form or colour), task 2's voice-leading cost with the lens's weights, and the task 3 rules it breaks.
+  - The same chords and lens always give the same voicings.
+  - Each chord also lists the rules it breaks that the lens cares about. Rock never mentions parallel 5ths.
+- **Colours fit the key:** a lens only adds a note the key has.
+  - In C major, jazz makes G into G7 or G9, never Gmaj7, and E7 into E7♭9.
+  - Open gives C add9 or sus2, but leaves Em alone (F♯ isn't in C major).
+  - Fm in C major becomes Fm6 or Fm6/9 in jazz.
+- **Classical** writes four parts:
+  - bass E2–C4, tenor C3–G4, alto G3–C5, soprano C4–G5
+  - upper voices within an octave of each other
+  - the bass as written
+  - It doubles the root first, then the 5th, then the 3rd, and never the leading note. It may leave out a 7th chord's 5th and double the root, as textbook V7s do.
+- **Rock:**
+  - Power chords low down, the root at E2–E3. A 5th-in-the-bass power chord (C5/G) is offered at a cost.
+  - A chord with no perfect 5th (F♯dim) stays whole.
+- **Open:** a bass at C2–C3 under upper notes spread at least a minor 3rd apart, with add9, madd9, sus2 and 7sus4 colours.
+- **Jazz:**
+  - Rootless voicings (the 3rd, 5th, 7th and 9th within an octave, named as the 9th chord they sound: Cmaj9, G9), shells (root, 3rd and 7th) and drop-2.
+  - Triads become 7th chords that fit the key: maj7 or 7 for major, m7 or m6 for minor.
+- **Guitar** takes its shapes from the Phase 3 fingering search, so every one is playable:
+  - Classical uses four-string shapes, so its four voices can be checked like keyboard parts.
+  - Rock uses two- and three-string power chords, preferring easy ones.
+  - Open uses ringing four- to six-string shapes.
+  - Jazz uses three-string shells and four-string grips, all fretted.
+- **A rule refinement:** a leading note may stay put when the chord it moves to contains it. In G7 to Cmaj7, B stays as the major 7th. Two cases were added to `tests/fixtures/voice-rules.ts`; none changed.
+- **Test progressions** are in `tests/fixtures/lens-progressions.ts`: 13 progressions in eight keys, with inversions, secondary dominants, a borrowed iv and a leading-note chord.
+  - A progression of power chords only isn't among them: four-part writing can't move power chords without parallels, and power chords are rock's.
+- **All three Phase 5 exit criteria are proven by tests**, on keyboard and on guitar (standard and drop D):
+  - no parallel 5ths or octaves in classical
+  - every lens moves less on average than root position close triads
+  - every guitar voicing is a shape the fingering search finds, within its span
+
+  The theory reviewer confirms them at the gate.
