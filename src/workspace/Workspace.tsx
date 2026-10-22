@@ -15,6 +15,7 @@ import { findFingerings } from '../instruments/fingering'
 import { ChordRows } from './ChordRows'
 import { strum } from './ChordBoxes'
 import {
+  ChordBox,
   DEFAULT_GUITAR,
   InstrumentView,
   guitarFrom,
@@ -330,6 +331,33 @@ export function Workspace() {
       onAccept={acceptSuggestion}
     />
   )
+  // The chord box beside the side panel (David's layout); on a phone it
+  // stays beside the instrument, as the side panel is a sheet there.
+  const shapeList = {
+    list: shapes,
+    at: shapeAt < shapes.length ? shapeAt : 0,
+    onAt: setShapeAt,
+    filters,
+    onFiltersChange: setFilters,
+    onAdd: addChord,
+  }
+  const voicingList = {
+    list: voicings,
+    at: voicingAt,
+    onAt: (at: number) => setVoicingPick(voicings[at]),
+    filters: pianoFilters,
+    onFiltersChange: setPianoFilters,
+    onAdd: addChord,
+  }
+  const box = (
+    <ChordBox
+      instrument={instrument}
+      guitar={guitar}
+      chord={shown}
+      shapes={shapeList}
+      voicings={voicingList}
+    />
+  )
   const explore = (
     <>
       {narrow && scale}
@@ -352,6 +380,7 @@ export function Workspace() {
         <main class="stage">
           {!narrow && scale}
           <InstrumentView
+            showBox={narrow}
             value={key}
             chord={shown}
             played={playing.notes}
@@ -359,22 +388,8 @@ export function Workspace() {
             onInstrumentChange={setInstrument}
             settings={settings}
             onSettingsChange={setSettings}
-            shapes={{
-              list: shapes,
-              at: shapeAt < shapes.length ? shapeAt : 0,
-              onAt: setShapeAt,
-              filters,
-              onFiltersChange: setFilters,
-              onAdd: addChord,
-            }}
-            voicings={{
-              list: voicings,
-              at: voicingAt,
-              onAt: (at) => setVoicingPick(voicings[at]),
-              filters: pianoFilters,
-              onFiltersChange: setPianoFilters,
-              onAdd: addChord,
-            }}
+            shapes={shapeList}
+            voicings={voicingList}
           />
           <MidiPanel
             midi={midi}
@@ -388,6 +403,7 @@ export function Workspace() {
           {strip}
         </main>
         <SidePanel
+          aside={!narrow && box}
           tabs={[
             { id: 'explore', label: 'Explore', content: explore },
             { id: 'suggest', label: 'Suggest', content: suggest },

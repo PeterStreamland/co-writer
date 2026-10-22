@@ -1471,3 +1471,32 @@ body:has(.workspace) #app {
   color: var(--accent);
   cursor: pointer;
 }
+
+/* The chord box beside the side panel's content on wider screens (David's
+   layout): right next to Explore's chords and Suggest's cards, staying in
+   view as the list scrolls. */
+@media (min-width: 40rem) {
+  .side-body {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+
+  /* The content takes only the width it needs, so the box sits right
+     beside the chords; Suggest keeps to three cards across. */
+  .side-body > .side-content {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .side-body .suggest {
+    max-width: 52rem;
+  }
+
+  .side-aside {
+    flex: none;
+    position: sticky;
+    top: 1rem;
+    margin-top: 1rem;
+  }
+}
