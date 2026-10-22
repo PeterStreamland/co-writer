@@ -395,3 +395,187 @@ body:has(.workspace) {
   background: Canvas;
   z-index: 1;
 }
+
+.instrument {
+  --root: #e11d48;
+  --scale: #3b82f6;
+  --chord: #f59e0b;
+  margin-top: 1.5rem;
+}
+
+.instrument .toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.toggle {
+  display: inline-flex;
+}
+
+.toggle button {
+  font: inherit;
+  padding: 0.25rem 0.7rem;
+  border: 1px solid var(--line);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.toggle button:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.toggle button:last-child {
+  border-radius: 0 6px 6px 0;
+}
+
+.toggle button[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.instrument .dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.6rem;
+  height: 1.6rem;
+  padding: 0 0.2rem;
+  box-sizing: border-box;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: white;
+  background: var(--scale);
+}
+
+.instrument .dot.root {
+  background: var(--root);
+}
+
+.instrument .dot.outside {
+  background: #6b7280;
+}
+
+.instrument .dot.chord-tone {
+  box-shadow:
+    0 0 0 2px Canvas,
+    0 0 0 4px var(--chord);
+}
+
+.instrument .legend .dot {
+  min-width: 0.9rem;
+  height: 0.9rem;
+  vertical-align: middle;
+  margin: 0 0.2rem 0 0.6rem;
+}
+
+.instrument .legend .dot.chord-tone {
+  background: none;
+}
+
+.keyboard {
+  position: relative;
+  height: 9rem;
+  user-select: none;
+}
+
+.keyboard .key {
+  position: absolute;
+  top: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 0 0.4rem;
+  border: 1px solid #888;
+  cursor: pointer;
+}
+
+.keyboard .key:disabled {
+  cursor: default;
+}
+
+.keyboard .white {
+  height: 100%;
+  background: #f8f8f8;
+  border-radius: 0 0 5px 5px;
+  z-index: 0;
+}
+
+.keyboard .black {
+  height: 60%;
+  background: #1f1f1f;
+  border-color: #000;
+  border-radius: 0 0 4px 4px;
+  z-index: 1;
+}
+
+.keyboard .dot {
+  min-width: 1.3rem;
+  height: 1.3rem;
+  font-size: 0.65rem;
+}
+
+.octaves {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.octaves button {
+  font: inherit;
+  padding: 0.2rem 0.5rem;
+}
+
+.instrument .scroll {
+  overflow-x: auto;
+}
+
+.fretboard {
+  display: grid;
+  width: max-content;
+}
+
+.fretboard .fret {
+  position: relative;
+  height: 2.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-right: 2px solid #9ca3af;
+  background: linear-gradient(#9ca3af, #9ca3af) center / 100% 1px no-repeat;
+  color: inherit;
+  cursor: pointer;
+}
+
+.fretboard .fret:disabled {
+  cursor: default;
+}
+
+.fretboard .fret.open {
+  border-right: 5px solid var(--muted);
+  background: none;
+}
+
+.fretboard .fret .dot {
+  position: relative;
+}
+
+.fretboard .fret-number {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--muted);
+  padding-top: 0.2rem;
+}
+
+.fretboard .inlay {
+  display: block;
+  line-height: 0.8;
+}

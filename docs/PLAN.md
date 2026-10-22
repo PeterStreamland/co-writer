@@ -130,13 +130,13 @@ Goal: the first usable screen, covering your first feature request.
 
 1. Key and scale picker showing the interval pattern and degree names. ✅
 2. Rows of diatonic triads, 7ths and extended chords; click any chord to hear it. ✅
-3. Keyboard view and full-neck fretboard view with an instrument toggle; scale notes highlighted, root marked, labels switchable between note names and degrees.
+3. Keyboard view and full-neck fretboard view with an instrument toggle; scale notes highlighted, root marked, labels switchable between note names and degrees. ✅
 4. Playback through Tone.js with a piano and a clean-guitar sound.
 5. Tuning presets wired in now (standard, drop D, DADGAD, 7-string B standard), ready for Phase 3.
 6. MIDI input from your USB keyboard in Chrome or Edge: notes you play light up on both views, and a held chord is named, with every valid name when it's ambiguous.
 
-- [ ] Any key and scale shows correct notes on both instruments, checked automatically against Phase 1
-- [ ] Every highlighted note plays the right pitch (tests compare pitch numbers)
+- [x] Any key and scale shows correct notes on both instruments, checked automatically against Phase 1
+- [x] Every highlighted note plays the right pitch (tests compare pitch numbers)
 - [ ] Changing tuning moves the fretboard highlights correctly
 - [ ] Notes and chords played on your keyboard appear and are named correctly, with no noticeable lag
 - [ ] Usable on your phone's screen

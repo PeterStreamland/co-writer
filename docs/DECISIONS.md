@@ -212,3 +212,15 @@ Phase 2 task 2 (`src/workspace/chord-rows.ts`, `src/audio/`, `playbackVoicing` i
 - **Sound:** a plain synth for now. Task 4 brings the piano and clean-guitar sounds and the guitar strum (SPEC 5).
 
 Why: this puts every chord of the key one tap away. The voicing keeps chords in the same register, so they can be compared by ear. David can flag anything that sounds or reads wrong.
+
+## 2026-10-22 — The keyboard and fretboard views
+
+Phase 2 task 3 (`src/instruments/`, `src/workspace/InstrumentView.tsx`, `noteAtMidi` in `src/theory/note.ts`). SPEC 5 sets the layouts (fretboard nut on the left with the low string at the bottom; keyboard C2–C6 on a laptop, two octaves with an octave scroll on a phone); these choices it didn't settle:
+
+- **Marks:** scale notes are blue dots, the root is red, and tones of the current chord get an orange ring. A chord tone outside the scale (G♯ of E7 in C major) shows as a grey dot with the ring. Each dot is labelled with the note name or degree, as the toggle says. Spelling follows the key (C♭ in E♭ minor, never B), and a chord tone outside the scale takes the chord's spelling.
+- **Clicking** a marked note plays it. Unmarked keys and frets are silent for now. MIDI input in task 6 is where unmarked notes start to matter.
+- **Fretboard:** standard tuning, frets 0–15 (SPEC 5's default), the open strings in a column left of the nut, and position dots under frets 3, 5, 7, 9 and 15, with two dots at 12. It scrolls sideways on a phone. The other tunings come in task 5, and the left-handed mirror (SPEC 11) with the other settings later.
+- **Phone keyboard:** two octaves, starting at C3–C5, with Lower and Higher buttons that step an octave within C2–C6.
+- **Exit criteria:** a test walks every scale on every tonic the picker can reach. On every key from C2 to C6 and every fret 0–15 of standard tuning, it checks that exactly the scale's pitches are marked, spelled as Phase 1 spells the scale. It also checks that the note each mark plays has the MIDI number of the key or fret it sits on. That ticks Phase 2's first two exit criteria.
+
+Why: the colours keep scale, root and chord apart at a glance, on a phone as well. Checking every key and scale ties both views to the Phase 1 core.
