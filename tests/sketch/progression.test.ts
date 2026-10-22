@@ -7,6 +7,8 @@ import {
   chordsUpTo,
   isProgression,
   insertBetween,
+  lengthOf,
+  setLengthAt,
   isShared,
   keyAfter,
   keyAt,
@@ -197,6 +199,24 @@ describe('passing chords', () => {
 
   it('needs a chord after the slot', () => {
     expect(() => insertBetween(build('C'), 0, parse('G'))).toThrow()
+  })
+})
+
+describe('chord lengths', () => {
+  it('lasts a bar unless set, and drops the default', () => {
+    let p = build('C', 'G')
+    expect(lengthOf(pathNodes(p)[0])).toEqual({ n: 1, d: 1 })
+    p = setLengthAt(p, 0, { n: 1, d: 2 })
+    expect(pathNodes(p)[0].length).toEqual({ n: 1, d: 2 })
+    p = setLengthAt(p, 0, { n: 1, d: 1 })
+    expect(pathNodes(p)[0].length).toBeUndefined()
+  })
+
+  it('copies a shared chord before changing its length', () => {
+    let p = addAfter(build('C', 'F', 'G'), 0, parse('Am')) // C Am G (shared)
+    p = setLengthAt(p, 2, { n: 2, d: 1 })
+    expect(lengthOf(pathNodes(p)[2])).toEqual({ n: 2, d: 1 })
+    expect(lengthOf(pathNodes(switchAt(p, 1, 1))[2])).toEqual({ n: 1, d: 1 })
   })
 })
 

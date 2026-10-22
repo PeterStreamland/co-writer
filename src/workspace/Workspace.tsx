@@ -47,6 +47,8 @@ import {
   addAfter,
   chordsUpTo,
   insertBetween,
+  lengthOf,
+  setLengthAt,
   keyAfter,
   pathNodes,
   selectNode,
@@ -63,6 +65,7 @@ import {
   type History,
 } from '../sketch/history'
 import { loadProgression, saveProgression } from '../sketch/storage'
+import { loadBpm, saveBpm, secondsOf } from '../sketch/time'
 import { useNarrow } from './useNarrow'
 import { played } from './played'
 import {
@@ -81,9 +84,6 @@ import {
 
 // How long after the current chord a previewed suggestion plays.
 const PREVIEW_GAP_MS = 900
-// How long each chord lasts when the progression plays, until the beat grid
-// gives chords their own lengths (Phase 6).
-const CHORD_MS = 1200
 
 // The single workspace (SPEC 2): the key picker in the header; the stage,
 // with the scale above the instrument view and MIDI input below it (David's
@@ -101,6 +101,9 @@ export function Workspace() {
   // instrument.
   const [playingAt, setPlayingAt] = useState<number>()
   const [playingChord, setPlayingChord] = useState<ChordName>()
+  // The tempo for playing the progression, remembered in this browser.
+  const [bpm, setBpm] = useState(loadBpm)
+  useEffect(() => saveBpm(bpm), [bpm])
   const shown = playingChord ?? preview?.candidate ?? chord
   // The style weights as edited on the Style weights page, blended by the
   // header's control.
@@ -243,10 +246,10 @@ export function Workspace() {
   // Plays a chord as the instrument view will show it: the top guitar shape
   // strummed (SPEC 5), or the keyboard's voicing. False when the guitar has
   // no shape for it.
-  function playNow(c: ChordName): boolean {
+  function playNow(c: ChordName, seconds?: number): boolean {
     if (instrument === 'guitar') {
       const top = shapesOf(c)[0]
-      if (top) strum(top)
+      if (top) strum(top, seconds)
       return Boolean(top)
     }
     const choices = voicingChoices(c, pianoFilters)
@@ -254,7 +257,7 @@ export function Workspace() {
       choices.find(
         (v) => v.id === voicingPick.id && v.inversion === voicingPick.inversion,
       ) ?? choices[0]
-    void playChord(voicing.notes)
+    void playChord(voicing.notes, { seconds })
     return true
   }
   // Previewing a suggestion plays the last chord, then the suggestion.
@@ -327,13 +330,14 @@ export function Workspace() {
   }
   // Plays a progression chord in the shape it was added in, or as the
   // instrument view would play it.
-  function playNode(n: ChordNode) {
+  function playNode(n: ChordNode, seconds?: number) {
     if (!n.voicing) {
-      playNow(n.chord)
+      playNow(n.chord, seconds)
       return
     }
     void playChord(n.voicing.notes, {
       strum: n.voicing.instrument === 'guitar',
+      seconds,
     })
   }
   // Plays the progression from the first chord, one chord at a time.
@@ -347,13 +351,15 @@ export function Workspace() {
       setPlayingAt(undefined)
       return
     }
+    // Each chord rings for its length at the tempo, then the next comes in.
+    const seconds = secondsOf(lengthOf(n), bpm)
     setPlayingChord(n.chord)
     showNode(n)
-    playNode(n)
+    playNode(n, seconds)
     const timer = setTimeout(
       () =>
         setPlayingAt(playingAt + 1 < path.length ? playingAt + 1 : undefined),
-      CHORD_MS,
+      seconds * 1000,
     )
     return () => clearTimeout(timer)
   }, [playingAt])
@@ -387,6 +393,11 @@ export function Workspace() {
         const next = selectNode(progression, id)
         change(next, next.activePath.indexOf(id))
       }}
+      bpm={bpm}
+      onBpmChange={setBpm}
+      onLengthChange={(length) =>
+        change(setLengthAt(progression, selected, length), selected)
+      }
       between={between}
       onBetween={(index) => {
         setBetweenAt(between === index ? undefined : index)

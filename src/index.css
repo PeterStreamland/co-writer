@@ -1583,3 +1583,27 @@ body:has(.workspace) #app {
   font-size: 0.85rem;
   padding: 0.15rem 0.6rem;
 }
+
+/* Tempo in the strip's toolbar, and the selected chord's length. */
+.strip .tempo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.strip .tempo input {
+  width: 4.5rem;
+  font: inherit;
+}
+
+.strip-info .length {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.strip .chip .length-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+}

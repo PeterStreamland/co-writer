@@ -714,3 +714,18 @@ Phase 4 task 7 (`src/theory/passing.ts`, settings in `src/theory/passing-data.ts
 - **The preview** plays all three chords.
 - **New golden fixture:** `tests/fixtures/passing-chords.ts` has eight hand-written cases: the plan's three textbook bridges (V7/V and ii between I and V, V7 between ii and I), secondary dominants, a leading-note diminished 7th in classical, jazz's ii7, and a minor-key case. The exit criterion is ticked.
 - **Next:** all seven Phase 4 tasks and all five exit criteria are done, so the Phase 4 gate comes next.
+
+## 2026-10-22 — Tempo and chord lengths now, ahead of Phase 6 (David's request)
+
+David asked for a BPM for playback and a length for each chord. A first slice of Phase 6's "minimal time" comes in now, in SPEC 7.1's format, so the beat grid can build on it.
+
+- **Lengths:**
+  - A chord's length is an exact fraction of a whole note: `length` on ChordNode, SPEC 12's `ChordEvent.length`. The default is one bar (SPEC 7.1), stored as no length.
+  - The selected chord's **Length** menu offers 1, 2 and 3 beats, 1 bar, 1½ bars, 2, 3 and 4 bars.
+  - A chip shows its length when it isn't one bar, and grows wider for longer chords.
+  - Changing a length is undoable. A shared chord gets its own copy first.
+- **Tempo:**
+  - A **BPM** box (40–240, default 100) sits beside Play. It is remembered in the browser until sketches keep their own.
+  - Play moves on after each chord's length at that tempo, and each chord now rings for its whole length.
+- **For now everything is 4/4:** a beat is a quarter note.
+- **Left for Phase 6:** meters, odd groupings, per-bar overrides, strong beats and a count-in. The ranker's phrase position still counts one chord as one bar; it should count real bars once the grid arrives.
