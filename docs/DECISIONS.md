@@ -363,3 +363,16 @@ With a capo on, the tuning names left of the nut stay as they are, and the fret 
 ## 2026-10-22 — Capo notes on the capo's fret (David's choice)
 
 Replaces where the capo's open notes were shown in the entry above. David found them on the fret behind the capo (fret 1 with the capo on 2) and wanted them on the capo's own fret, which is the new open position. That fret now does both jobs: a note there that is in the scale keeps its usual colour (red root, blue scale note, orange chord tone) with a grey ring to mark it as an open note with the capo; a note outside the scale is named in grey. The frets behind the capo are all greyed out again. Spelling is unchanged.
+
+## 2026-10-22 — The fingering search
+
+Phase 3 task 2 (`src/instruments/fingering.ts`, golden fixture `tests/fixtures/fingerings.ts`). The search lists every way to play a chord on the guitar model; ranking by how easy a shape is to play is task 3. Choices the plan and SPEC didn't settle:
+
+- **Which notes:** each string plays a fret that sounds a chord tone, or is muted. Muted strings can be anywhere, inner strings included; task 3 marks those down rather than ruling them out.
+- **Which tones can go:** the perfect 5th of any chord with a 3rd or 4th (so a triad can be played as root and 3rd), but never a power chord's 5th, and not when a ♯11 or ♭13 would then sound like a ♭5 or ♯5. As the chord namer already allows, an 11th or 13th chord can leave out its 9th, and a 13th chord its 11th. Task 4's "omit the 5th" filter will turn the 5th off altogether.
+- **Bass:** the lowest sounding string plays the chord's bass: the root, the inverted tone (C/E), or the slash bass (F/G).
+- **Span:** counted over fretted notes only, so frets 2–5 span 4; open strings, or the capo's fret, don't count. Four frets by default, 3–6 allowed (SPEC 11).
+- **Fingers:** a shape can need at most four fingers. A barre across its lowest fret counts as one, and an open string can't sit between the barre's ends, as the barre would fret it. F as 133211 passes; thumb-over shapes aren't counted yet.
+- **Capo:** chords are searched by what sounds, as SPEC 5 says: with capo 2, the G shape (542225) comes up for A. The shape names ("A (G shape, capo 2)") come with the CAGED grouping, task 5.
+- **Order until task 3:** up the neck from the nut, fuller shapes first at each position.
+- **Exit criteria ticked:** every result is checked against these rules, independently of the search, for 42 common chords on standard, drop D, DADGAD with a capo, 7-string and 7-string drop D; the fixture's drop D and 7-string shapes are all found; and every one of those chords takes under 50 ms (most take 1–3 ms). "The textbook shapes you supply appear in the top five" waits for David's 30 shapes and task 3's score.
