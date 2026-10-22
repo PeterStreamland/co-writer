@@ -981,3 +981,7 @@ David asked for more versatile, experimental lenses that are still informed by t
   - **Drones fit best in keys whose tonic is an open string (E, A, D, G).** In C, a held low C under Dm7 needs a 5-fret stretch, so some chords fall back to "as written", and the column says so.
 - **The picker** groups the lenses as Core and Experimental. Two to four show side by side, chosen from all nine.
 - **A bass range fix for the core lenses:** three bass ranges ran E2 to C3, which left no room for a D or E♭ bass. Jazz shells now cover D and E♭ chords too. The ranges now run E2 to E♭3.
+
+## 2026-10-22 — No minimum number of lenses (David's choice)
+
+The Voice tab no longer needs two lenses ticked. Up to four still show side by side, but any of them can be turned off, down to none. With none ticked the tab says to tick a lens. On a phone, the ‹ › arrows show only when there are two or more lenses to swipe between. This changes SPEC 8's "two to four lenses"; the default stays Classical and Rock.

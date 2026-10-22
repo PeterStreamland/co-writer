@@ -27,7 +27,6 @@ import { BoxDiagram } from './ChordBoxes'
 import type { Instrument } from './InstrumentView'
 import {
   MAX_LENSES,
-  MIN_LENSES,
   lensSteps,
   loadLenses,
   saveLenses,
@@ -89,7 +88,9 @@ export function VoicePanel({
     () => lensSteps(progression, sectionKey),
     [progression, sectionKey],
   )
-  const shown = narrow ? [lenses[phoneAt % lenses.length]] : lenses
+  const shown = narrow
+    ? lenses.slice(phoneAt % lenses.length, (phoneAt % lenses.length) + 1)
+    : lenses
   const voice = (lens: Lens) =>
     (instrument === 'guitar'
       ? voiceProgressionOnGuitar(guitar, lens, steps)
@@ -137,7 +138,7 @@ export function VoicePanel({
     })
   }
   const step = (by: number) =>
-    setPhoneAt((phoneAt + by + lenses.length) % lenses.length)
+    setPhoneAt((phoneAt + by + lenses.length) % Math.max(1, lenses.length))
   const [touchX, setTouchX] = useState<number>()
 
   if (steps.length === 0) {
@@ -153,17 +154,13 @@ export function VoicePanel({
     <section class="voice" aria-label="Voicings">
       <div class="voice-bar">
         <fieldset class="lens-picker">
-          <legend class="muted">
-            Lenses ({MIN_LENSES}–{MAX_LENSES})
-          </legend>
+          <legend class="muted">Lenses (up to {MAX_LENSES})</legend>
           {[LENSES, EXPERIMENTAL_LENSES].map((group, g) => (
             <span key={g} class="lens-group">
               <span class="muted">{g === 0 ? 'Core:' : 'Experimental:'}</span>
               {group.map((lens: Lens) => {
                 const on = lenses.includes(lens)
-                const locked =
-                  (on && lenses.length <= MIN_LENSES) ||
-                  (!on && lenses.length >= MAX_LENSES)
+                const locked = !on && lenses.length >= MAX_LENSES
                 return (
                   <label key={lens} class="check">
                     <input
@@ -195,7 +192,10 @@ export function VoicePanel({
           ))}
         </div>
       </div>
-      {narrow && (
+      {lenses.length === 0 && (
+        <p class="muted">Tick a lens to hear the progression voiced its way.</p>
+      )}
+      {narrow && lenses.length > 1 && (
         <div class="lens-nav">
           <button
             type="button"

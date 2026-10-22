@@ -53,11 +53,14 @@ describe('choosing lenses', () => {
     ])
   })
 
-  it('keeps at least two lenses', () => {
-    expect(toggleLens(['classical', 'rock'], 'rock')).toEqual([
-      'classical',
-      'rock',
-    ])
+  it('lets every lens be turned off', () => {
+    expect(toggleLens(['classical', 'rock'], 'rock')).toEqual(['classical'])
+    expect(toggleLens(['classical'], 'classical')).toEqual([])
+  })
+
+  it('allows no more than four', () => {
+    const four = ['classical', 'rock', 'open', 'jazz'] as const
+    expect(toggleLens([...four], 'quartal')).toEqual([...four])
   })
 
   it('allows all four', () => {
@@ -73,8 +76,10 @@ describe('choosing lenses', () => {
     const store = memory()
     saveLenses(['open', 'jazz'], store)
     expect(loadLenses(store)).toEqual(['open', 'jazz'])
+    store.setItem('co-writer:lenses', JSON.stringify([]))
+    expect(loadLenses(store)).toEqual([])
     store.setItem('co-writer:lenses', JSON.stringify(['rock']))
-    expect(loadLenses(store)).toEqual(DEFAULT_LENSES)
+    expect(loadLenses(store)).toEqual(['rock'])
     store.setItem('co-writer:lenses', JSON.stringify(['rock', 'polka']))
     expect(loadLenses(store)).toEqual(DEFAULT_LENSES)
   })
