@@ -8,6 +8,7 @@ import {
   enharmonicKey,
   getScale,
   keyName,
+  keySignature,
   nextChordCandidates,
   parseChordSymbol,
   parseNote,
@@ -202,6 +203,18 @@ describe('every suggestion', { timeout: 30_000 }, () => {
     }
   })
 
+  it('never pivots into a key beyond 7 sharps or flats', () => {
+    for (const { suggestions } of runs()) {
+      for (const s of suggestions) {
+        if (s.keyChange) {
+          expect(Math.abs(keySignature(s.keyChange) ?? 0)).toBeLessThanOrEqual(
+            7,
+          )
+        }
+      }
+    }
+  })
+
   it('pivots only on a chord diatonic in both keys', () => {
     for (const k of sweep) {
       for (const s of nextChordCandidates({ key: k, previous: [parse('C')] })) {
@@ -224,6 +237,22 @@ describe('every suggestion', { timeout: 30_000 }, () => {
   })
 })
 
+describe('wording and readings (Phase 4 gate review)', () => {
+  it('offers a deceptive cadence only after a major or dominant V', () => {
+    const afterMinorV = suggest(key('E minor'), ['Bm'])
+    expect(
+      afterMinorV.some((s) => s.ruleIds.includes('diatonic.deceptive')),
+    ).toBe(false)
+    const afterV7 = suggest(key('E minor'), ['B7'])
+    expect(find(afterV7, 'C')?.ruleIds).toContain('diatonic.deceptive')
+  })
+
+  it('does not call a minor key’s ♭VII Mixolydian', () => {
+    const d = find(suggest(key('E minor'), ['Em']), 'D')
+    expect(`${d?.explanation} ${d?.more}`).not.toContain('Mixolydian')
+  })
+})
+
 describe('determinism (SPEC 6.1)', () => {
   it('gives the same ranking for the same input', () => {
     const k = key('E minor')
@@ -237,15 +266,19 @@ describe('determinism (SPEC 6.1)', () => {
     const sharp = enharmonicKey(flat)
     expect(sharp).toBeDefined()
     if (!sharp) return
+    // Pivots are left out: C♯ major's neighbours G♯ major and E♯ minor need
+    // 8 sharps, so only D♭ major offers its pivots into A♭ major and F minor.
     const read = (k: Key) =>
       nextChordCandidates({
         key: k,
         previous: [{ root: k.tonic, quality: 'M' }],
-      }).map((s) => [
-        romanNumeral(k, s.candidate).numeral,
-        suggestionCategory(s),
-        s.score,
-      ])
+      })
+        .filter((s) => !s.keyChange)
+        .map((s) => [
+          romanNumeral(k, s.candidate).numeral,
+          suggestionCategory(s),
+          s.score,
+        ])
     // Ties are broken by chord name, which the swap respells, so compare
     // the readings as a set.
     const sorted = (k: Key) => read(k).map(String).sort()

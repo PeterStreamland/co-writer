@@ -55,6 +55,15 @@ function times(count: number): string {
 
 type Effect = { amount: number; note: string }
 
+// A tonic arrival is the key's own chord on the tonic (C or Cmaj7 in C, not
+// C7 or Cm) or a tonic power chord; a half cadence lands on a major V.
+function isTonicArrival(key: Key, chord: ChordName): boolean {
+  return (
+    isOn(chord, key.tonic) &&
+    (chord.quality === '5' || romanNumeral(key, chord).kind === 'diatonic')
+  )
+}
+
 // The context effects on one candidate (SPEC 6.1), each with the line the
 // ⓘ panel shows for it.
 function contextEffects(
@@ -76,12 +85,7 @@ function contextEffects(
     })
   }
   if (previous.length === 0) return effects
-  // A tonic arrival is the key's own chord on the tonic (C or Cmaj7 in C,
-  // not C7 or Cm) or a tonic power chord; a half cadence lands on a major V.
-  const tonic =
-    isOn(candidate, key.tonic) &&
-    (candidate.quality === '5' ||
-      romanNumeral(key, candidate).kind === 'diatonic')
+  const tonic = isTonicArrival(key, candidate)
   const dominant =
     isOn(candidate, transpose(key.tonic, PERFECT_5TH)) &&
     ['M', '7', '5'].includes(candidate.quality)
@@ -105,7 +109,7 @@ function contextEffects(
   if (
     tonic &&
     previous.length >= tonicPending.after &&
-    !previous.some((c) => sameNote(c.root, key.tonic))
+    !previous.some((c) => isTonicArrival(key, c))
   ) {
     effects.push({
       amount: tonicPending.bonus,

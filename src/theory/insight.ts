@@ -59,11 +59,22 @@ function rootMotion(from: ChordName, to: ChordName): string {
   return `The root falls ${intervalWords(down)}, ${pair}.`
 }
 
-function stepWords(semitones: number): string {
+// A note's move named by its spelled interval (SPEC 4): a minor or major
+// 2nd (or E to E♭) is a semitone or a tone, anything else takes its
+// interval's name, so C down to A♯ is a diminished 3rd, not a tone.
+function stepWords(from: Note, to: Note, semitones: number): string {
+  const up = semitones > 0
+  const interval = up ? intervalBetween(from, to) : intervalBetween(to, from)
   const size = Math.abs(semitones)
   const amount =
-    size === 1 ? 'a semitone' : size === 2 ? 'a tone' : `${size} semitones`
-  return `${semitones > 0 ? 'up' : 'down'} ${amount}`
+    interval.number === 2 && size === 1
+      ? 'a semitone'
+      : interval.number === 2 && size === 2
+        ? 'a tone'
+        : interval.number === 1 && size === 1
+          ? 'a semitone'
+          : intervalWords(interval)
+  return `${up ? 'up' : 'down'} ${amount}`
 }
 
 // The theory lines for a chord in a key, compared with the chord before.
@@ -105,7 +116,7 @@ export function chordInsight(
     if (!best || best.step === 0) continue
     used.add(best.from)
     moves.push(
-      `${formatNote(best.from)} ${stepWords(best.step)} to ${formatNote(n)}`,
+      `${formatNote(best.from)} ${stepWords(best.from, n, best.step)} to ${formatNote(n)}`,
     )
   }
   if (moves.length) insight.moves = `Moves: ${moves.join(', ')}.`

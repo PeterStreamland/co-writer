@@ -99,3 +99,40 @@ describe('every passing suggestion', () => {
     )
   })
 })
+
+describe('passing chords read by spelling (Phase 4 gate review)', () => {
+  const firstSentence = (s: { explanation: string }) =>
+    s.explanation.split('. ')[0]
+
+  it('names no false relation into A♭', () => {
+    const c = context('C major', 'C', 'Ab', 'pop')
+    const { wildcards } = rankPassingChords(c)
+    const all = [
+      ...rankPassingChords(c).shown,
+      ...Array.from(
+        { length: wildcards },
+        (_, n) => rankPassingChords(c, { another: n }).wildcard!,
+      ),
+    ]
+    const text = (chord: string) =>
+      all.find((s) => chordKey(s.candidate) === chordKey(parse(chord)))
+    // A7 is V7/ii, not a tritone substitute for E♭7 (that is B𝄫7), and
+    // D♯dim7 leads to E, not A♭.
+    expect(text('A7')?.explanation ?? '').not.toContain('stands in')
+    expect(text('D#dim7')?.explanation ?? '').not.toContain('falls a 5th')
+    expect(text('E7')?.explanation ?? '').not.toContain('tonic to')
+  })
+
+  it.each([
+    ['C major', 'C', 'G', 'pop'],
+    ['C major', 'C', 'Gb', 'pop'],
+    ['E minor', 'Em', 'C', 'metal'],
+  ])('%s, %s to %s: every wildcard says how it leads in', (k, a, b, style) => {
+    const c = context(k, a, b, style)
+    const { wildcards } = rankPassingChords(c)
+    for (let n = 0; n < wildcards; n++) {
+      const w = rankPassingChords(c, { another: n }).wildcard!
+      expect(firstSentence(w)).toContain(chordSymbol(parse(b)))
+    }
+  })
+})

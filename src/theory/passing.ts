@@ -14,7 +14,8 @@ import {
   transposeDown,
 } from './interval'
 import type { Interval } from './interval'
-import { pitchClass } from './note'
+import { chordInsight } from './insight'
+import { romanNumeral } from './numeral'
 import { DEGREE_FUNCTIONS, FUNCTION_FLOW } from './next-chord-data'
 import {
   nextChordCandidates,
@@ -35,8 +36,10 @@ const P5 = parseInterval('P5') as Interval
 const M2 = parseInterval('M2') as Interval
 const m2 = parseInterval('m2') as Interval
 
-function samePitch(a: ChordName['root'], b: ChordName['root']): boolean {
-  return pitchClass(a) === pitchClass(b)
+// Roots match by spelling, not sound (SPEC 4): D♯ is not E♭, so D♯dim7
+// does not fall a 5th into A♭.
+function sameNote(a: ChordName['root'], b: ChordName['root']): boolean {
+  return a.letter === b.letter && a.accidental === b.accidental
 }
 
 const FUNCTION_NAMES = {
@@ -65,23 +68,29 @@ function leadInto(
       id: rule.id,
       text: fillTemplate(rule.template, { ...values, ...extra }),
     })
-  const fifthAbove = samePitch(chord.root, transpose(next.root, P5))
+  const fifthAbove = sameNote(chord.root, transpose(next.root, P5))
   if (fifthAbove && role === 'dominant') add(PASSING_LEADS.dominant)
   else if (fifthAbove) add(PASSING_LEADS.fifth)
   if (
-    samePitch(chord.root, transposeDown(next.root, m2)) &&
+    sameNote(chord.root, transposeDown(next.root, m2)) &&
     role === 'leading-note'
   ) {
     add(PASSING_LEADS.leadingNote)
   }
   if (
-    samePitch(chord.root, transpose(next.root, m2)) &&
+    sameNote(chord.root, transpose(next.root, m2)) &&
     role === 'dominant' &&
     chord.quality !== 'M'
   ) {
     add(PASSING_LEADS.tritoneSub)
   }
-  const from = DEGREE_FUNCTIONS[degreeLabel(key.tonic, chord.root)]
+  // A secondary chord (E7 as V7/vi) has dominant function whatever degree
+  // its root sits on.
+  const reading = romanNumeral(key, chord)
+  const from =
+    reading.kind === 'secondary'
+      ? 'dominant'
+      : DEGREE_FUNCTIONS[degreeLabel(key.tonic, chord.root)]
   const to = DEGREE_FUNCTIONS[degreeLabel(key.tonic, next.root)]
   if (from && to) {
     add(PASSING_LEADS.flow, FUNCTION_FLOW[from][to].score * PASSING.flowScale, {
@@ -91,14 +100,24 @@ function leadInto(
   }
   const step = [m2, M2].some(
     (i) =>
-      samePitch(chord.root, transpose(next.root, i)) ||
-      samePitch(chord.root, transposeDown(next.root, i)),
+      sameNote(chord.root, transpose(next.root, i)) ||
+      sameNote(chord.root, transposeDown(next.root, i)),
   )
   if (step) add(PASSING_LEADS.step)
   // Strongest first; on a tie the relation found first (the more specific)
   // wins, as the sort is stable.
   found.sort((a, b) => b.lead - a.lead)
-  return found[0] ?? { lead: 0, id: PASSING_LEADS.flow.id, text: '' }
+  if (found[0]) return found[0]
+  // Nothing pulls: say how the root moves into the next chord.
+  const motion = chordInsight(key, next, chord).motion ?? ''
+  return {
+    lead: PASSING_LEADS.other.lead,
+    id: PASSING_LEADS.other.id,
+    text: fillTemplate(PASSING_LEADS.other.template, {
+      ...values,
+      motion: motion.replace(/^The root/, 'its root').replace(/\.$/, ''),
+    }),
+  }
 }
 
 // The ranked passing chords between the last chord of the context and the
@@ -120,7 +139,7 @@ export function rankPassingChords(
       const into = leadInto(key, s.candidate, next)
       const stays =
         first !== undefined &&
-        samePitch(s.candidate.root, first.root) &&
+        sameNote(s.candidate.root, first.root) &&
         qualityNumeral(s.candidate.quality)?.secondary !== 'dominant'
       const lead = into.lead * (stays ? PASSING.sameRootFactor : 1)
       return {
