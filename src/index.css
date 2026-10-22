@@ -153,22 +153,155 @@ body:has(.workspace) {
   place-items: start center;
 }
 
+body:has(.workspace) #app {
+  width: 100%;
+}
+
 .workspace {
   --line: #8884;
   --accent: #3b82f6;
   --muted: #8b93a1;
   --card: #8881;
   width: 100%;
-  max-width: 72rem;
+  max-width: 110rem;
   min-width: 0;
+  margin: 0 auto;
   padding: 1rem;
   box-sizing: border-box;
   align-self: start;
 }
 
-.workspace header {
+/* Layout (SPEC 2): header, then the stage (instrument view) beside the side
+   panel on a laptop; on a phone the side panel is a sheet along the bottom. */
+.workspace .top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.5rem;
   border-bottom: 1px solid var(--line);
   padding-bottom: 0.75rem;
+}
+
+.workspace .app-name {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+}
+
+.stage {
+  min-width: 0;
+}
+
+.stage footer {
+  border-top: 1px solid var(--line);
+  margin-top: 2rem;
+  padding-top: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.side {
+  min-width: 0;
+  background: Canvas;
+}
+
+.side-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.tabs {
+  display: flex;
+  overflow-x: auto;
+}
+
+.tabs button {
+  font: inherit;
+  padding: 0.5rem 0.9rem;
+  border: none;
+  border-bottom: 3px solid transparent;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.tabs button[aria-selected='true'] {
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+.sheet-toggle {
+  padding: 0.25rem 0.6rem;
+}
+
+.side-content {
+  padding-top: 0.25rem;
+}
+
+@media (min-width: 64rem) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) minmax(22rem, 28rem);
+    align-items: start;
+  }
+
+  /* The side panel scrolls on its own, beside the instrument view. */
+  .side {
+    position: sticky;
+    top: 0.5rem;
+    max-height: calc(100vh - 1rem);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .side-content {
+    overflow-y: auto;
+  }
+
+  .sheet-toggle {
+    display: none;
+  }
+}
+
+@media (max-width: 63.99rem) {
+  /* A sheet along the bottom: the tab bar always shows, the content when
+     open, and the page leaves room for it. */
+  .side {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    padding: 0 1rem;
+    border-top: 1px solid var(--line);
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -4px 16px #0003;
+  }
+
+  .side-content {
+    display: none;
+    max-height: 42vh;
+    overflow-y: auto;
+    padding-bottom: 1rem;
+  }
+
+  .side.open .side-content {
+    display: block;
+  }
+
+  .stage {
+    padding-bottom: 4rem;
+  }
+
+  .workspace.sheet-open .stage {
+    padding-bottom: 48vh;
+  }
 }
 
 .workspace select,
@@ -200,9 +333,9 @@ body:has(.workspace) {
   color: var(--muted);
 }
 
-.explore h1 {
-  font-size: 1.5rem;
-  margin: 1rem 0 0.25rem;
+.explore h2 {
+  font-size: 1.3rem;
+  margin: 0.75rem 0 0.25rem;
 }
 
 .explore .degrees {
@@ -257,16 +390,6 @@ body:has(.workspace) {
   font-weight: 700;
   min-width: 2.2rem;
   text-align: center;
-  font-size: 0.9rem;
-}
-
-.workspace footer {
-  border-top: 1px solid var(--line);
-  margin-top: 2rem;
-  padding-top: 0.75rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
   font-size: 0.9rem;
 }
 
@@ -592,4 +715,45 @@ body:has(.workspace) {
 
 .midi .played-name {
   font-size: 1.4rem;
+}
+
+/* Phone: a tighter header and toolbar, so the instrument fits above the
+   sheet. */
+@media (max-width: 40rem) {
+  .workspace {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .workspace .app-name {
+    display: none;
+  }
+
+  .workspace .top,
+  .key-picker,
+  .instrument .toolbar {
+    gap: 0.4rem 0.6rem;
+  }
+
+  .workspace .top {
+    padding-bottom: 0.5rem;
+  }
+
+  .instrument {
+    margin-top: 0.75rem;
+  }
+
+  .instrument .toolbar {
+    margin-bottom: 0.5rem;
+  }
+
+  .toggle button,
+  .key-picker button,
+  .octaves button {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .keyboard {
+    height: 7.5rem;
+  }
 }

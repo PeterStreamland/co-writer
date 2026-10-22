@@ -305,3 +305,19 @@ Phase 2 task 6 (`src/midi/`, `spellPitches` in `src/theory/spell.ts`, golden fix
 - **No sound from the app for MIDI notes:** your keyboard makes its own.
 - **The Phase 0 spike page is gone**, as its own note said it would be once real MIDI input arrived. Its MIDI parser moved into `src/midi/` with sustain-pedal support.
 - **Exit criterion not yet ticked:** "Notes and chords played on your keyboard appear and are named correctly, with no noticeable lag" needs David's real keyboard. In a test browser with a simulated keyboard, the screen updates within two frames (about 30 ms) of the notes arriving.
+
+## 2026-10-22 — MIDI confirmed on David's keyboard
+
+David tried MIDI input with his own keyboard: notes and chords appear, are named correctly and show no noticeable lag. That ticks the Phase 2 exit criterion. He noticed a short delay on the very first chord, which was the piano samples loading; see the next entry.
+
+## 2026-10-22 — The workspace layout
+
+Phase 2 task 7 (`src/workspace/Workspace.tsx`, `SidePanel.tsx`), arranging the screen as SPEC 2 sketches it. Layout only; the visual design waits, as decided.
+
+- **Header:** the app name and the key picker. The sketch, section and style controls join it in Phase 4.
+- **Stage:** the instrument view with its toolbar and the MIDI panel. Phase 4's progression strip will sit above it.
+- **Side panel:** tabs, one per tool. Only Explore exists so far, holding the scale view and the chord rows; Shapes, Suggest, Voice, Lines, Melody and Analyse appear with their phases rather than as empty tabs.
+- **Laptop (1024 px wide and up):** the stage takes the width and the side panel sits on the right, 22–28rem wide. The panel scrolls on its own and stays in place as the page scrolls. The page now uses the full screen width, up to 110rem.
+- **Phone and narrow windows:** the side panel is a sheet along the bottom (SPEC 2), open by default at up to 42% of the screen height. Hide and Show collapse it to its tab bar, and the page leaves room so nothing hides behind it. On a phone the header and toolbar are tighter and the app name is hidden, so the instrument fits above the sheet.
+- **First chord without the wait:** the piano samples now download into the browser's cache once the page is idle. The first press anywhere on the page starts decoding them, so they are ready before the first chord. No sound plays until you ask for one.
+- **"Usable on your phone's screen"** stays unticked until David has tried the layout on his phone.

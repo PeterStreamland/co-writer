@@ -8,6 +8,33 @@ import { sampleMap, strumSchedule } from './sounds'
 
 let piano: Tone.Sampler | undefined
 
+const SAMPLES_URL = `${import.meta.env.BASE_URL}samples/piano/`
+
+function sampler(): Tone.Sampler {
+  piano ??= new Tone.Sampler({
+    urls: sampleMap(),
+    baseUrl: SAMPLES_URL,
+    release: 1,
+  }).toDestination()
+  return piano
+}
+
+// Gets the piano ready before the first chord, so it plays straight away:
+// the samples download into the browser's cache once the page is idle, and
+// the first press anywhere on the page starts decoding them. No sound plays.
+export function preparePiano(): void {
+  const download = () => {
+    for (const file of Object.values(sampleMap())) {
+      fetch(SAMPLES_URL + file).catch(() => {})
+    }
+  }
+  if ('requestIdleCallback' in window) requestIdleCallback(download)
+  else setTimeout(download, 1000)
+  addEventListener('pointerdown', () => void Tone.start().then(sampler), {
+    once: true,
+  })
+}
+
 export type PlayOptions = { strum?: boolean; seconds?: number }
 
 // Plays the notes as a chord. The samples are fetched the first time, and the
@@ -18,11 +45,7 @@ export async function playChord(
   { strum = false, seconds = 1.5 }: PlayOptions = {},
 ): Promise<void> {
   await Tone.start()
-  piano ??= new Tone.Sampler({
-    urls: sampleMap(),
-    baseUrl: `${import.meta.env.BASE_URL}samples/piano/`,
-    release: 1,
-  }).toDestination()
+  const piano = sampler()
   await Tone.loaded()
   piano.releaseAll()
   const now = Tone.now()

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'preact/hooks'
 import { formatNote, type ChordName, type Key } from '../theory'
+import { preparePiano } from '../audio/player'
 import { useMidi } from '../midi/useMidi'
 import { ChordRows } from './ChordRows'
 import { InstrumentView, type Instrument } from './InstrumentView'
 import { MidiPanel } from './MidiPanel'
+import { SidePanel } from './SidePanel'
 import { played } from './played'
 import {
   keyName,
@@ -19,41 +21,55 @@ import {
   withTonic,
 } from './key-picker'
 
-// The single workspace (SPEC 2): the header key picker, the Explore panel's
-// scale view, the instrument view with MIDI input, and the chord rows; the
-// rest arrives task by task.
+// The single workspace (SPEC 2): the key picker in the header, the
+// instrument view with MIDI input as the stage, and the side panel's tools
+// beside it on a laptop or as a sheet along the bottom on a phone.
 export function Workspace() {
   const [key, setKey] = useState<Key>(loadKey)
   const [chord, setChord] = useState<ChordName>()
   const [instrument, setInstrument] = useState<Instrument>('keyboard')
+  const [sheetOpen, setSheetOpen] = useState(true)
   useEffect(() => saveKey(key), [key])
+  useEffect(preparePiano, [])
   const midi = useMidi()
   const playing = played(key, midi.held)
+  const explore = (
+    <>
+      <ScalePanel value={key} />
+      <ChordRows
+        value={key}
+        current={chord}
+        onSelect={setChord}
+        strum={instrument === 'guitar'}
+      />
+    </>
+  )
   return (
-    <div class="workspace">
-      <header>
+    <div class={sheetOpen ? 'workspace sheet-open' : 'workspace'}>
+      <header class="top">
+        <h1 class="app-name">Co-Writer</h1>
         <KeyPicker value={key} onChange={setKey} />
       </header>
-      <main>
-        <ScalePanel value={key} />
-        <InstrumentView
-          value={key}
-          chord={chord}
-          played={playing.notes}
-          instrument={instrument}
-          onInstrumentChange={setInstrument}
+      <div class="layout">
+        <main class="stage">
+          <InstrumentView
+            value={key}
+            chord={chord}
+            played={playing.notes}
+            instrument={instrument}
+            onInstrumentChange={setInstrument}
+          />
+          <MidiPanel midi={midi} playing={playing} />
+          <footer>
+            <a href="#/audit">Phase 1 audit table</a>
+          </footer>
+        </main>
+        <SidePanel
+          tabs={[{ id: 'explore', label: 'Explore', content: explore }]}
+          open={sheetOpen}
+          onOpenChange={setSheetOpen}
         />
-        <MidiPanel midi={midi} playing={playing} />
-        <ChordRows
-          value={key}
-          current={chord}
-          onSelect={setChord}
-          strum={instrument === 'guitar'}
-        />
-      </main>
-      <footer>
-        <a href="#/audit">Phase 1 audit table</a>
-      </footer>
+      </div>
     </div>
   )
 }
@@ -123,7 +139,7 @@ function ScalePanel({ value }: { value: Key }) {
   const signature = signatureText(value)
   return (
     <section class="explore">
-      <h1>{keyName(value)}</h1>
+      <h2>{keyName(value)}</h2>
       <p class="muted">
         Key signature: {signature ?? 'none of its own (not a mode)'}
       </p>
