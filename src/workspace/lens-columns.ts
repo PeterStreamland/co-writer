@@ -1,5 +1,6 @@
 // The Voice tab's state (Phase 5 task 5, SPEC 8): which lenses are side by
-// side, two to four of them, Rock and Classical by default; the progression
+// side, up to four of them (none at all is fine, David's choice), Classical
+// and Rock by default; the progression
 // as the lenses read it; and how a column's voicings play. No theory lives
 // here.
 import {
@@ -23,16 +24,15 @@ import {
 } from '../sketch/progression'
 import type { Dur } from '../sketch/time'
 
-export const MIN_LENSES = 2
 export const MAX_LENSES = 4
 export const DEFAULT_LENSES: Lens[] = ['classical', 'rock']
 
 const STORAGE_KEY = 'co-writer:lenses'
 
-// Turns a lens on or off, keeping two to four and the order of ALL_LENSES.
+// Turns a lens on or off, keeping at most four and the order of
+// ALL_LENSES.
 export function toggleLens(chosen: Lens[], lens: Lens): Lens[] {
   const on = chosen.includes(lens)
-  if (on && chosen.length <= MIN_LENSES) return chosen
   if (!on && chosen.length >= MAX_LENSES) return chosen
   const next = on ? chosen.filter((l) => l !== lens) : [...chosen, lens]
   return ALL_LENSES.filter((l) => next.includes(l))
@@ -107,7 +107,6 @@ export function loadLenses(store = storage()): Lens[] {
     const saved: unknown = JSON.parse(store?.getItem(STORAGE_KEY) ?? 'null')
     if (
       Array.isArray(saved) &&
-      saved.length >= MIN_LENSES &&
       saved.length <= MAX_LENSES &&
       saved.every((l) => ALL_LENSES.includes(l))
     ) {
