@@ -40,6 +40,7 @@ import { NO_CHORD, nextLastChord, type LastChord } from './last-chord'
 import { SidePanel } from './SidePanel'
 import { SuggestPanel } from './SuggestPanel'
 import { VoicePanel } from './VoicePanel'
+import { addLensVoicings } from './lens-columns'
 import { StyleBlendControl } from './StyleBlendControl'
 import { loadStyles } from './style-editor'
 import { blendedWeights, loadBlend, saveBlend } from './style-blend'
@@ -469,6 +470,10 @@ export function Workspace() {
       instrument={instrument}
       bpm={bpm}
       narrow={narrow}
+      onUse={(voicings, on, where) => {
+        const next = addLensVoicings(progression, key, voicings, on, where)
+        change(next.progression, next.select)
+      }}
     />
   )
   // The chord box beside the side panel (David's layout); on a phone it
@@ -520,7 +525,7 @@ export function Workspace() {
         <main class="stage">
           {!narrow && scale}
           <InstrumentView
-            showBox={narrow}
+            addable={narrow}
             value={key}
             chord={shown}
             played={playing.notes}

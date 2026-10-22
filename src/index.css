@@ -755,6 +755,17 @@ body:has(.workspace) #app {
     0 0 0 4px CanvasText;
 }
 
+/* The chord's tones elsewhere than the shape or voicing on show: still in
+   their colours, but paler (David's choice). */
+.keyboard .key.off-shape .dot,
+.fretboard .fret.off-shape .dot {
+  background-image: linear-gradient(
+    rgb(255 255 255 / 0.5),
+    rgb(255 255 255 / 0.5)
+  );
+  color: rgb(0 0 0 / 0.6);
+}
+
 /* The chord boxes sit to the right of the neck (task 8), and the voicing
    box to the right of the keyboard (David's layout); under them on a phone. */
 .with-box {
@@ -1751,4 +1762,16 @@ body:has(.workspace) #app {
   list-style: none;
   font-size: 0.78rem;
   color: var(--muted);
+}
+
+.lens-use {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.lens-use button {
+  font-size: 0.85rem;
+  padding: 0.15rem 0.6rem;
 }

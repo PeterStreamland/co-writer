@@ -48,8 +48,9 @@ const SWIPE = 50
 
 // The Voice tab (Phase 5 task 5, SPEC 8): the progression voiced through two
 // to four lenses side by side, on guitar or keyboard for all of them at once,
-// each column with its own Play. Tap a chord to hear it. On a phone one lens
-// shows at a time; swipe or use the arrows to change it.
+// each column with its own Play. Tap a chord to hear it. Each column can go
+// into the progression as a new branch, or on the end (David's request). On
+// a phone one lens shows at a time; swipe or use the arrows to change it.
 export function VoicePanel({
   progression,
   sectionKey,
@@ -57,6 +58,7 @@ export function VoicePanel({
   instrument: startInstrument,
   bpm,
   narrow,
+  onUse,
 }: {
   progression: Progression
   sectionKey: Key
@@ -64,6 +66,12 @@ export function VoicePanel({
   instrument: Instrument
   bpm: number
   narrow: boolean
+  // Puts a lens's voicings into the progression.
+  onUse: (
+    voicings: (LensVoicing | GuitarLensVoicing)[],
+    instrument: Instrument,
+    where: 'branch' | 'end',
+  ) => void
 }) {
   const [lenses, setLenses] = useState(loadLenses)
   useEffect(() => saveLenses(lenses), [lenses])
@@ -202,6 +210,13 @@ export function VoicePanel({
             onPlay={() => setPlaying({ lens, at: 0 })}
             onStop={() => setPlaying(undefined)}
             onHear={(choice) => play(choice)}
+            onUse={(where) =>
+              onUse(
+                choices.map((c) => c.voicing),
+                instrument,
+                where,
+              )
+            }
           />
         ))}
       </div>
@@ -218,6 +233,7 @@ function LensColumn({
   onPlay,
   onStop,
   onHear,
+  onUse,
 }: {
   lens: Lens
   choices: Choice[]
@@ -227,6 +243,7 @@ function LensColumn({
   onPlay: () => void
   onStop: () => void
   onHear: (choice: Choice) => void
+  onUse: (where: 'branch' | 'end') => void
 }) {
   const movement = averageMovement(choices.map((c) => c.voicing.notes))
   return (
@@ -244,6 +261,22 @@ function LensColumn({
         )}
       </header>
       <p class="muted blurb">{LENS_BLURBS[lens]}</p>
+      <div class="lens-use">
+        <button
+          type="button"
+          title={`A new branch of the progression with the ${LENS_SETTINGS[lens].name} voicings; the arrows on the first chord switch back`}
+          onClick={() => onUse('branch')}
+        >
+          ⑂ New branch
+        </button>
+        <button
+          type="button"
+          title={`Add the ${LENS_SETTINGS[lens].name} voicings after the last chord`}
+          onClick={() => onUse('end')}
+        >
+          + Add to end
+        </button>
+      </div>
       <ol class="lens-chords">
         {choices.map((choice, i) => {
           const { voicing } = choice

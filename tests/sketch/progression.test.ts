@@ -98,6 +98,23 @@ describe('adding typed chords', () => {
     expect(strip(switchAt(p, 2, -1))).toBe('C G Em D')
   })
 
+  it('makes a whole new branch from the start, keeping the old one', () => {
+    const p = addAllAfter(
+      build('C', 'Am', 'F'),
+      -1,
+      chords('Cadd9', 'Am7', 'Fmaj7'),
+      [
+        {},
+        { length: { n: 1, d: 2 } },
+        { voicing: { instrument: 'keyboard', notes: [parseNote('F3')!] } },
+      ],
+    )
+    expect(strip(p)).toBe('Cadd9 Am7 Fmaj7')
+    expect(pathNodes(p)[1].length).toEqual({ n: 1, d: 2 })
+    expect(pathNodes(p)[2].voicing?.notes).toHaveLength(1)
+    expect(strip(switchAt(p, 0, -1))).toBe('C Am F')
+  })
+
   it('inserts several chords between two others', () => {
     const p = insertAllBetween(build('C', 'G'), 0, chords('Am', 'Dm'))
     expect(strip(p)).toBe('C Am Dm G')

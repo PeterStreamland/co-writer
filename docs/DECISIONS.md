@@ -889,3 +889,16 @@ Phase 5 task 5 (`src/workspace/VoicePanel.tsx`, state in `src/workspace/lens-col
 - **Phones:** one lens at a time. Swipe sideways or use ‹ › to change lens; the tick boxes choose which ones to swipe through.
 - **Not yet:** a lens voicing can't be added to the progression; the strip keeps its own shapes. Say if you'd like a + on each column.
 - **Next:** all five Phase 5 tasks are done and all three exit criteria pass, so the Phase 5 gate comes next: the theory reviewer and your play-test.
+
+## 2026-10-22 — Lens voicings into the progression, a chord viewer, and paler tones off the shape (David's choices)
+
+After trying the Voice tab, David asked for three things.
+
+- **Lens voicings into the progression:** each lens column has two buttons.
+  - **⑂ New branch** makes a new branch from the first chord with the lens's chords and voicings ("Cadd9 Fsus2…"). The chords as they were stay one tap away on the first chord's ‹ › arrows.
+  - **+ Add to end** adds the lens's chords after the last chord.
+  - Either way each chord keeps its length and any key change, and its voicing (notes, and frets on guitar), so it plays as the lens voiced it. When added on the end after a key change, the last chord leads back to the starting key, so the copy is read as the original was.
+  - Undo covers both.
+- **A chord viewer beside the instrument** on laptops and tablets, with no +. The box with + stays beside the side panel. **The two stay in step** (David asked for Claude's view; Claude recommended it so the fretboard, the viewer and the box never disagree): stepping either one moves both, and the instrument follows. A phone keeps its one box, with +, under the instrument.
+  - This partly undoes "the instrument view now runs on its own" from the chord-box entry above: the box with + still lives beside the side panel, and the viewer joins the instrument.
+- **Paler tones off the shape:** on the fretboard and the keyboard, the notes of the shape or voicing on show keep full colour (and their ring). The chord's tones elsewhere stay in their colours, but paler. This works with note names, degrees and chord-tone colours alike.
