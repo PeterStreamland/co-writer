@@ -239,3 +239,15 @@ Why: where things sit shapes how Phase 4's progression strip and suggestion pane
 - **Chord boxes join Phase 3** as task 8. The current chord's shape appears as a small vertical chord box to the right of the full neck, with ◀ ▶ arrows to step through its shapes, positions and inversions, and the shape on show is also marked on the neck. The fingering search, scoring and filters of Phase 3 tasks 1–4 supply the shapes; SPEC 5 already set the box style (nut at the top, low string on the left, fret dots only).
 
 Why: David's request after trying the fretboard view. The boxes need Phase 3's fingering search, so they arrive with it rather than in Phase 2.
+
+## 2026-10-22 — Chord-tone colours join Phase 3 (David's choice)
+
+Phase 3 gains task 9, built alongside the chord boxes (task 8) so the two share one design. A third label setting, **Chord tones**, joins Note names and Degrees:
+
+- **Five colours at most:** root, 3rd, 5th and 7th get one colour each. The 9th, 11th, 13th and altered notes (♭5, ♯9 and so on) share a fifth, so a 13th chord stays readable.
+- **Labels as well as colours:** each dot shows its interval (R, ♭3, 5, ♭7, 9), so tones that share a colour can still be told apart, and the view works for anyone who finds colours hard to tell apart.
+- **Everything else fades:** the rest of the scale turns light grey, and the key's root is marked only when it's in the chord.
+- **No chord selected:** the views show the usual scale colours.
+- **Chord boxes** use the same colours, so the bass note's colour shows the inversion.
+
+Why: seeing where each chord tone sits helps with moving shapes around the neck, telling inversions apart and knowing which notes can be left out. Building it with the chord boxes keeps the two consistent. The colours themselves are Claude's to pick unless David names them.
