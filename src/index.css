@@ -1633,3 +1633,122 @@ body:has(.workspace) #app {
   flex-basis: 100%;
   margin: 0;
 }
+
+/* The Voice tab: lenses side by side (SPEC 8). */
+.voice-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1.2rem;
+}
+
+.lens-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem 0.8rem;
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lens-picker legend {
+  float: left;
+  margin-right: 0.4rem;
+}
+
+.lens-picker .check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.lens-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+.lens-columns {
+  display: grid;
+  grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-top: 0.6rem;
+  touch-action: pan-y;
+}
+
+.lens-column {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+  min-width: 0;
+}
+
+.lens-column header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.lens-column h3 {
+  margin: 0;
+}
+
+.lens-column .blurb {
+  margin: 0.3rem 0 0.5rem;
+  font-size: 0.85rem;
+}
+
+.lens-chords {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.lens-chords > li {
+  flex: 1 1 7rem;
+  min-width: 0;
+}
+
+.lens-chord {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  width: 100%;
+  padding: 0.3rem;
+}
+
+.lens-chords > li.playing .lens-chord {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.lens-symbol {
+  text-align: center;
+}
+
+.lens-form,
+.lens-notes {
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.lens-chord .box-diagram {
+  width: 5.5rem;
+  height: auto;
+}
+
+.lens-hits {
+  margin: 0.2rem 0 0;
+  padding-left: 0;
+  list-style: none;
+  font-size: 0.78rem;
+  color: var(--muted);
+}

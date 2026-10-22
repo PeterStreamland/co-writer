@@ -188,7 +188,7 @@ const RADIUS = 7
 // with the nut or capo drawn thick at the top; dots coloured and labelled by
 // chord tone; ○ over open strings and × over muted ones; and each string's
 // fret written underneath.
-function BoxDiagram({ box }: { box: ChordBox }) {
+export function BoxDiagram({ box }: { box: ChordBox }) {
   const count = box.strings.length
   const width = LEFT + (count - 1) * GAP + RADIUS + 4
   const bottom = TOP + box.rows * ROW
