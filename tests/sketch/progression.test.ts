@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest'
 import {
   EMPTY_PROGRESSION,
   addAfter,
+  addAllAfter,
   alternatives,
   changeAt,
   chordsUpTo,
   isProgression,
+  insertAllBetween,
   insertBetween,
   lengthOf,
   setLengthAt,
@@ -74,6 +76,31 @@ describe('adding chords', () => {
     const before = build('C', 'F')
     addAfter(before, 1, parse('G'))
     expect(strip(before)).toBe('C F')
+  })
+})
+
+describe('adding typed chords', () => {
+  const chords = (...symbols: string[]) => symbols.map(parse)
+
+  it('fills an empty strip in order', () => {
+    const p = addAllAfter(EMPTY_PROGRESSION, -1, chords('Em', 'C', 'G', 'D'))
+    expect(strip(p)).toBe('Em C G D')
+  })
+
+  it('extends the progression after the last chord', () => {
+    const p = addAllAfter(build('C', 'Am'), 1, chords('F', 'G'))
+    expect(strip(p)).toBe('C Am F G')
+  })
+
+  it('branches mid-strip, keeping the old chords as alternatives', () => {
+    const p = addAllAfter(build('C', 'G', 'Em', 'D'), 1, chords('Am', 'F'))
+    expect(strip(p)).toBe('C G Am F')
+    expect(strip(switchAt(p, 2, -1))).toBe('C G Em D')
+  })
+
+  it('inserts several chords between two others', () => {
+    const p = insertAllBetween(build('C', 'G'), 0, chords('Am', 'Dm'))
+    expect(strip(p)).toBe('C Am Dm G')
   })
 })
 

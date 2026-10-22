@@ -760,3 +760,25 @@ Settled by David:
 - **The passing-chords fixture's jazz comment** now reads "ii7 and V7/V". The row itself was already right. Changed with his go-ahead.
 
 Still open: David's play-test. After that the gate closes and Phase 4 is tagged `v0.4-next-chord`.
+
+## 2026-10-22 — Phase 4 gate passed
+
+David has play-tested Phase 4 (five progressions in different styles), which was the last open item after the review and fixes above. The gate is closed. Phase 4 is released as `v0.4-next-chord`, on the merge of `claude/magical-edison-u6kati` (`0acbe87`). Phase 5 starts.
+
+## 2026-10-22 — Typing chords, and Record chords on MIDI
+
+Phase 5 task 1 (`src/workspace/typed-chords.ts`, `src/midi/record.ts`, `src/workspace/recorded.ts`). SPEC 5 sets how Record chords behaves; these choices it didn't settle:
+
+- **Typing:**
+  - A **Type chords** box under the strip takes chord symbols in either style, separated by spaces, commas or bar lines: "Em C G D", "| Am7 | D7 | Gmaj7 |". A dash on its own ("C - G") is a separator too.
+  - A lower-case root is read as a capital, so "em c g d" works. Accidentals keep the spelling typed: A♯ stays A♯, even in F major.
+  - The chords go after the selected chord, as + would add them: at the end they extend the progression, and mid-strip they start a branch, keeping the old chords as an alternative. While **+ between** is on, they all go between the two chords, in order.
+  - **Nothing is added while any word can't be read** ("Hx" isn't a chord symbol), so a typo doesn't leave half a progression. The text stays in the box to fix.
+- **Record chords** (a switch in the MIDI panel, off by default):
+  - Notes sounding together for at least 150 ms make a chord, which is added once every key is up and the sustain pedal, if down, is up too (SPEC 13 edge cases, tested).
+  - A rolled chord counts as one chord. Letting keys go one at a time keeps the fullest chord held.
+  - **A lone note isn't recorded:** single notes are for melodies (Phase 7). Two notes are, as power chords (E5) need only two.
+  - The chord takes the name the MIDI panel shows first, the best fit for the key at that point in the progression. It keeps the notes as played, octaves and all, so it plays back as voiced, like a chord added from the keyboard's voicing box.
+  - A set of notes with no chord name isn't added, and the panel says so.
+- **Undo** covers both, a typed line as one step.
+- **Analysis:** Phase 8 builds key finding on progressions entered this way.

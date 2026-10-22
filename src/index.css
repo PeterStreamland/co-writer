@@ -1607,3 +1607,29 @@ body:has(.workspace) #app {
   font-size: 0.75rem;
   color: var(--muted);
 }
+
+/* Typing chords into the strip. */
+.type-chords {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.type-chords label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.type-chords input {
+  width: 14rem;
+  max-width: 60vw;
+  font: inherit;
+}
+
+.type-chords .problem {
+  flex-basis: 100%;
+  margin: 0;
+}

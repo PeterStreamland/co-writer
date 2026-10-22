@@ -16,6 +16,7 @@ import {
   type Progression,
 } from '../sketch/progression'
 import { InfoPanel, InfoToggle, useToggle } from './ChordInfo'
+import { readTypedChords } from './typed-chords'
 import {
   LENGTH_CHOICES,
   MAX_BPM,
@@ -32,7 +33,8 @@ import {
 // arrows under a chord switch between its alternatives; + adds the current
 // chord after the selected one; + between, beside a selected chord with
 // another after it, asks for passing chords (SPEC 6.7). Play plays every
-// chord from the start.
+// chord from the start. The box under the chords takes typed chord symbols
+// ("Em C G D") and adds them in order after the selected chord.
 // Undo and redo cover every change, and the tree button shows every branch.
 export function ProgressionStrip({
   progression,
@@ -44,6 +46,7 @@ export function ProgressionStrip({
   onSelect,
   onSwitch,
   onAddFree,
+  onAddTyped,
   onUndo,
   onRedo,
   onClear,
@@ -66,6 +69,7 @@ export function ProgressionStrip({
   onSelect: (index: number) => void
   onSwitch: (index: number, step: number) => void
   onAddFree: () => void
+  onAddTyped: (chords: ChordName[]) => void
   onUndo: () => void
   onRedo: () => void
   onClear: () => void
@@ -236,6 +240,16 @@ export function ProgressionStrip({
           </button>
         </li>
       </ol>
+      <TypeChords
+        where={
+          between !== undefined
+            ? `between ${chordSymbol(path[between].chord)} and ${chordSymbol(path[between + 1].chord)}`
+            : selectedNode
+              ? `after ${chordSymbol(selectedNode.chord)}`
+              : 'to start the progression'
+        }
+        onAdd={onAddTyped}
+      />
       {selectedNode && (
         <div class="strip-info">
           <p>
@@ -269,8 +283,9 @@ export function ProgressionStrip({
       )}
       {path.length === 0 && (
         <p class="muted">
-          Empty so far. Pick a chord in Explore and add it with +, or use a
-          suggestion from the Suggest tab.
+          Empty so far. Type some chords above, pick a chord in Explore and add
+          it with +, play one with Record chords on, or use a suggestion from
+          the Suggest tab.
         </p>
       )}
       {treeOpen && (
@@ -283,6 +298,54 @@ export function ProgressionStrip({
         />
       )}
     </section>
+  )
+}
+
+// Typing chords (Phase 5 task 1): chord symbols in either style, separated
+// by spaces, commas or bar lines. Nothing is added while any word can't be
+// read, so a typo doesn't leave half a progression.
+function TypeChords({
+  where,
+  onAdd,
+}: {
+  where: string // where the chords will go, e.g. "after G"
+  onAdd: (chords: ChordName[]) => void
+}) {
+  const [text, setText] = useState('')
+  const [problem, setProblem] = useState('')
+  function submit(e: Event) {
+    e.preventDefault()
+    const typed = readTypedChords(text)
+    if (typed.unread.length) {
+      const words = typed.unread.map((w) => `"${w}"`).join(', ')
+      setProblem(
+        `${words} ${typed.unread.length > 1 ? "aren't chord symbols" : "isn't a chord symbol"}, so nothing was added.`,
+      )
+      return
+    }
+    if (!typed.chords.length) return
+    onAdd(typed.chords)
+    setText('')
+    setProblem('')
+  }
+  return (
+    <form class="type-chords" onSubmit={submit}>
+      <label>
+        Type chords
+        <input
+          type="text"
+          value={text}
+          placeholder="e.g. Em C G D"
+          autocomplete="off"
+          spellcheck={false}
+          onInput={(e) => setText(e.currentTarget.value)}
+        />
+      </label>
+      <button type="submit" disabled={!text.trim()}>
+        Add {where}
+      </button>
+      {problem && <p class="muted problem">{problem}</p>}
+    </form>
   )
 }
 

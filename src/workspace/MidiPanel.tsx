@@ -8,13 +8,17 @@ import type { Played } from './played'
 // jumps to its shapes on the other instrument: the guitar's chord boxes from
 // the keyboard view (Phase 3 task 7), the piano voicings from the guitar
 // view (David's choice). Follow my playing makes each chord played the
-// current chord.
+// current chord. Record chords adds each chord held for 150 ms to the
+// progression once every key is up (SPEC 5).
 export function MidiPanel({
   midi,
   playing,
   last,
   follow,
   onFollowChange,
+  recording,
+  onRecordingChange,
+  unnamed,
   shapesOn,
   onShowShapes,
 }: {
@@ -23,6 +27,9 @@ export function MidiPanel({
   last: LastChord
   follow: boolean
   onFollowChange: (follow: boolean) => void
+  recording: boolean
+  onRecordingChange: (recording: boolean) => void
+  unnamed: boolean // the last chord recorded had no name, so wasn't added
   shapesOn: 'guitar' | 'keyboard' // where the shapes button goes
   onShowShapes: (chord: ChordName) => void
 }) {
@@ -99,6 +106,20 @@ export function MidiPanel({
         />{' '}
         Follow my playing: each chord played becomes the current chord
       </label>
+      <label class="follow">
+        <input
+          type="checkbox"
+          checked={recording}
+          onChange={(e) => onRecordingChange(e.currentTarget.checked)}
+        />{' '}
+        Record chords: each chord you hold and let go of is added to the
+        progression
+      </label>
+      {recording && unnamed && (
+        <p class="muted">
+          That chord has no name, so it wasn't added. Try it again.
+        </p>
+      )}
     </section>
   )
 }
