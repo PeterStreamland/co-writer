@@ -151,7 +151,7 @@ Gate passed: every exit criterion is ticked, David closed the phase, and the rel
 Goal: cycle any chord through playable guitar shapes and keyboard voicings.
 
 1. Fretboard model: tuning as an array of open-string pitches, plus string count, capo and fret range. ✅
-2. Fingering search: for each string, every fret that gives a chord tone, or muted; keep shapes with all required tones (5th optional), the right bass note for the inversion, and a span within the limit.
+2. Fingering search: for each string, every fret that gives a chord tone, or muted; keep shapes with all required tones (5th optional), the right bass note for the inversion, and a span within the limit. ✅
 3. Playability score: span, barre needed, muted inner strings, open strings, neck position.
 4. Filters: inversion, string set, maximum span, open strings on or off, omit the 5th.
 5. Grouping by CAGED shape in standard tuning.
@@ -161,9 +161,9 @@ Goal: cycle any chord through playable guitar shapes and keyboard voicings.
 9. Chord-tone colours (David's choice), built with the chord boxes: a third label setting, Chord tones, beside Note names and Degrees. The current chord's notes are coloured by their interval, with one colour each for root, 3rd, 5th and 7th and one shared colour for 9ths, 11ths, 13ths and altered notes. Each dot is labelled with its interval (R, ♭3, 5, ♭7, 9), and the rest of the scale fades to grey. The chord boxes use the same colours. With no chord selected, the views show the usual scale colours.
 
 - [ ] For 30 common chords in standard tuning, the textbook shapes you supply appear in the top five
-- [ ] Every result is physically valid: one note per string, span within the setting
-- [ ] Drop D and 7-string fixtures produce correct shapes
-- [ ] Search returns in under 50 ms per chord
+- [x] Every result is physically valid: one note per string, span within the setting
+- [x] Drop D and 7-string fixtures produce correct shapes
+- [x] Search returns in under 50 ms per chord
 
 Your test: play the top shapes for those 30 chords on guitar; flag anything awkward so the scorer gets tuned.
 
