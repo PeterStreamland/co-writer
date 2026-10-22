@@ -251,3 +251,19 @@ Phase 3 gains task 9, built alongside the chord boxes (task 8) so the two share 
 - **Chord boxes** use the same colours, so the bass note's colour shows the inversion.
 
 Why: seeing where each chord tone sits helps with moving shapes around the neck, telling inversions apart and knowing which notes can be left out. Building it with the chord boxes keeps the two consistent. The colours themselves are Claude's to pick unless David names them.
+
+## 2026-10-22 — Piano and guitar playback
+
+Phase 2 task 4 (`src/audio/`, samples in `public/samples/`). SPEC 5 sets block chords on the keyboard and a quick low-to-high strum, about 15 ms per string, on the guitar; these choices it didn't settle:
+
+- **Recorded samples, not synths:**
+  - Piano: the Salamander Grand Piano V3 (a Yamaha C5) by Alexander Holm, one note every minor third from A1 to C7.
+  - Clean guitar: the clean electric guitar from Nicholas Brosowsky's tonejs-instruments, E2 to C6.
+
+  Both are CC BY 3.0, credited in `public/samples/CREDITS.md`. Tone.js fills in the notes between samples by repitching the nearest one. That's about 3 MB in all, kept in the repo so the app needs no other website and can work offline later (Phase 10). Each sound loads the first time it plays, so the very first chord may take a moment.
+
+- **Which sound plays follows the instrument view:** with Keyboard showing, chords and notes play on piano as block chords. With Guitar showing, chords strum and single notes pluck on the guitar.
+- **Guitar chord notes, for now:** the strum uses the same voicing as the piano (bass between F3 and E4). Phase 3 replaces it with the notes of the shape on screen, as SPEC 5 says.
+- **The other sounds** SPEC 5 lists (distorted guitar, bass, pad) arrive with the phases that need them.
+
+Why: recorded instruments sound far closer to the real thing than synths, and tying the sound to the view means you hear the instrument you are looking at.
