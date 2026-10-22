@@ -232,6 +232,14 @@ Accepting a pivot or modulation suggestion shows a one-tap prompt: **"Continue i
   - **Reset** restores the built-in weights.
 - There is no rating, thumbs or learning from your choices. Rankings come only from rules, profiles and (later) corpus tables.
 
+### 6.7 Passing chords (added 2026-10-22)
+
+- Pick two neighbouring chords in the strip and tap **+ between** to ask for chords to put between them.
+- Each option is scored on both sides: how well it follows the first chord, and how strongly it leads into the second. A chord that points at the second (its secondary dominant, leading-note chord or tritone substitute) ranks highest.
+- The options use the same categories, ⓘ, preview and wildcard as next-chord suggestions. The ⓘ says how the chord leads into the second one, e.g. "D7 is V7/V: it pulls the C towards the G".
+- Previewing plays all three chords: the first, the candidate and the second. Accepting inserts it into the strip.
+- Passing chords are whole chords. Passing notes between chords are a separate feature in Phase 6.
+
 ## 7. Time, melody and lines (Phases 6–7)
 
 ### 7.1 Time
@@ -417,5 +425,6 @@ None of the 13 decisions change. The spec adds:
 4. **An in-app style editor**, in Phase 4. This refines "editable JSON weights".
 5. **More playback sounds:** distorted guitar, bass and pad, in Phases 2–6.
 6. **Version history and JSON export/import**, in Phase 10.
+7. **Passing chords** between two picked chords, in Phase 4 (added 2026-10-22).
 
 These get dated entries in `docs/DECISIONS.md` in the next Phase 0 session.

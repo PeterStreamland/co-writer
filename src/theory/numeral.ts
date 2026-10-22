@@ -277,14 +277,19 @@ function modeName(mode: string, names: Record<string, string>): string {
   return names[id] ?? getScale(id)?.name ?? mode
 }
 
+// A key's name as the ⓘ panel writes it: C major, A minor, E Dorian.
+export function keyName(key: Key): string {
+  return `${formatNote(key.tonic)} ${modeName(key.mode, KEY_NAMES)}`
+}
+
 // One line for the ⓘ panel (SPEC 6.3): "♭VI, borrowed from C Aeolian",
 // "V7/vi, secondary dominant of vi", "♭II7, chromatic in C major".
 export function describeNumeral(key: Key, numeral: RomanNumeral): string {
   const tonic = formatNote(key.tonic)
-  const keyName = `${tonic} ${modeName(key.mode, KEY_NAMES)}`
+  const name = keyName(key)
   switch (numeral.kind) {
     case 'diatonic':
-      return `${numeral.numeral}, diatonic in ${keyName}`
+      return `${numeral.numeral}, diatonic in ${name}`
     case 'secondary': {
       const role =
         numeral.target?.role === 'dominant' ? 'dominant' : 'leading-note chord'
@@ -292,10 +297,10 @@ export function describeNumeral(key: Key, numeral: RomanNumeral): string {
     }
     case 'borrowed': {
       const source = numeral.sources?.[0]
-      const name = source ? modeName(source.mode, SOURCE_NAMES) : ''
-      return `${numeral.numeral}, borrowed from ${tonic} ${name}`
+      const mode = source ? modeName(source.mode, SOURCE_NAMES) : ''
+      return `${numeral.numeral}, borrowed from ${tonic} ${mode}`
     }
     case 'chromatic':
-      return `${numeral.numeral}, chromatic in ${keyName}`
+      return `${numeral.numeral}, chromatic in ${name}`
   }
 }
