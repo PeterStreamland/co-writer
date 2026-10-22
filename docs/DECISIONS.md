@@ -329,3 +329,20 @@ After trying the side-by-side layout, David preferred the side panel **under the
 ## 2026-10-22 — Scale above the instrument, chords below (David's choice)
 
 On laptops and tablets the scale view (notes, degrees, intervals, step pattern) now sits **above** the instrument view, and the chord rows stay **below** it in the Explore tab, so the page reads scale, instrument, chords. On phones the scale stays in the bottom sheet with the chords, because above the keyboard it would push the instrument behind the sheet.
+
+## 2026-10-22 — Phase 2 gate passed
+
+David confirmed the app works well on his phone, which ticks the last exit criterion, and closed the phase. Gate check, done in this session against `v0.1-theory-core`..`main`:
+
+- **Exit criteria**, each with its evidence:
+  - Every key and scale shows the right notes on both instruments: a test walks every scale on every tonic the picker reaches, across the keyboard (C2–C6) and every fret of every tuning, against the Phase 1 core.
+  - Highlighted notes play the right pitch: the same tests compare MIDI numbers.
+  - Changing tuning moves the highlights: the same walk runs on all 15 tunings, 6- and 7-string.
+  - MIDI notes and chords are named correctly with no noticeable lag: golden fixture for spelling played notes, and confirmed by David on his keyboard.
+  - Usable on a phone: confirmed by David.
+- **The core** still imports no UI, audio or DOM code: the core-imports test passes. Phase 2's additions to it are the key picker spellings, degree names, step patterns, the playback voicing, `noteAtMidi` and `spellPitches`, each with golden fixtures.
+- **Golden fixtures** changed since Phase 1: `numerals.ts` (David's power-chord choice, recorded 2026-10-21) and `tunings.ts` (the 7-string rule change, recorded above). Neither was changed to make a test pass.
+- **All 2,494 tests,** lint, typecheck and build pass.
+- **Your test (20 minutes in your own keys):** David closed the phase without a separate list of anything missing. Anything he finds later can still come in as a change.
+
+Phase 2 is released as `v0.2-key-explorer`, tagged on `main` once this record is merged.

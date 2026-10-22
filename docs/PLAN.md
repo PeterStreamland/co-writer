@@ -140,9 +140,11 @@ Goal: the first usable screen, covering your first feature request.
 - [x] Every highlighted note plays the right pitch (tests compare pitch numbers)
 - [x] Changing tuning moves the fretboard highlights correctly
 - [x] Notes and chords played on your keyboard appear and are named correctly, with no noticeable lag
-- [ ] Usable on your phone's screen
+- [x] Usable on your phone's screen
 
 Your test: spend 20 minutes in keys you actually write in; note what you reach for that isn't there.
+
+Gate passed: every exit criterion is ticked, David closed the phase, and the release is tagged `v0.2-key-explorer`. ✅
 
 ### Phase 3 — Fingerings and inversions
 
