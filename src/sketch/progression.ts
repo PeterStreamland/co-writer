@@ -5,7 +5,20 @@
 // adding or changing a chord after such an alternative first copies the
 // shared chords up to that point, giving it its own continuation.
 // Every function returns a new progression and leaves its input alone.
-import type { ChordName, Key } from '../theory'
+import type { ChordName, Key, Note } from '../theory'
+
+// The exact shape a chord was added in, from a chord box: its notes with
+// octaves, lowest first, and on guitar its frets (low string first, null
+// for muted). Playback and the chord box use it, so a chosen inversion or
+// neck position is heard and shown as picked.
+export type ChordVoicing = {
+  instrument: 'keyboard' | 'guitar'
+  notes: Note[]
+  frets?: (number | null)[]
+}
+
+// What else a chord can be added with.
+export type AddOptions = { keyChange?: Key; voicing?: ChordVoicing }
 
 export type ChordNode = {
   id: string
@@ -14,6 +27,7 @@ export type ChordNode = {
   children: string[]
   // A key change from this chord on: later chords are read in it (SPEC 6.4).
   keyChange?: Key
+  voicing?: ChordVoicing
   // The child the active path last went through, so switching back to this
   // node restores the branch that was showing.
   activeChild?: string
@@ -114,6 +128,7 @@ function materialise(p: Progression, upTo: number): Progression {
       children: [],
     }
     if (original.keyChange) copy.keyChange = original.keyChange
+    if (original.voicing) copy.voicing = original.voicing
     const parent = node(out, parentId)
     const activePath = [...out.activePath]
     activePath[i] = id
@@ -134,12 +149,13 @@ function addNode(
   p: Progression,
   parentId: string | undefined,
   chord: ChordName,
-  keyChange?: Key,
+  { keyChange, voicing }: AddOptions,
 ): { p: Progression; id: string } {
   const id = nextId(p)
   const added: ChordNode = { id, chord, children: [] }
   if (parentId !== undefined) added.parent = parentId
   if (keyChange) added.keyChange = keyChange
+  if (voicing) added.voicing = voicing
   const nodes = { ...p.nodes, [id]: added }
   let roots = p.roots
   if (parentId === undefined) roots = [...roots, id]
@@ -152,16 +168,17 @@ function addNode(
 
 // Adds a chord after a slot (-1 for before the first). After the last chord
 // it extends the path; anywhere else it becomes an alternative at the next
-// slot, sharing that slot's continuation.
+// slot, sharing that slot's continuation. It can carry a key change (a
+// pivot) and the exact shape it was picked in.
 export function addAfter(
   p: Progression,
   index: number,
   chord: ChordName,
-  keyChange?: Key,
+  options: AddOptions = {},
 ): Progression {
   const own = index >= 0 ? materialise(p, index) : p
   const parentId = index >= 0 ? own.activePath[index] : undefined
-  const added = addNode(own, parentId, chord, keyChange)
+  const added = addNode(own, parentId, chord, options)
   const rest = own.activePath.slice(index + 2)
   return remember({
     ...added.p,
@@ -203,7 +220,8 @@ export function switchAt(
   return remember({ ...p, activePath })
 }
 
-// Changes the chord at a slot, giving it its own copy first if it was shared.
+// Changes the chord at a slot, giving it its own copy first if it was
+// shared. The old chord's shape goes with it.
 export function changeAt(
   p: Progression,
   index: number,
@@ -211,7 +229,9 @@ export function changeAt(
 ): Progression {
   const own = materialise(p, index)
   const id = own.activePath[index]
-  return { ...own, nodes: { ...own.nodes, [id]: { ...node(own, id), chord } } }
+  const changed: ChordNode = { ...node(own, id), chord }
+  delete changed.voicing
+  return { ...own, nodes: { ...own.nodes, [id]: changed } }
 }
 
 // Makes the path through a node active (the tree view): its ancestors, the
