@@ -401,3 +401,12 @@ Phase 3 task 3 (`src/instruments/playability-data.ts`, the scoring in `src/instr
 - **Triads without their 5th stay, ranked lower (David left this to Claude).** They're real shapes, so they're still found, but they lose points for the missing 5th, so the full triad comes first.
 - **Textbook shapes written by Claude.** David isn't supplying the 30 textbook shapes the exit criterion asked for, so Claude wrote them: the shape a chord book prints for 30 common open, barre, 7th, suspended and power chords in standard tuning. The weights were tuned until each one ranks in its chord's top five; all 30 do, and 22 rank first. The criterion is ticked on that list. David can swap in his own shapes at any time.
 - **What David's play-test should look for:** the plan's test (play the top shapes and flag anything awkward) still stands once the chord boxes (task 8) show them. Anything awkward is a weight to change in `playability-data.ts`.
+
+## 2026-10-22 — Fingering filters
+
+Phase 3 task 4 (`FingeringOptions` in `src/instruments/fingering.ts`). The filters the chord boxes will offer, all off by default. Choices SPEC 5 didn't settle:
+
+- **Inversion:** a number (root position, first, second, third inversion) or "any". By default a chord keeps its own bass, so C/E stays a first inversion. Asking for an inversion replaces a slash chord's bass. Each shape now says which inversion it is, ready for the chord boxes' ◀ ▶ arrows.
+- **String set:** any set of strings, not just neighbouring ones, so "low E plus the top three" works. The strings left out are muted.
+- **Open strings off:** with a capo, the capo's fret counts as open, so it's off too.
+- **Omit the 5th:** leaves out the perfect 5th wherever a shape could already drop it. A power chord keeps its 5th, as do diminished and augmented chords, whose 5th isn't perfect. A 5th asked for in the bass (C/G) stays in the bass and nowhere else. With "any" inversion, no shape has the 5th in the bass. A 5th you asked to leave out costs no points.
