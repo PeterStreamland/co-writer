@@ -188,6 +188,22 @@ export const NEXT_CHORD_RULES = [
     template:
       '{chord} is {numeral} as a power chord: root and 5th only, so it sits under a riff in major or minor.',
   },
+  {
+    id: 'rock.plagal',
+    label: 'Falling-4th steps (♭VII to IV, IV to I)',
+    category: 'rock',
+    weight: 3,
+    template:
+      '{chord} is {numeral}: its root falls a 4th from {previous}, the plagal step behind rock’s I–♭VII–IV.',
+  },
+  {
+    id: 'rock.return-home',
+    label: 'Riff-style return to the tonic',
+    category: 'rock',
+    weight: 3,
+    template:
+      '{chord} is {numeral}: straight back home after {previous}, the riff-style return to the tonic.',
+  },
   // Pedal and static harmony.
   {
     id: 'pedal.static',
@@ -299,6 +315,17 @@ export const START_SCORES: Record<string, number> = {
   '♭3': 2,
 }
 
+// How well a secondary dominant fits, by its target's degree number: V7/V
+// and V7/vi are the everyday ones, V7/iii the rarest. A leading-note chord
+// to the same target fits one less.
+export const SECONDARY_TARGET_FITS: Record<number, number> = {
+  5: 3.5,
+  6: 3.5,
+  2: 3,
+  4: 3,
+  3: 2,
+}
+
 // Parallel modes chords are borrowed from, closest first, with each one's
 // rule. Locrian is left out: its ♭V and ♭iii are too far from the key to be
 // useful.
@@ -321,9 +348,18 @@ export const ROCK_MOVES = [
   { rule: 'rock.flat-three', interval: 'm3', down: false },
 ] as const
 
-// Power-chord roots above the tonic, the riff-friendly degrees: 1, ♭2, ♭3,
-// 4, 5, ♭6 and ♭7.
-export const POWER_CHORD_INTERVALS = ['P1', 'm2', 'm3', 'P4', 'P5', 'm6', 'm7']
+// Power-chord roots above the tonic, the riff-friendly degrees, with how
+// well each fits: ♭III, ♭VI and ♭VII are the riff staples (E5–G5–A5,
+// E5–C5–D5), ♭II the darkest.
+export const POWER_CHORD_STEPS = [
+  { interval: 'P1', fit: 3 },
+  { interval: 'm2', fit: 2.5 },
+  { interval: 'm3', fit: 3.5 },
+  { interval: 'P4', fit: 3 },
+  { interval: 'P5', fit: 3 },
+  { interval: 'm6', fit: 3.5 },
+  { interval: 'm7', fit: 3.5 },
+]
 
 // Chromatic mediants: a root a major or minor 3rd up or down.
 export const MEDIANT_INTERVALS = [

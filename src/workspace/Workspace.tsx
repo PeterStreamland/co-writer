@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useState } from 'preact/hooks'
-import { formatNote, inversions, type ChordName, type Key } from '../theory'
+import {
+  blendWeights,
+  formatNote,
+  inversions,
+  keyName as nameOfKey,
+  type ChordName,
+  type Key,
+  type NextChordSuggestion,
+  type StyleBlend,
+} from '../theory'
 import { playChord, preparePiano } from '../audio/player'
 import { useMidi } from '../midi/useMidi'
 import { findFingerings } from '../instruments/fingering'
@@ -26,6 +35,10 @@ import {
 import { MidiPanel } from './MidiPanel'
 import { NO_CHORD, nextLastChord, type LastChord } from './last-chord'
 import { SidePanel } from './SidePanel'
+import { SuggestPanel } from './SuggestPanel'
+import { StyleBlendControl } from './StyleBlendControl'
+import { loadStyles } from './style-editor'
+import { loadBlend, saveBlend } from './style-blend'
 import { useNarrow } from './useNarrow'
 import { played } from './played'
 import {
@@ -42,6 +55,9 @@ import {
   withTonic,
 } from './key-picker'
 
+// How long after the current chord a previewed suggestion plays.
+const PREVIEW_GAP_MS = 900
+
 // The single workspace (SPEC 2): the key picker in the header; the stage,
 // with the scale above the instrument view and MIDI input below it (David's
 // choice); and the side panel's tools (Explore holds the chord rows) under
@@ -50,6 +66,17 @@ import {
 export function Workspace() {
   const [key, setKey] = useState<Key>(loadKey)
   const [chord, setChord] = useState<ChordName>()
+  // A suggestion being previewed shows on the instrument in place of the
+  // current chord until it is used or the current chord changes.
+  const [preview, setPreview] = useState<NextChordSuggestion>()
+  useEffect(() => setPreview(undefined), [chord, key])
+  const shown = preview?.candidate ?? chord
+  // The style weights as edited on the Style weights page, blended by the
+  // header's control.
+  const styles = useMemo(() => loadStyles(), [])
+  const [blend, setBlend] = useState<StyleBlend>(() => loadBlend(styles))
+  useEffect(() => saveBlend(blend), [blend])
+  const weights = useMemo(() => blendWeights(styles, blend), [styles, blend])
   const [instrument, setInstrument] = useState<Instrument>('keyboard')
   const [sheetOpen, setSheetOpen] = useState(true)
   const [settings, setSettings] = useState<GuitarSettings>(DEFAULT_GUITAR)
@@ -64,8 +91,8 @@ export function Workspace() {
     Pick<Voicing, 'id' | 'inversion'>
   >({ id: 'close' })
   const voicings = useMemo(
-    () => (chord ? voicingChoices(chord, pianoFilters) : []),
-    [chord, pianoFilters],
+    () => (shown ? voicingChoices(shown, pianoFilters) : []),
+    [shown, pianoFilters],
   )
   const voicingAt = Math.max(
     0,
@@ -91,8 +118,8 @@ export function Workspace() {
     )
   }
   const shapes = useMemo(
-    () => (chord ? shapesOf(chord) : []),
-    [chord, guitar, filters],
+    () => (shown ? shapesOf(shown) : []),
+    [shown, guitar, filters],
   )
   useEffect(() => setShapeAt(0), [shapes])
   useEffect(() => {
@@ -131,6 +158,56 @@ export function Workspace() {
   // stays in sight; on wider screens it sits above the instrument.
   const narrow = useNarrow()
   const scale = <ScalePanel value={key} />
+  // Plays a chord as the instrument view will show it: the top guitar shape
+  // strummed (SPEC 5), or the keyboard's voicing. False when the guitar has
+  // no shape for it.
+  function playNow(c: ChordName): boolean {
+    if (instrument === 'guitar') {
+      const top = shapesOf(c)[0]
+      if (top) strum(top)
+      return Boolean(top)
+    }
+    const choices = voicingChoices(c, pianoFilters)
+    const voicing =
+      choices.find(
+        (v) => v.id === voicingPick.id && v.inversion === voicingPick.inversion,
+      ) ?? choices[0]
+    void playChord(voicing.notes)
+    return true
+  }
+  // Previewing a suggestion plays the current chord, then the suggestion.
+  function previewSuggestion(s: NextChordSuggestion) {
+    setPreview(s)
+    if (!chord) {
+      playNow(s.candidate)
+      return
+    }
+    playNow(chord)
+    setTimeout(() => playNow(s.candidate), PREVIEW_GAP_MS)
+  }
+  // Using a suggestion makes it the current chord; a pivot asks whether to
+  // carry on in its new key (SPEC 6.4).
+  function acceptSuggestion(s: NextChordSuggestion) {
+    if (
+      s.keyChange &&
+      confirm(`Continue in ${nameOfKey(s.keyChange)} from here?`)
+    ) {
+      setKey(s.keyChange)
+    }
+    setChord(s.candidate)
+    setPreview(undefined)
+    playNow(s.candidate)
+  }
+  const suggest = (
+    <SuggestPanel
+      keyValue={key}
+      chord={chord}
+      weights={weights}
+      preview={preview}
+      onPreview={previewSuggestion}
+      onAccept={acceptSuggestion}
+    />
+  )
   const explore = (
     <>
       {narrow && scale}
@@ -138,24 +215,7 @@ export function Workspace() {
         value={key}
         current={chord}
         onSelect={setChord}
-        onPlay={(c) => {
-          if (instrument === 'guitar') {
-            // Strum the shape the chord boxes will show (SPEC 5).
-            const top = shapesOf(c)[0]
-            if (top) strum(top)
-            return Boolean(top)
-          }
-          // Play the voicing the keyboard's box will show.
-          const choices = voicingChoices(c, pianoFilters)
-          const voicing =
-            choices.find(
-              (v) =>
-                v.id === voicingPick.id &&
-                v.inversion === voicingPick.inversion,
-            ) ?? choices[0]
-          void playChord(voicing.notes)
-          return true
-        }}
+        onPlay={playNow}
       />
     </>
   )
@@ -164,13 +224,14 @@ export function Workspace() {
       <header class="top">
         <h1 class="app-name">Co-Writer</h1>
         <KeyPicker value={key} onChange={setKey} />
+        <StyleBlendControl styles={styles} value={blend} onChange={setBlend} />
       </header>
       <div class="layout">
         <main class="stage">
           {!narrow && scale}
           <InstrumentView
             value={key}
-            chord={chord}
+            chord={shown}
             played={playing.notes}
             instrument={instrument}
             onInstrumentChange={setInstrument}
@@ -202,7 +263,10 @@ export function Workspace() {
           />
         </main>
         <SidePanel
-          tabs={[{ id: 'explore', label: 'Explore', content: explore }]}
+          tabs={[
+            { id: 'explore', label: 'Explore', content: explore },
+            { id: 'suggest', label: 'Suggest', content: suggest },
+          ]}
           open={sheetOpen}
           onOpenChange={setSheetOpen}
         />
