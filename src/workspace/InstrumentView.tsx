@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks'
 import { playChord } from '../audio/player'
+import { useNarrow } from './useNarrow'
 import {
   DEFAULT_FRETS,
   DOT_FRETS,
@@ -171,18 +172,6 @@ function markClass(mark: Mark): string {
 
 function play(mark: Mark | undefined) {
   if (mark) void playChord([mark.note], { seconds: 1 })
-}
-
-function useNarrow(): boolean {
-  const query = '(max-width: 40rem)'
-  const [narrow, setNarrow] = useState(() => matchMedia(query).matches)
-  useEffect(() => {
-    const list = matchMedia(query)
-    const onChange = () => setNarrow(list.matches)
-    list.addEventListener('change', onChange)
-    return () => list.removeEventListener('change', onChange)
-  }, [])
-  return narrow
 }
 
 // Four octaves, C2–C6, on a laptop; two on a phone, with octave buttons.
