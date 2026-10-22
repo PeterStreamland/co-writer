@@ -985,3 +985,17 @@ David asked for more versatile, experimental lenses that are still informed by t
 ## 2026-10-22 — No minimum number of lenses (David's choice)
 
 The Voice tab no longer needs two lenses ticked. Up to four still show side by side, but any of them can be turned off, down to none. With none ticked the tab says to tick a lens. On a phone, the ‹ › arrows show only when there are two or more lenses to swipe between. This changes SPEC 8's "two to four lenses"; the default stays Classical and Rock.
+
+## 2026-10-22 — An Arpeggio tab in Phase 6 (David's idea)
+
+David asked for an Arpeggio tab beside Voice: a place to try arpeggios and extended chords that adds nothing to the progression. It joins the plan as Phase 6 task 2, straight after the beat grid (task 1), and the line tasks move along to 3–5. Phase 6 also gains a fourth exit criterion for it.
+
+- **Why after the beat grid:** an arpeggio is notes in time. Its patterns and rates (8ths, triplets, 16ths) need the beats and subdivisions task 1 builds.
+- **Shared with the line tasks:** the line modes need the same interval labels (chord tone, extension) and playback alongside the chords, so the two are built together.
+- **What it reuses:**
+  - the extended colours and key-fitting rules from the lenses
+  - the instruments' highlighting
+  - the exact-note guitar search (`fret-notes.ts`) for positions and runs across the neck
+- **What it does:** pick a chord or step through the progression; choose the arpeggio (triad to 13th, or a lens's colours), a pattern, a rate and a range; hear it at the tempo, each note lit and labelled on the fretboard or keyboard.
+
+SPEC's "Changes to the plan" lists it as item 8.
