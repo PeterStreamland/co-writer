@@ -1,9 +1,23 @@
-import { useEffect, useState } from 'preact/hooks'
-import { formatNote, type ChordName, type Key } from '../theory'
-import { preparePiano } from '../audio/player'
+import { useEffect, useMemo, useState } from 'preact/hooks'
+import { formatNote, inversions, type ChordName, type Key } from '../theory'
+import { playChord, preparePiano } from '../audio/player'
 import { useMidi } from '../midi/useMidi'
+import { findFingerings } from '../instruments/fingering'
 import { ChordRows } from './ChordRows'
-import { InstrumentView, type Instrument } from './InstrumentView'
+import { strum } from './ChordBoxes'
+import {
+  DEFAULT_GUITAR,
+  InstrumentView,
+  guitarFrom,
+  type GuitarSettings,
+  type Instrument,
+} from './InstrumentView'
+import { voicingChoices, type VoicingChoice } from './voicing-choices'
+import {
+  DEFAULT_FILTERS,
+  fingeringOptions,
+  type ShapeFilters,
+} from './shape-filters'
 import { MidiPanel } from './MidiPanel'
 import { SidePanel } from './SidePanel'
 import { useNarrow } from './useNarrow'
@@ -32,6 +46,48 @@ export function Workspace() {
   const [chord, setChord] = useState<ChordName>()
   const [instrument, setInstrument] = useState<Instrument>('keyboard')
   const [sheetOpen, setSheetOpen] = useState(true)
+  const [settings, setSettings] = useState<GuitarSettings>(DEFAULT_GUITAR)
+  const [filters, setFilters] = useState<ShapeFilters>(DEFAULT_FILTERS)
+  const [shapeAt, setShapeAt] = useState(0)
+  // The keyboard voicing on show stays the same style from chord to chord,
+  // or falls back to close position when a chord can't take it.
+  const [voicingId, setVoicingId] = useState<VoicingChoice>('close')
+  const voicings = useMemo(() => (chord ? voicingChoices(chord) : []), [chord])
+  const voicingAt = Math.max(
+    0,
+    voicings.findIndex((v) => v.id === voicingId),
+  )
+  const guitar = useMemo(() => guitarFrom(settings), [settings])
+  // The current chord's guitar shapes, easiest first; the chord boxes start
+  // at the top one whenever the chord, guitar or filters change.
+  // An inversion the chord doesn't have (a 3rd inversion of a triad) falls
+  // back to the chord as chosen.
+  const shapesOf = (c: ChordName) => {
+    const usable =
+      typeof filters.inversion === 'number' &&
+      filters.inversion >= inversions(c).length
+        ? { ...filters, inversion: 'chord' as const }
+        : filters
+    return findFingerings(
+      guitar,
+      c,
+      fingeringOptions(usable, guitar.strings.length),
+    )
+  }
+  const shapes = useMemo(
+    () => (chord ? shapesOf(chord) : []),
+    [chord, guitar, filters],
+  )
+  useEffect(() => setShapeAt(0), [shapes])
+  useEffect(() => {
+    if (
+      chord &&
+      typeof filters.inversion === 'number' &&
+      filters.inversion >= inversions(chord).length
+    ) {
+      setFilters({ ...filters, inversion: 'chord' })
+    }
+  }, [chord])
   useEffect(() => saveKey(key), [key])
   useEffect(preparePiano, [])
   const midi = useMidi()
@@ -47,7 +103,19 @@ export function Workspace() {
         value={key}
         current={chord}
         onSelect={setChord}
-        strum={instrument === 'guitar'}
+        onPlay={(c) => {
+          if (instrument === 'guitar') {
+            // Strum the shape the chord boxes will show (SPEC 5).
+            const top = shapesOf(c)[0]
+            if (top) strum(top)
+            return Boolean(top)
+          }
+          // Play the voicing the keyboard's box will show.
+          const choices = voicingChoices(c)
+          const voicing = choices.find((v) => v.id === voicingId) ?? choices[0]
+          void playChord(voicing.notes)
+          return true
+        }}
       />
     </>
   )
@@ -66,6 +134,20 @@ export function Workspace() {
             played={playing.notes}
             instrument={instrument}
             onInstrumentChange={setInstrument}
+            settings={settings}
+            onSettingsChange={setSettings}
+            shapes={{
+              list: shapes,
+              at: shapeAt < shapes.length ? shapeAt : 0,
+              onAt: setShapeAt,
+              filters,
+              onFiltersChange: setFilters,
+            }}
+            voicings={{
+              list: voicings,
+              at: voicingAt,
+              onAt: (at) => setVoicingId(voicings[at].id),
+            }}
           />
           <MidiPanel midi={midi} playing={playing} />
         </main>
@@ -142,15 +224,23 @@ function KeyPicker({
   )
 }
 
+// The key's name, signature and step pattern, with its degrees beside them
+// (David's layout).
 function ScalePanel({ value }: { value: Key }) {
   const view = scaleView(value)
   const signature = signatureText(value)
   return (
     <section class="explore">
-      <h2>{keyName(value)}</h2>
-      <p class="muted">
-        Key signature: {signature ?? 'none of its own (not a mode)'}
-      </p>
+      <div class="scale-head">
+        <h2>{keyName(value)}</h2>
+        <p class="muted">
+          Key signature: {signature ?? 'none of its own (not a mode)'}
+        </p>
+        <p class="pattern">
+          <span class="muted">Step pattern:</span> {view.steps.join(' ')}
+          <span class="muted"> (T tone, S semitone)</span>
+        </p>
+      </div>
       <ol class="degrees">
         {view.degrees.map((degree, i) => (
           <li key={degree.label + degree.note}>
@@ -169,10 +259,6 @@ function ScalePanel({ value }: { value: Key }) {
           </li>
         ))}
       </ol>
-      <p class="pattern">
-        <span class="muted">Step pattern:</span> {view.steps.join(' ')}
-        <span class="muted"> (T tone, S semitone)</span>
-      </p>
     </section>
   )
 }

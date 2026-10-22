@@ -157,8 +157,8 @@ Goal: cycle any chord through playable guitar shapes and keyboard voicings.
 5. Grouping by CAGED shape in standard tuning. ✅
 6. Keyboard voicings: close, open, drop-2, drop-3, spread, and a left-hand/right-hand split. ✅
 7. Play a chord on your MIDI keyboard and jump straight to its guitar shapes.
-8. Chord boxes beside the fretboard (David's choice): the current chord's shape as a small vertical box (nut at the top, fret numbers underneath) to the right of the full neck, with ◀ ▶ arrows to step through its shapes, positions and inversions. The shape on show is also marked on the neck.
-9. Chord-tone colours (David's choice), built with the chord boxes: a third label setting, Chord tones, beside Note names and Degrees. The current chord's notes are coloured by their interval, with one colour each for root, 3rd, 5th and 7th and one shared colour for 9ths, 11ths, 13ths and altered notes. Each dot is labelled with its interval (R, ♭3, 5, ♭7, 9), and the rest of the scale fades to grey. The chord boxes use the same colours. With no chord selected, the views show the usual scale colours.
+8. Chord boxes beside the fretboard (David's choice): the current chord's shape as a small vertical box (nut at the top, fret numbers underneath) to the right of the full neck, with ◀ ▶ arrows to step through its shapes, positions and inversions. The shape on show is also marked on the neck. ✅
+9. Chord-tone colours (David's choice), built with the chord boxes: a third label setting, Chord tones, beside Note names and Degrees. The current chord's notes are coloured by their interval, with one colour each for root, 3rd, 5th and 7th and one shared colour for 9ths, 11ths, 13ths and altered notes. Each dot is labelled with its interval (R, ♭3, 5, ♭7, 9), and the rest of the scale fades to grey. The chord boxes use the same colours. With no chord selected, the views show the usual scale colours. ✅
 
 - [x] For 30 common chords in standard tuning, the textbook shapes you supply appear in the top five
 - [x] Every result is physically valid: one note per string, span within the setting

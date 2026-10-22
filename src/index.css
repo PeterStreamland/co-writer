@@ -318,15 +318,26 @@ body:has(.workspace) #app {
   color: var(--muted);
 }
 
+.explore {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.5rem;
+}
+
 .explore h2 {
   font-size: 1.3rem;
-  margin: 0.75rem 0 0.25rem;
+  margin: 0 0 0.2rem;
+}
+
+.explore .scale-head p {
+  margin: 0.2rem 0;
 }
 
 .explore .degrees {
   list-style: none;
   padding: 0;
-  margin: 1rem 0;
+  margin: 0.75rem 0;
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 0;
@@ -344,10 +355,9 @@ body:has(.workspace) #app {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
-  width: 6.5rem;
+  width: 5.5rem;
   box-sizing: border-box;
-  padding: 0.5rem 0.4rem;
+  padding: 0.25rem 0.3rem;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--card);
@@ -355,25 +365,28 @@ body:has(.workspace) #app {
 }
 
 .explore .degree .label {
-  font-size: 1.4rem;
+  font-size: 1.1rem;
   font-weight: 700;
+  line-height: 1.2;
 }
 
 .explore .degree .note {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 600;
+  line-height: 1.2;
 }
 
 .explore .degree .interval,
 .explore .degree .name {
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.72rem;
+  line-height: 1.2;
 }
 
 .explore .step {
   color: var(--accent);
   font-weight: 700;
-  min-width: 2.2rem;
+  min-width: 1.6rem;
   text-align: center;
   font-size: 0.9rem;
 }
@@ -485,6 +498,13 @@ body:has(.workspace) #app {
   --root: #e11d48;
   --scale: #3b82f6;
   --chord: #f59e0b;
+  /* Chord-tone colours (task 9): one each for root, 3rd, 5th and 7th, one
+     shared by every other tone. */
+  --tone-root: #e11d48;
+  --tone-third: #f59e0b;
+  --tone-fifth: #2563eb;
+  --tone-seventh: #9333ea;
+  --tone-extension: #0d9488;
   margin-top: 1.5rem;
 }
 
@@ -697,9 +717,206 @@ body:has(.workspace) #app {
   color: var(--muted);
 }
 
+.instrument .dot.tone-root {
+  background: var(--tone-root);
+}
+
+.instrument .dot.tone-third {
+  background: var(--tone-third);
+}
+
+.instrument .dot.tone-fifth {
+  background: var(--tone-fifth);
+}
+
+.instrument .dot.tone-seventh {
+  background: var(--tone-seventh);
+}
+
+.instrument .dot.tone-extension {
+  background: var(--tone-extension);
+}
+
+.instrument .dot.faded {
+  background: #9ca3af;
+  opacity: 0.45;
+}
+
 .instrument .dot.held,
 .instrument .legend .dot.held {
   background: #16a34a;
+}
+
+/* The shape or voicing on show in the box, ringed on the instrument. */
+.keyboard .key.in-shape .dot,
+.fretboard .fret.in-shape .dot {
+  box-shadow:
+    0 0 0 2px Canvas,
+    0 0 0 4px CanvasText;
+}
+
+/* The chord boxes sit to the right of the neck (task 8), and the voicing
+   box to the right of the keyboard (David's layout); under them on a phone. */
+.with-box {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.with-box > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mini-keyboard .white-key {
+  fill: #f8f8f8;
+  stroke: #888;
+  stroke-width: 0.6;
+}
+
+.mini-keyboard .black-key {
+  fill: #1f1f1f;
+}
+
+.mini-keyboard .dot-label {
+  font-size: 5px;
+}
+
+.chord-boxes {
+  flex: none;
+  width: 11rem;
+  text-align: center;
+}
+
+.chord-boxes h3 {
+  font-size: 0.95rem;
+  margin: 0 0 0.3rem;
+}
+
+.chord-boxes .box {
+  border: none;
+  background: none;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+}
+
+.box-diagram line {
+  stroke: currentColor;
+  stroke-opacity: 0.55;
+  stroke-width: 1;
+}
+
+.box-diagram line.top.nut {
+  stroke-width: 4;
+  stroke-opacity: 1;
+}
+
+.box-diagram line.top.capo {
+  stroke: #57534e;
+  stroke-width: 5;
+  stroke-opacity: 1;
+}
+
+.box-diagram text {
+  font-size: 9px;
+  text-anchor: middle;
+  fill: currentColor;
+}
+
+.box-diagram .first-fret,
+.box-diagram .fret-text {
+  fill: var(--muted);
+}
+
+.box-diagram .dot-label {
+  fill: white;
+  font-size: 7px;
+  font-weight: 700;
+}
+
+.box-diagram .box-dot {
+  fill: var(--chord);
+}
+
+.box-diagram .open-ring {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.box-diagram .box-dot.tone-root {
+  fill: var(--tone-root);
+}
+
+.box-diagram .open-ring.tone-root {
+  stroke: var(--tone-root);
+}
+
+.box-diagram .box-dot.tone-third {
+  fill: var(--tone-third);
+}
+
+.box-diagram .open-ring.tone-third {
+  stroke: var(--tone-third);
+}
+
+.box-diagram .box-dot.tone-fifth {
+  fill: var(--tone-fifth);
+}
+
+.box-diagram .open-ring.tone-fifth {
+  stroke: var(--tone-fifth);
+}
+
+.box-diagram .box-dot.tone-seventh {
+  fill: var(--tone-seventh);
+}
+
+.box-diagram .open-ring.tone-seventh {
+  stroke: var(--tone-seventh);
+}
+
+.box-diagram .box-dot.tone-extension {
+  fill: var(--tone-extension);
+}
+
+.box-diagram .open-ring.tone-extension {
+  stroke: var(--tone-extension);
+}
+
+.box-nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.box-nav button {
+  font: inherit;
+  padding: 0.15rem 0.6rem;
+}
+
+.chord-boxes .box-info {
+  margin: 0.3rem 0;
+  font-size: 0.85rem;
+}
+
+.chord-boxes .filters {
+  text-align: left;
+  font-size: 0.85rem;
+}
+
+.chord-boxes .filters label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.35rem 0;
+}
+
+.chord-boxes .filters label.check {
+  justify-content: flex-start;
 }
 
 .midi {
@@ -762,5 +979,29 @@ body:has(.workspace) #app {
 
   .keyboard {
     height: 7.5rem;
+  }
+
+  .with-box {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .chord-boxes {
+    width: auto;
+  }
+}
+
+.chord-boxes .filters select {
+  font: inherit;
+  max-width: 7.5rem;
+}
+
+.chord-boxes.keys-box {
+  width: 13rem;
+}
+
+@media (max-width: 40rem) {
+  .chord-boxes.keys-box {
+    width: auto;
   }
 }

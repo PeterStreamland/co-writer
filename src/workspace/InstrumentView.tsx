@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'preact/hooks'
 import { playChord } from '../audio/player'
+import { ChordBoxes } from './ChordBoxes'
+import { KeyboardVoicings } from './KeyboardVoicings'
+import type { Voicing } from './voicing-choices'
+import type { ShapeFilters } from './shape-filters'
 import { useNarrow } from './useNarrow'
 import {
   DOT_FRETS,
   DOUBLE_DOT_FRETS,
   fretboardGrid,
 } from '../instruments/fretboard'
+import type { Fingering } from '../instruments/fingering'
 import {
   DEFAULT_FRET_RANGE,
   MAX_CAPO,
@@ -31,31 +36,85 @@ import {
 } from '../theory'
 
 export type Instrument = 'keyboard' | 'guitar'
-type Labels = 'names' | 'degrees'
+type Labels = 'names' | 'degrees' | 'chord-tones'
+
+export type GuitarSettings = {
+  tuning: string
+  strings: '6' | '7'
+  capo: number
+  lastFret: number
+}
+
+export const DEFAULT_GUITAR: GuitarSettings = {
+  tuning: 'standard',
+  strings: '6',
+  capo: 0,
+  lastFret: DEFAULT_FRET_RANGE.high,
+}
+
+export function guitarFrom(settings: GuitarSettings): Guitar {
+  return makeGuitar(tuningStrings(settings.tuning, settings.strings === '7'), {
+    capo: settings.capo,
+    high: settings.lastFret,
+  })
+}
+
+// The current chord's shapes, for the chord boxes, and which one is showing.
+export type Shapes = {
+  list: Fingering[]
+  at: number
+  onAt: (at: number) => void
+  filters: ShapeFilters
+  onFiltersChange: (filters: ShapeFilters) => void
+}
+
+// The current chord's keyboard voicings, and which one is showing.
+export type Voicings = {
+  list: Voicing[]
+  at: number
+  onAt: (at: number) => void
+}
 
 // The instrument view (SPEC 2, 5): keyboard or full-neck fretboard, with the
 // scale highlighted, the root marked, the current chord filled orange and
-// notes played on the MIDI keyboard in green. Clicking a highlighted note
-// plays it.
+// notes played on the MIDI keyboard in green. With Chord tones as the labels,
+// the chord's notes are coloured by interval and the rest of the scale fades
+// (task 9). The guitar view shows the chord boxes beside the neck, with the
+// shape on show marked on it (task 8). Clicking a highlighted note plays it.
 export function InstrumentView({
   value,
   chord,
   played,
   instrument,
   onInstrumentChange,
+  settings,
+  onSettingsChange,
+  shapes,
+  voicings,
 }: {
   value: Key
   chord: ChordName | undefined
   played: Note[]
   instrument: Instrument
   onInstrumentChange: (instrument: Instrument) => void
+  settings: GuitarSettings
+  onSettingsChange: (settings: GuitarSettings) => void
+  shapes: Shapes
+  voicings: Voicings
 }) {
   const [labels, setLabels] = useState<Labels>('names')
-  const [tuning, setTuning] = useState('standard')
-  const [strings, setStrings] = useState<'6' | '7'>('6')
-  const [capo, setCapo] = useState(0)
-  const [lastFret, setLastFret] = useState(DEFAULT_FRET_RANGE.high)
+  const { tuning, strings, capo, lastFret } = settings
+  const change = (part: Partial<GuitarSettings>) =>
+    onSettingsChange({ ...settings, ...part })
+  const setTuning = (tuning: string) => change({ tuning })
+  const setStrings = (strings: '6' | '7') => change({ strings })
+  const setCapo = (capo: number) => change({ capo })
+  const setLastFret = (lastFret: number) => change({ lastFret })
   const mark = noteMarker(value, chord, played)
+  const toneColours = labels === 'chord-tones' && chord !== undefined
+  const guitar = guitarFrom(settings)
+  const shape = chord ? shapes.list[shapes.at] : undefined
+  const voicing = chord ? voicings.list[voicings.at] : undefined
   const held = played.map((n) => midiNumber(n) as number)
   return (
     <section class="instrument">
@@ -75,6 +134,7 @@ export function InstrumentView({
           options={[
             ['names', 'Note names'],
             ['degrees', 'Degrees'],
+            ['chord-tones', 'Chord tones'],
           ]}
           onChange={setLabels}
         />
@@ -136,23 +196,64 @@ export function InstrumentView({
         )}
       </div>
       {instrument === 'keyboard' ? (
-        <Keyboard mark={mark} labels={labels} held={held} />
+        <div class="with-box">
+          <Keyboard
+            mark={mark}
+            labels={labels}
+            toneColours={toneColours}
+            held={held}
+            voiced={voicing?.notes.map((n) => midiNumber(n) as number)}
+          />
+          {chord && voicing && (
+            <KeyboardVoicings
+              chord={chord}
+              voicings={voicings.list}
+              at={voicings.at}
+              onAt={voicings.onAt}
+            />
+          )}
+        </div>
       ) : (
-        <Fretboard
-          guitar={makeGuitar(tuningStrings(tuning, strings === '7'), {
-            capo,
-            high: lastFret,
-          })}
-          keyValue={value}
-          mark={mark}
-          labels={labels}
-        />
+        <div class="with-box">
+          <Fretboard
+            guitar={guitar}
+            keyValue={value}
+            mark={mark}
+            labels={labels}
+            toneColours={toneColours}
+            shape={shape?.frets}
+          />
+          {chord && (
+            <ChordBoxes
+              guitar={guitar}
+              chord={chord}
+              shapes={shapes.list}
+              at={shapes.at}
+              onAt={shapes.onAt}
+              filters={shapes.filters}
+              onFiltersChange={shapes.onFiltersChange}
+            />
+          )}
+        </div>
       )}
       <p class="legend muted">
-        <span class="dot root" /> root <span class="dot scale" /> in the scale{' '}
-        {chord && (
+        {toneColours ? (
           <>
-            <span class="dot chord-tone" /> in the current chord
+            <span class="dot tone-root" /> root <span class="dot tone-third" />{' '}
+            3rd <span class="dot tone-fifth" /> 5th{' '}
+            <span class="dot tone-seventh" /> 7th{' '}
+            <span class="dot tone-extension" /> 9th, 11th, 13th and other tones{' '}
+            <span class="dot faded" /> rest of the scale
+          </>
+        ) : (
+          <>
+            <span class="dot root" /> root <span class="dot scale" /> in the
+            scale{' '}
+            {chord && (
+              <>
+                <span class="dot chord-tone" /> in the current chord
+              </>
+            )}
           </>
         )}
         {played.length > 0 && (
@@ -196,7 +297,10 @@ function Toggle<T extends string>({
   )
 }
 
-function markClass(mark: Mark): string {
+function markClass(mark: Mark, toneColours: boolean): string {
+  if (toneColours && !mark.held) {
+    return mark.tone ? `dot tone-${mark.tone.role}` : 'dot faded'
+  }
   return [
     'dot',
     mark.held
@@ -211,6 +315,14 @@ function markClass(mark: Mark): string {
   ].join(' ')
 }
 
+// A dot's label: the note name, its degree in the key, or with chord-tone
+// colours its interval in the chord (R, ♭3, 5); a scale note outside the
+// chord keeps its name, faded.
+function markLabel(mark: Mark, labels: Labels, toneColours: boolean): string {
+  if (toneColours && mark.tone) return mark.tone.label
+  return labels === 'degrees' ? mark.degree : mark.name
+}
+
 function play(mark: Mark | undefined) {
   if (mark) void playChord([mark.note], { seconds: 1 })
 }
@@ -220,11 +332,15 @@ function play(mark: Mark | undefined) {
 function Keyboard({
   mark,
   labels,
+  toneColours,
   held,
+  voiced = [],
 }: {
   mark: (midi: number) => Mark | undefined
   labels: Labels
+  toneColours: boolean
   held: number[]
+  voiced?: number[] // the voicing on show beside the keyboard, ringed
 }) {
   const narrow = useNarrow()
   const span = narrow ? 24 : KEYBOARD_HIGH - KEYBOARD_LOW
@@ -243,12 +359,16 @@ function Keyboard({
     const left = k.black ? (whiteIndex - 0.3) * width : whiteIndex++ * width
     return { key: k, left }
   })
-  const label = (m: Mark) => (labels === 'names' ? m.name : m.degree)
+  const label = (m: Mark) => markLabel(m, labels, toneColours)
   const pianoKey = ({ key: k, left }: { key: PianoKey; left: number }) => (
     <button
       key={k.midi}
       type="button"
-      class={k.black ? 'key black' : 'key white'}
+      class={[
+        'key',
+        k.black ? 'black' : 'white',
+        voiced.includes(k.midi) ? 'in-shape' : '',
+      ].join(' ')}
       style={{
         left: `${left}%`,
         width: `${k.black ? width * 0.6 : width}%`,
@@ -259,7 +379,9 @@ function Keyboard({
       }
       onClick={() => play(k.mark)}
     >
-      {k.mark && <span class={markClass(k.mark)}>{label(k.mark)}</span>}
+      {k.mark && (
+        <span class={markClass(k.mark, toneColours)}>{label(k.mark)}</span>
+      )}
     </button>
   )
   return (
@@ -303,11 +425,15 @@ function Fretboard({
   keyValue,
   mark,
   labels,
+  toneColours,
+  shape,
 }: {
   guitar: Guitar
   keyValue: Key
   mark: (midi: number) => Mark | undefined
   labels: Labels
+  toneColours: boolean
+  shape?: (number | null)[]
 }) {
   const strings = guitar.strings
   const grid = fretboardGrid(guitar, mark)
@@ -315,7 +441,7 @@ function Fretboard({
     formatNote({ ...n, octave: undefined }),
   )
   const frets = grid[0].map((f) => f.fret)
-  const label = (m: Mark) => (labels === 'names' ? m.name : m.degree)
+  const label = (m: Mark) => markLabel(m, labels, toneColours)
   return (
     <div class="scroll">
       <div
@@ -337,6 +463,7 @@ function Fretboard({
                 spot.fret === 0 ? 'open' : '',
                 spot.behindCapo ? 'behind-capo' : '',
                 guitar.capo > 0 && spot.fret === guitar.capo ? 'capo' : '',
+                shape?.[spot.string] === spot.fret ? 'in-shape' : '',
               ].join(' ')}
               disabled={!spot.mark}
               aria-label={
@@ -349,7 +476,7 @@ function Fretboard({
               {spot.mark && (
                 <span
                   class={
-                    markClass(spot.mark) +
+                    markClass(spot.mark, toneColours) +
                     (guitar.capo > 0 && spot.fret === guitar.capo
                       ? ' capo-open'
                       : '')

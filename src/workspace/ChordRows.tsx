@@ -3,18 +3,20 @@ import { playChord } from '../audio/player'
 import type { ChordName, Key } from '../theory'
 import { chordRows, currentChord, type ChordButton } from './chord-rows'
 
-// The key's chords, one row per kind. Clicking a chord plays it, strummed
-// when the guitar view is showing, and makes it the current chord.
+// The key's chords, one row per kind. Clicking a chord makes it the current
+// chord and plays it: by onPlay when given (the shape or voicing the
+// instrument view will show), or else as a block chord around middle C, also
+// when onPlay finds nothing to play.
 export function ChordRows({
   value,
   current,
   onSelect,
-  strum,
+  onPlay,
 }: {
   value: Key
   current: ChordName | undefined
   onSelect: (chord: ChordName) => void
-  strum: boolean
+  onPlay?: (chord: ChordName) => boolean
 }) {
   const [showMore, setShowMore] = useState(false)
   const rows = chordRows(value, showMore)
@@ -22,7 +24,8 @@ export function ChordRows({
 
   function choose(chord: ChordName) {
     onSelect(chord)
-    void playChord(currentChord(value, chord).voicing, { strum })
+    if (onPlay?.(chord)) return
+    void playChord(currentChord(value, chord).voicing)
   }
 
   const cell = (c: ChordButton | undefined, i: number) =>
