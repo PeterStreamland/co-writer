@@ -102,7 +102,8 @@ function markClass(mark: Mark): string {
   return [
     'dot',
     mark.root ? 'root' : mark.inScale ? 'scale' : 'outside',
-    mark.chordTone ? 'chord-tone' : '',
+    // The root stays plain red, even when it is in the current chord.
+    mark.chordTone && !mark.root ? 'chord-tone' : '',
   ].join(' ')
 }
 
