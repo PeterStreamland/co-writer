@@ -419,3 +419,18 @@ Phase 3 task 5 (`src/instruments/caged.ts`, golden fixture `tests/fixtures/caged
 - **Which tunings:** standard, and any tuning with standard's intervals: E♭, D and C standard, and the top six strings of a 7-string. Drop and open tunings have no CAGED shapes, and their shapes are named by the chord alone.
 - **Grouping:** C, A, G, E, D, then shapes that fit none, each group easiest first.
 - **Names:** the chord as it sounds, then the shape with the chord's quality and any capo: "A (G shape, capo 2)", "Bm (Am shape)", "C7 (A7 shape)". With a capo, shapes are read from the capo, as if it were the nut. SPEC 5's example covers only a major chord; giving the shape the chord's quality (Am shape, not A shape) is Claude's choice, and David can ask for plain letters.
+
+## 2026-10-22 — Keyboard voicings and the hand split
+
+Phase 3 task 6 (`src/theory/voicing.ts`, golden fixture `tests/fixtures/voicings.ts`). Every chord can now be voiced five ways on the keyboard, or split between the hands. Choices the plan and SPEC didn't settle:
+
+- **The five styles,** shown with Cmaj7:
+  - Close: C E G B, as tight as the notes go.
+  - Open: C G E B, close with every second note up an octave.
+  - Drop-2: C G B E, the 2nd note from the top of a close voicing dropped an octave.
+  - Drop-3: C B E G, the 3rd note from the top dropped.
+  - Spread: C, then G E B, which is open with the bass a further octave down.
+- **The bass stays at the bottom.** A drop voicing starts from whichever close position leaves the chord's bass at the bottom once a note is dropped, so Cmaj7/E in drop-2 is E B C G. A bass outside the chord (F/G) sits under the chord's own voicing.
+- **Drops are for chords of up to four notes,** as pianists and arrangers use them. A 9th, 11th or 13th chord has no drop voicing, and a power chord has no drop-3. A triad's drop-2 is its open voicing, and its drop-3 drops the bass alone.
+- **Register:** each voicing is moved by whole octaves until its notes average closest to middle C. Close C is C4 E4 G4, as when you click a chord; F is F3 A3 C4. A first inversion sits a little lower than the click voicing (C/E is E3 G3 C4, not E4 G4 C5), since this rule centres the whole chord rather than placing the bass.
+- **The split (SPEC 5):** the left hand plays the bass at the highest octave below C3. It plays the bass alone by default, or with the chord's 5th, or doubled an octave up. In an inversion it plays the inverted bass alone or doubled, since a 5th above E isn't C major's 5th. The right hand plays the chord in root position, in any of the five styles, around middle C.
