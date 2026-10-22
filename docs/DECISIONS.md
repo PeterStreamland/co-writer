@@ -506,3 +506,12 @@ David closed the phase after trying the chord boxes, voicings and MIDI keyboard 
   - The CAGED fixture's opening comment says every chord appears in all five shapes, but only C, A and G do. The data is right; the comment is in a golden fixture, so it's left for David to approve.
 
 Phase 3 is released as `v0.3-fingerings`, tagged on `main` once this record is merged.
+
+## 2026-10-22 — The Suggestion object
+
+Phase 4 task 1 (`src/theory/suggestion.ts`), the shape every engine hands back, as SPEC 12 types it. Choices the plan and SPEC didn't settle:
+
+- **Category:** a chord suggestion's first tag is its category, one of SPEC 6.2's seven (Diatonic, Secondary, Borrowed, Chromatic, Modulation, Rock moves, Pedal/static). It must have exactly one, so no chord suggestion can reach the screen without a category. Later engines (lines, melodies) use their own tags, such as "chord tone" or "passing".
+- **Every suggestion is checked when it's made:** a real score, at least one tag and one rule id, and an explanation that isn't blank.
+- **Explanations come from templates:** a rule's text has gaps such as `{chord} is {numeral}`, filled for each chord. A gap with nothing to fill it is an error, so a template and its rule can't drift apart.
+- **Ties are broken the same way every time:** higher score first, then the category order above, then the chord's spelled name. The same input gives the same ranking whatever order the rules ran in (SPEC 6.1). G♭ and F♯ count as different chords.
