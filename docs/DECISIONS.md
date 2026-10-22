@@ -376,3 +376,28 @@ Phase 3 task 2 (`src/instruments/fingering.ts`, golden fixture `tests/fixtures/f
 - **Capo:** chords are searched by what sounds, as SPEC 5 says: with capo 2, the G shape (542225) comes up for A. The shape names ("A (G shape, capo 2)") come with the CAGED grouping, task 5.
 - **Order until task 3:** up the neck from the nut, fuller shapes first at each position.
 - **Exit criteria ticked:** every result is checked against these rules, independently of the search, for 42 common chords on standard, drop D, DADGAD with a capo, 7-string and 7-string drop D; the fixture's drop D and 7-string shapes are all found; and every one of those chords takes under 50 ms (most take 1–3 ms). "The textbook shapes you supply appear in the top five" waits for David's 30 shapes and task 3's score.
+
+## 2026-10-22 — The playability score, and Claude's textbook shapes
+
+Phase 3 task 3 (`src/instruments/playability-data.ts`, the scoring in `src/instruments/fingering.ts`, golden fixture `tests/fixtures/textbook-shapes.ts`). Every shape the search finds now gets a score, and shapes are listed easiest first.
+
+- **How it scores:** each shape starts at 100 and loses points for each rule that applies; open strings near the nut add points, so the easiest open chords score just over 100. The rules and their weights are data, so they can be tuned (and later edited in the app) without touching the search:
+
+  | Rule                                                                                    | Points                   |
+  | --------------------------------------------------------------------------------------- | ------------------------ |
+  | Each finger on the fretboard                                                            | −1                       |
+  | Each fret of stretch beyond three (a hand covers three without stretching)              | −10                      |
+  | A barre                                                                                 | −1, on top of its finger |
+  | Each muted string between sounding ones                                                 | −12                      |
+  | Each muted string below the bass                                                        | −1                       |
+  | Each muted string above the top note (not for power chords, which damp them on purpose) | −3                       |
+  | Each open string, with the hand within four frets of the nut or capo                    | +2                       |
+  | Each open string with the hand further up the neck                                      | −2                       |
+  | Each fret the hand sits up the neck, from the nut or the capo                           | −1                       |
+  | Each chord tone left out (the 5th, or an extended chord's 9th or 11th)                  | −3                       |
+  | Each string short of four sounding (three for a power chord)                            | −3                       |
+
+- **Muted strings rank lower (David's choice).** A muted inner string costs the most. A muted string below the bass costs little, because chord books mute low strings to put the root in the bass (x32010).
+- **Triads without their 5th stay, ranked lower (David left this to Claude).** They're real shapes, so they're still found, but they lose points for the missing 5th, so the full triad comes first.
+- **Textbook shapes written by Claude.** David isn't supplying the 30 textbook shapes the exit criterion asked for, so Claude wrote them: the shape a chord book prints for 30 common open, barre, 7th, suspended and power chords in standard tuning. The weights were tuned until each one ranks in its chord's top five; all 30 do, and 22 rank first. The criterion is ticked on that list. David can swap in his own shapes at any time.
+- **What David's play-test should look for:** the plan's test (play the top shapes and flag anything awkward) still stands once the chord boxes (task 8) show them. Anything awkward is a weight to change in `playability-data.ts`.

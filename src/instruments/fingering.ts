@@ -3,7 +3,8 @@
 // keeps every required tone (the 5th is optional), has the chord's bass on
 // its lowest sounding string, and fits under the hand: its fretted notes span
 // no more than the maximum, and it needs no more than four fingers, a barre
-// at its lowest fret counting as one. Ranking by playability is task 3.
+// at its lowest fret counting as one. Each shape is scored for how easy it
+// is to play (task 3), by the rules in playability-data.ts, easiest first.
 import {
   chordIntervals,
   chordNotes,
@@ -16,13 +17,28 @@ import {
   type Note,
 } from '../theory'
 import { fretMidi, playableFrets, type Guitar } from './guitar'
+import {
+  PLAYABILITY_RULES,
+  type PlayabilityRule,
+  type PlayabilityRuleId,
+} from './playability-data'
 
 // One shape, lowest string first: the fret each string plays (null when
 // muted) and the note it sounds, spelled as the chord spells it. An open
-// string, or the capo's fret with a capo on, needs no finger.
+// string, or the capo's fret with a capo on, needs no finger. score is 100
+// less the costs of the playability rules that apply, so higher is easier;
+// costs lists each rule that applied, how many times, and its points.
 export type Fingering = {
   frets: (number | null)[]
   notes: (Note | null)[]
+  score: number
+  costs: PlayabilityCost[]
+}
+
+export type PlayabilityCost = {
+  rule: PlayabilityRuleId
+  count: number
+  points: number
 }
 
 export type FingeringOptions = { maxSpan?: number }
@@ -58,33 +74,93 @@ function tonesOf(chord: ChordName) {
   const isOptional = optional(intervals)
   const bass = pitchClass(chord.bass ?? chord.root)
   let required = 1 << bass
+  let all = 1 << bass
   for (const interval of intervals) {
-    if (!isOptional(interval)) {
-      required |= 1 << pitchClass(transpose(chord.root, interval))
-    }
+    const pc = 1 << pitchClass(transpose(chord.root, interval))
+    all |= pc
+    if (!isOptional(interval)) required |= pc
   }
   // Each pitch class the chord sounds, with the chord's own spelling.
   const spelling = new Map<number, Note>()
   for (const note of chordNotes(chord)) spelling.set(pitchClass(note), note)
-  return { bass, required, spelling }
+  return { bass, required, all, spelling }
 }
 
-// Whether a shape can be held: four fingers, or a barre across the lowest
-// fret plus up to three more. A barre frets every string it crosses, so no
-// open string can sit between its ends.
-function holdable(frets: (number | null)[], open: number): boolean {
+// The fingers a shape needs, and whether it needs a barre: one finger per
+// fretted string, or, past four, a barre across the lowest fret plus up to
+// three more. A barre frets every string it crosses, so no open string can
+// sit between its ends. Undefined when the shape can't be held.
+function fingersNeeded(
+  frets: (number | null)[],
+  open: number,
+): { fingers: number; barre: boolean } | undefined {
   const fretted = frets.flatMap((f, s) =>
     f !== null && f > open ? [{ s, f }] : [],
   )
-  if (fretted.length <= FINGERS) return true
+  if (fretted.length <= FINGERS) {
+    return { fingers: fretted.length, barre: false }
+  }
   const lowest = Math.min(...fretted.map((n) => n.f))
   const barred = fretted.filter((n) => n.f === lowest).map((n) => n.s)
-  const above = fretted.length - barred.length
-  if (above + 1 > FINGERS) return false
+  const fingers = fretted.length - barred.length + 1
+  if (fingers > FINGERS) return undefined
   const from = barred[0]
   const to = barred[barred.length - 1]
-  for (let s = from + 1; s < to; s++) if (frets[s] === open) return false
-  return true
+  for (let s = from + 1; s < to; s++) if (frets[s] === open) return undefined
+  return { fingers, barre: true }
+}
+
+// A hand covers three frets without stretching, one finger per fret.
+const REACH = 3
+// A chord sounds full on four strings, or one more than its tones (three for
+// a power chord).
+const FULL = 4
+
+// Open strings help near the nut; with the hand further up than this, an
+// open string ringing under it is awkward instead.
+const NEAR_NUT = 4
+
+function costOf(rule: PlayabilityRuleId): number {
+  return (PLAYABILITY_RULES.find((r) => r.id === rule) as PlayabilityRule).cost
+}
+
+// What each rule counts in a shape; the score is 100 less their costs.
+function playability(
+  frets: (number | null)[],
+  open: number,
+  hand: { fingers: number; barre: boolean },
+  tones: { omitted: number; full: number; power: boolean },
+): Pick<Fingering, 'score' | 'costs'> {
+  const fretted = frets.filter((f): f is number => f !== null && f > open)
+  const sounding = frets.flatMap((f, s) => (f === null ? [] : [s]))
+  const first = sounding[0]
+  const last = sounding[sounding.length - 1]
+  const lowest = fretted.length ? Math.min(...fretted) : open
+  const span = fretted.length ? Math.max(...fretted) - lowest + 1 : 0
+  let inner = 0
+  frets.forEach((f, s) => {
+    if (f === null && s > first && s < last) inner++
+  })
+  const opens = frets.filter((f) => f === open).length
+  const near = lowest - open <= NEAR_NUT
+  const counts: [PlayabilityRuleId, number][] = [
+    ['finger', hand.fingers],
+    ['span', Math.max(0, span - REACH)],
+    ['barre', hand.barre ? 1 : 0],
+    ['muted-inner', inner],
+    ['muted-low', first],
+    // A power chord is played with its top strings damped on purpose.
+    ['muted-high', tones.power ? 0 : frets.length - 1 - last],
+    ['open-string', near ? opens : 0],
+    ['open-string-far', near ? 0 : opens],
+    ['position', lowest - open],
+    ['omitted-tone', tones.omitted],
+    ['thin', Math.max(0, tones.full - sounding.length)],
+  ]
+  const costs = counts.flatMap(([rule, count]) =>
+    count ? [{ rule, count, points: count * costOf(rule) }] : [],
+  )
+  return { score: 100 - costs.reduce((sum, c) => sum + c.points, 0), costs }
 }
 
 function bits(mask: number): number {
@@ -93,11 +169,14 @@ function bits(mask: number): number {
   return count
 }
 
-// Neck position (the lowest fretted fret, or the open position), then more
-// strings sounding, then frets string by string.
+// Easiest first; then by neck position (the lowest fretted fret, or the open
+// position), more strings sounding, and frets string by string, so the order
+// never depends on the search's.
 type Found = { fingering: Fingering; position: number; sounding: number }
 
 function compare(a: Found, b: Found): number {
+  const byScore = b.fingering.score - a.fingering.score
+  if (byScore) return byScore
   const byPosition = a.position - b.position
   if (byPosition) return byPosition
   const bySounding = b.sounding - a.sounding
@@ -112,9 +191,7 @@ function compare(a: Found, b: Found): number {
 }
 
 // Every shape for a chord as it sounds (with a capo, name the chord by what
-// sounds: A, not the G shape). Ordered for now by neck position, lowest
-// first, then by more strings sounding; task 3's playability score replaces
-// this order.
+// sounds: A, not the G shape), easiest to play first.
 export function findFingerings(
   guitar: Guitar,
   chord: ChordName,
@@ -124,7 +201,7 @@ export function findFingerings(
   if (!Number.isInteger(maxSpan) || maxSpan < MIN_SPAN || maxSpan > MAX_SPAN) {
     throw new RangeError(`span must be ${MIN_SPAN}–${MAX_SPAN} frets`)
   }
-  const { bass, required, spelling } = tonesOf(chord)
+  const { bass, required, all, spelling } = tonesOf(chord)
   const open = guitar.capo
   const strings = guitar.strings.length
 
@@ -150,7 +227,9 @@ export function findFingerings(
     // Too few strings left to sound the tones still missing.
     if (bits(required & ~sounded) > strings - s) return
     if (s === strings) {
-      if ((sounded & required) === required && holdable(frets, open)) {
+      const hand =
+        (sounded & required) === required && fingersNeeded(frets, open)
+      if (hand) {
         found.push({
           fingering: {
             frets: [...frets],
@@ -159,6 +238,11 @@ export function findFingerings(
                 ? null
                 : (noteAtMidi(spelling.get(mod(m, 12)) as Note, m) as Note),
             ),
+            ...playability(frets, open, hand, {
+              omitted: bits(all & ~sounded),
+              full: Math.min(FULL, bits(all) + 1),
+              power: bits(all) === 2,
+            }),
           },
           position: low === Infinity ? open : low,
           sounding: frets.filter((f) => f !== null).length,
