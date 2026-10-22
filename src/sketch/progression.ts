@@ -6,6 +6,7 @@
 // shared chords up to that point, giving it its own continuation.
 // Every function returns a new progression and leaves its input alone.
 import type { ChordName, Key, Note } from '../theory'
+import { DEFAULT_LENGTH, type Dur } from './time'
 
 // The exact shape a chord was added in, from a chord box: its notes with
 // octaves, lowest first, and on guitar its frets (low string first, null
@@ -18,7 +19,11 @@ export type ChordVoicing = {
 }
 
 // What else a chord can be added with.
-export type AddOptions = { keyChange?: Key; voicing?: ChordVoicing }
+export type AddOptions = {
+  keyChange?: Key
+  voicing?: ChordVoicing
+  length?: Dur
+}
 
 export type ChordNode = {
   id: string
@@ -28,6 +33,9 @@ export type ChordNode = {
   // A key change from this chord on: later chords are read in it (SPEC 6.4).
   keyChange?: Key
   voicing?: ChordVoicing
+  // How long the chord lasts, as a fraction of a whole note (SPEC 12's
+  // ChordEvent.length); one bar when unset.
+  length?: Dur
   // The child the active path last went through, so switching back to this
   // node restores the branch that was showing.
   activeChild?: string
@@ -129,6 +137,7 @@ function materialise(p: Progression, upTo: number): Progression {
     }
     if (original.keyChange) copy.keyChange = original.keyChange
     if (original.voicing) copy.voicing = original.voicing
+    if (original.length) copy.length = original.length
     const parent = node(out, parentId)
     const activePath = [...out.activePath]
     activePath[i] = id
@@ -149,13 +158,14 @@ function addNode(
   p: Progression,
   parentId: string | undefined,
   chord: ChordName,
-  { keyChange, voicing }: AddOptions,
+  { keyChange, voicing, length }: AddOptions,
 ): { p: Progression; id: string } {
   const id = nextId(p)
   const added: ChordNode = { id, chord, children: [] }
   if (parentId !== undefined) added.parent = parentId
   if (keyChange) added.keyChange = keyChange
   if (voicing) added.voicing = voicing
+  if (length) added.length = length
   const nodes = { ...p.nodes, [id]: added }
   let roots = p.roots
   if (parentId === undefined) roots = [...roots, id]
@@ -244,6 +254,7 @@ export function insertBetween(
   }
   if (options.keyChange) inserted.keyChange = options.keyChange
   if (options.voicing) inserted.voicing = options.voicing
+  if (options.length) inserted.length = options.length
   const before = node(own, beforeId)
   const nodes = {
     ...own.nodes,
@@ -274,6 +285,27 @@ export function changeAt(
   const changed: ChordNode = { ...node(own, id), chord }
   delete changed.voicing
   return { ...own, nodes: { ...own.nodes, [id]: changed } }
+}
+
+// Sets how long the chord at a slot lasts, giving it its own copy first if
+// it was shared. One bar is the default, so it is stored as no length.
+export function setLengthAt(
+  p: Progression,
+  index: number,
+  length: Dur,
+): Progression {
+  const own = materialise(p, index)
+  const id = own.activePath[index]
+  const changed: ChordNode = { ...node(own, id), length }
+  if (length.n === DEFAULT_LENGTH.n && length.d === DEFAULT_LENGTH.d) {
+    delete changed.length
+  }
+  return { ...own, nodes: { ...own.nodes, [id]: changed } }
+}
+
+// How long the chord on a node lasts.
+export function lengthOf(n: ChordNode): Dur {
+  return n.length ?? DEFAULT_LENGTH
 }
 
 // Makes the path through a node active (the tree view): its ancestors, the

@@ -173,9 +173,9 @@ export function ChordBoxes({
 
 // SPEC 5 (playback): guitar chords strum low to high, using the shape on
 // screen.
-export function strum(shape: Fingering) {
+export function strum(shape: Fingering, seconds?: number) {
   const notes = shape.notes.filter((n): n is Note => n !== null)
-  void playChord(notes, { strum: true })
+  void playChord(notes, { strum: true, seconds })
 }
 
 const GAP = 16 // between strings

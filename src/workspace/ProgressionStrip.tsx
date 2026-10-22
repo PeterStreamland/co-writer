@@ -10,11 +10,22 @@ import {
 import {
   alternatives,
   keyAt,
+  lengthOf,
   pathNodes,
   type ChordNode,
   type Progression,
 } from '../sketch/progression'
 import { InfoPanel, InfoToggle, useToggle } from './ChordInfo'
+import {
+  LENGTH_CHOICES,
+  MAX_BPM,
+  MIN_BPM,
+  beatsOf,
+  clampBpm,
+  durOfBeats,
+  lengthLabel,
+  type Dur,
+} from '../sketch/time'
 
 // The progression strip (SPEC 2, 6.5): the active path of the section's
 // progression. Tap a chord to select it (suggestions then follow it); the
@@ -40,6 +51,9 @@ export function ProgressionStrip({
   playingAt,
   onPlay,
   onStop,
+  bpm,
+  onBpmChange,
+  onLengthChange,
   between,
   onBetween,
 }: {
@@ -59,6 +73,10 @@ export function ProgressionStrip({
   playingAt: number | undefined
   onPlay: () => void
   onStop: () => void
+  bpm: number
+  onBpmChange: (bpm: number) => void
+  // Sets the selected chord's length.
+  onLengthChange: (length: Dur) => void
   // The slot whose gap to the next chord is being filled, if any.
   between: number | undefined
   onBetween: (index: number) => void
@@ -81,6 +99,19 @@ export function ProgressionStrip({
       <div class="strip-bar">
         <h2>Progression</h2>
         <div class="strip-tools">
+          <label class="tempo">
+            <input
+              type="number"
+              min={MIN_BPM}
+              max={MAX_BPM}
+              value={bpm}
+              aria-label="Tempo in beats per minute"
+              onChange={(e) =>
+                onBpmChange(clampBpm(Number(e.currentTarget.value)))
+              }
+            />
+            BPM
+          </label>
           {playingAt === undefined ? (
             <button
               type="button"
@@ -137,6 +168,7 @@ export function ProgressionStrip({
               <button
                 type="button"
                 class="chip"
+                style={{ minWidth: `${2.6 + beatsOf(lengthOf(n)) * 0.4}rem` }}
                 aria-pressed={i === selected}
                 onClick={() => onSelect(i)}
               >
@@ -144,6 +176,11 @@ export function ProgressionStrip({
                 <span class="numeral">
                   {romanNumeral(key, n.chord).numeral}
                 </span>
+                {n.length && (
+                  <span class="length-label">
+                    {lengthLabel(beatsOf(n.length))}
+                  </span>
+                )}
                 {n.keyChange && (
                   <span class="key-change">→ {keyName(n.keyChange)}</span>
                 )}
@@ -210,6 +247,21 @@ export function ProgressionStrip({
               onToggle={toggleInfo}
             />
           </p>
+          <label class="length">
+            Length
+            <select
+              value={beatsOf(lengthOf(selectedNode))}
+              onChange={(e) =>
+                onLengthChange(durOfBeats(Number(e.currentTarget.value)))
+              }
+            >
+              {LENGTH_CHOICES.map((beats) => (
+                <option key={beats} value={beats}>
+                  {lengthLabel(beats)}
+                </option>
+              ))}
+            </select>
+          </label>
           {infoOpen && selectedInsight && (
             <InfoPanel insight={selectedInsight} />
           )}
