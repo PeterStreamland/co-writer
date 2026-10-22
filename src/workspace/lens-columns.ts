@@ -3,7 +3,7 @@
 // as the lenses read it; and how a column's voicings play. No theory lives
 // here.
 import {
-  LENSES,
+  ALL_LENSES,
   keyName,
   type ChordName,
   type Key,
@@ -29,13 +29,13 @@ export const DEFAULT_LENSES: Lens[] = ['classical', 'rock']
 
 const STORAGE_KEY = 'co-writer:lenses'
 
-// Turns a lens on or off, keeping two to four and the order of LENSES.
+// Turns a lens on or off, keeping two to four and the order of ALL_LENSES.
 export function toggleLens(chosen: Lens[], lens: Lens): Lens[] {
   const on = chosen.includes(lens)
   if (on && chosen.length <= MIN_LENSES) return chosen
   if (!on && chosen.length >= MAX_LENSES) return chosen
   const next = on ? chosen.filter((l) => l !== lens) : [...chosen, lens]
-  return LENSES.filter((l) => next.includes(l))
+  return ALL_LENSES.filter((l) => next.includes(l))
 }
 
 // The progression's active path as lens steps, each chord in its own key
@@ -109,9 +109,9 @@ export function loadLenses(store = storage()): Lens[] {
       Array.isArray(saved) &&
       saved.length >= MIN_LENSES &&
       saved.length <= MAX_LENSES &&
-      saved.every((l) => LENSES.includes(l))
+      saved.every((l) => ALL_LENSES.includes(l))
     ) {
-      return LENSES.filter((l) => saved.includes(l))
+      return ALL_LENSES.filter((l) => saved.includes(l))
     }
   } catch {
     // Unreadable or blocked storage: use the default.

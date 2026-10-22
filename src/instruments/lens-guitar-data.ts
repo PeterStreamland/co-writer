@@ -1,7 +1,7 @@
 // The voicing lenses on guitar, as data (PLAN Phase 5 task 4): which shapes
 // each lens takes from the fingering search and how much it likes them. The
 // colours each lens gives chords are the keyboard's (src/theory/lens-data).
-import type { Lens } from '../theory'
+import type { CoreLens } from '../theory'
 
 export type GuitarLensShape = {
   id: string
@@ -22,7 +22,7 @@ export type GuitarLens = {
   keep: number
 }
 
-export const GUITAR_LENSES: Record<Lens, GuitarLens> = {
+export const GUITAR_LENSES: Record<CoreLens, GuitarLens> = {
   // Four voices on four strings, like four-part writing.
   classical: {
     shapes: [
@@ -95,4 +95,14 @@ export const GUITAR_LENSES: Record<Lens, GuitarLens> = {
     ease: 0.1,
     keep: 40,
   },
+}
+
+// The experimental lenses on guitar: their keyboard voicings, fretted as
+// they are (or an octave up or down) where the hand can reach them.
+export const FRETTED_LENS = {
+  // Points per point of fretting cost, so easier shapes win when the voice
+  // leading is equal.
+  ease: 0.5,
+  // The keyboard voicings tried per chord, the lens's favourites first.
+  tried: 120,
 }

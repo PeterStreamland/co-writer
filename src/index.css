@@ -1783,3 +1783,10 @@ body:has(.workspace) #app {
   justify-content: center;
   gap: 0.3rem;
 }
+
+.lens-picker .lens-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem 0.8rem;
+}

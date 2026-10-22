@@ -121,9 +121,10 @@ describe('guitar lenses', () => {
     }
   })
 
-  it('names each shape by its lowest note, and keeps the classical bass', () => {
-    for (const p of progressions) {
-      for (const lens of LENSES) {
+  it.each(LENSES)(
+    'names each %s shape by its lowest note, keeping the classical bass',
+    (lens) => {
+      for (const p of progressions) {
         for (const [i, c] of voiceProgressionOnGuitar(
           standard,
           lens,
@@ -145,8 +146,8 @@ describe('guitar lenses', () => {
           }
         }
       }
-    }
-  })
+    },
+  )
 
   it('uses four strings in the classical lens', () => {
     const voiced = voiceProgressionOnGuitar(

@@ -7,14 +7,21 @@
 // The search is generic, so the guitar's lens shapes (src/instruments) use
 // it too.
 import { chordIntervals } from './chord'
-import { chordNotes, type ChordName } from './chord-symbol'
+import { chordNames, chordNotes, type ChordName } from './chord-symbol'
 import { transpose, transposeDown } from './interval'
 import { inversions } from './inversion'
-import { midiNumber, parseNote, pitchClass, type Note } from './note'
+import {
+  formatNote,
+  midiNumber,
+  noteAtMidi,
+  parseNote,
+  pitchClass,
+  type Note,
+} from './note'
 import { scaleNotes, type Key } from './scale'
 import { voiceLeading } from './voice-leading'
 import { rulePenalty, voiceRuleHits, type RuleHit } from './voice-rules'
-import { LENS_RULE_WEIGHTS, type Lens } from './voice-rules-data'
+import { ALL_LENSES, LENS_RULE_WEIGHTS, type Lens } from './voice-rules-data'
 import { keyboardVoicing } from './voicing'
 import {
   LENS_SETTINGS,
@@ -284,7 +291,266 @@ function voicingsOfForm(
         })
       })
     }
+    case 'quartal':
+      return quartal(voiced, form, key).map((v) =>
+        make(nameVoicing(voiced, v.notes, key), v.notes, v.cost),
+      )
+    case 'cluster':
+      return cluster(voiced, form, key).map((notes) =>
+        make(nameVoicing(voiced, notes, key), notes),
+      )
+    case 'upper':
+      return upperStructures(voiced, form, key).map((v) => ({
+        ...make(nameVoicing(voiced, v.notes, key), v.notes),
+        label: v.label,
+      }))
+    case 'drone':
+      return drone(voiced, form, key).map((notes) => make(voiced, notes))
   }
+}
+
+// The notes the experimental forms may use: the key's, and the chord's own
+// (in the chord's spelling), one per pitch class.
+function poolOf(chord: ChordName, key: Key): Map<number, Note> {
+  const pool = new Map<number, Note>()
+  for (const t of tonesOf(chord)) pool.set(pitchClass(t.note), t.note)
+  for (const n of scaleNotes(key.tonic, key.mode)) {
+    if (!pool.has(pitchClass(n))) pool.set(pitchClass(n), n)
+  }
+  return pool
+}
+
+// Whether an added note clashes with the chord: a semitone above one of its
+// tones (the ♭9 over the root, the 4th over a major 3rd, the ♭6 over the
+// 5th: the avoid notes of arrangers' chord scales).
+function clashes(chord: ChordName, pc: number): boolean {
+  return clashSet(chord).has(pc)
+}
+
+// The pitch classes a semitone above a chord's tones, worked out once per
+// chord.
+const clashSets = new Map<string, Set<number>>()
+function clashSet(chord: ChordName): Set<number> {
+  const id = `${pitchClass(chord.root)} ${chord.quality}`
+  let found = clashSets.get(id)
+  if (!found) {
+    found = new Set(tonesOf(chord).map((t) => (pitchClass(t.note) + 1) % 12))
+    clashSets.set(id, found)
+  }
+  return found
+}
+
+// A bass under upper notes already placed: each octave in the form's range
+// below them.
+function withBass(bass: Note, upper: Note[], form: LensForm): Note[][] {
+  if (!form.bass) return [upper]
+  const low = Math.min(...upper.map(pitch))
+  return octaves(bass, rangeOf(form.bass))
+    .filter((b) => pitch(b) < low && low - pitch(b) <= 24)
+    .map((b) => [b, ...upper])
+}
+
+// Notes of the key stacked in perfect 4ths from each starting note, the
+// top one a major 3rd above the last where the key has it (E A D G B over
+// D, the "So What" voicing). A stack must sound at least two of the
+// chord's notes, counting the bass, and add no clash.
+function quartal(
+  chord: ChordName,
+  form: LensForm,
+  key: Key,
+): { notes: Note[]; cost: number }[] {
+  const pool = poolOf(chord, key)
+  const own = new Set(tonesOf(chord).map((t) => pitchClass(t.note)))
+  const bassPc = pitchClass(chord.bass ?? chord.root)
+  const [fewest, most] = form.size ?? [3, 5]
+  const range = rangeOf(form.upper)
+  const fits = (n: Note) => pitch(n) >= range[0] && pitch(n) <= range[1]
+  const spelled = (n: Note): Note | undefined => {
+    const found = pool.get(pitchClass(n))
+    if (!found) return undefined
+    const pc = pitchClass(found)
+    if (!own.has(pc) && clashes(chord, pc)) return undefined
+    return noteAtMidi(found, pitch(n))
+  }
+  const found: { notes: Note[]; cost: number }[] = []
+  const keep = (stack: Note[], cost: number) => {
+    if (stack.length < fewest || !stack.every(fits)) return
+    const sounded = new Set(
+      [bassPc, ...stack.map(pitchClass)].filter((pc) => own.has(pc)),
+    )
+    if (sounded.size < 2) return
+    for (const notes of withBass(chord.bass ?? chord.root, stack, form)) {
+      found.push({ notes, cost })
+    }
+  }
+  for (const start of pool.values()) {
+    const pc = pitchClass(start)
+    if (!own.has(pc) && clashes(chord, pc)) continue
+    for (const first of octaves(start, range)) {
+      const stack = [first]
+      while (stack.length < most) {
+        const next = spelled(
+          transpose(stack.at(-1)!, { quality: 'P', number: 4 }),
+        )
+        if (!next) break
+        stack.push(next)
+        keep([...stack], 0)
+        // The "So What" top: a major 3rd over a stack of 4ths.
+        if (stack.length >= fewest && stack.length < most) {
+          const top = spelled(
+            transpose(stack.at(-1)!, { quality: 'M', number: 3 }),
+          )
+          if (top) keep([...stack, top], 0.5)
+        }
+      }
+    }
+  }
+  return found
+}
+
+// The chord's tones (but the bass) packed within a 5th or so, with one or
+// two notes of the key added that don't clash, so at least two sit a tone
+// or a semitone apart.
+function cluster(chord: ChordName, form: LensForm, key: Key): Note[][] {
+  const pool = poolOf(chord, key)
+  const own = tonesOf(chord)
+  const bass = chord.bass ?? chord.root
+  const rest = own
+    .filter((t) => pitchClass(t.note) !== pitchClass(bass))
+    .map((t) => t.note)
+  const ownPcs = new Set(own.map((t) => pitchClass(t.note)))
+  const added = [...pool.entries()]
+    .filter(([pc]) => !ownPcs.has(pc) && !clashes(chord, pc))
+    .map(([, n]) => n)
+  const [fewest, most] = form.size ?? [3, 5]
+  const sets: Note[][] = []
+  added.forEach((a, i) => {
+    sets.push([...rest, a])
+    added.slice(i + 1).forEach((b) => sets.push([...rest, a, b]))
+  })
+  return sets
+    .filter((set) => set.length >= fewest && set.length <= most)
+    .flatMap((set) => place(bass, set, form))
+    .filter((notes) => {
+      const upper = notes.slice(1).map(pitch)
+      return upper.some((m, k) => k > 0 && m - upper[k - 1] <= 2)
+    })
+}
+
+// A triad from the key above the root and the chord's 3rd and 7th: one
+// with a different root that adds at least one note not in the chord, none
+// of them clashing (Em over Cmaj7 adds the 9th; Dm over G7 the 13th).
+function upperStructures(
+  chord: ChordName,
+  form: LensForm,
+  key: Key,
+): { notes: Note[]; label: string }[] {
+  const tones = tonesOf(chord)
+  const ownPcs = new Set(tones.map((t) => pitchClass(t.note)))
+  const third = tones.find((t) => t.number === 3)?.note
+  if (!third) return []
+  const seventh = tones.find((t) => t.number === 7)?.note
+  const guides = seventh && !form.thirdOnly ? [third, seventh] : [third]
+  const scale = scaleNotes(key.tonic, key.mode)
+  if (scale.length !== 7) return []
+  const triads = scale.flatMap((root, i) => {
+    const notes = [root, scale[(i + 2) % 7], scale[(i + 4) % 7]]
+    const [r, t, f] = notes.map(pitchClass)
+    const shape = `${(t - r + 12) % 12},${(f - r + 12) % 12}`
+    if (shape !== '4,7' && shape !== '3,7') return []
+    if (r === pitchClass(chord.root)) return []
+    if (!notes.some((n) => !ownPcs.has(pitchClass(n)))) return []
+    if (
+      notes.some(
+        (n) => !ownPcs.has(pitchClass(n)) && clashes(chord, pitchClass(n)),
+      )
+    )
+      return []
+    const name = `${formatNote(root)}${shape === '3,7' ? 'm' : ''}`
+    return [{ notes, name }]
+  })
+  const guideRange = rangeOf(form.guide ?? form.upper)
+  const placedGuides = guides
+    .map((g) => octaves(g, guideRange))
+    .reduce<Note[][]>(
+      (all, options) => all.flatMap((a) => options.map((o) => [...a, o])),
+      [[]],
+    )
+    .map((g) => g.sort((a, b) => pitch(a) - pitch(b)))
+  const found: { notes: Note[]; label: string }[] = []
+  for (const triad of triads) {
+    for (const top of place(undefined, triad.notes, form)) {
+      for (const guide of placedGuides) {
+        if (pitch(guide.at(-1)!) >= pitch(top[0])) continue
+        for (const notes of withBass(chord.root, [...guide, ...top], form)) {
+          found.push({
+            notes,
+            label: `${triad.name} over ${formatNote(chord.root)}`,
+          })
+        }
+      }
+    }
+  }
+  return found
+}
+
+// The key's tonic held low (with its 5th, in the form that asks), the chord
+// in close position above it (without its own 5th, in the lighter form, as
+// guitarists play it).
+function drone(chord: ChordName, form: LensForm, key: Key): Note[][] {
+  const tones = tonesOf(chord)
+    .filter(
+      (t) => !(form.omitFifth && t.number === 5 && tonesOf(chord).length > 3),
+    )
+    .map((t) => t.note)
+  const above = place(undefined, tones, form)
+  const tonic = key.tonic
+  const fifth = transpose(tonic, { quality: 'P', number: 5 })
+  return octaves(tonic, rangeOf(form.bass ?? form.upper)).flatMap((low) => {
+    const held = form.fifth
+      ? [low, noteAtMidi(fifth, pitch(low) + 7) as Note]
+      : [low]
+    const top = pitch(held.at(-1)!)
+    return above
+      .filter((upper) => pitch(upper[0]) > top && pitch(upper[0]) - top <= 24)
+      .map((upper) => [...held, ...upper])
+  })
+}
+
+// A voicing's name from its notes, read in the key, keeping the chord's
+// root where a name allows (C D E G over C is Cadd9); otherwise the chord
+// named by its lowest note.
+function nameVoicing(chord: ChordName, notes: Note[], key: Key): ChordName {
+  // Many voicings share their notes' spellings and lowest note, and naming
+  // is slow, so names are kept for reuse.
+  const lowest = notes.reduce((a, b) => (pitch(b) < pitch(a) ? b : a))
+  const spell = (n: Note) => `${n.letter}${n.accidental}`
+  const id = [
+    formatNote(key.tonic),
+    key.mode,
+    spell(chord.root),
+    chord.quality,
+    spell(lowest),
+    ...[...new Set(notes.map(spell))].sort(),
+  ].join(' ')
+  const known = voicingNames.get(id)
+  if (known) return known
+  if (voicingNames.size > MAX_KEPT_NAMES) voicingNames.clear()
+  const named = nameFromNotes(chord, notes, key)
+  voicingNames.set(id, named)
+  return named
+}
+
+const voicingNames = new Map<string, ChordName>()
+const MAX_KEPT_NAMES = 5000
+
+function nameFromNotes(chord: ChordName, notes: Note[], key: Key): ChordName {
+  const names = chordNames(notes, { key })
+  const same = names.find((n) => pitchClass(n.root) === pitchClass(chord.root))
+  if (!same || same.omitted?.length) return nameByLowest(chord, notes)
+  const named: ChordName = { root: same.root, quality: same.quality }
+  if (same.bass) named.bass = same.bass
+  return named
 }
 
 // Whether the notes a colour adds to a chord are all in the key's scale.
@@ -352,12 +618,15 @@ export function nameByLowest(chord: ChordName, notes: Note[]): ChordName {
   return named
 }
 
-// Every keyboard voicing a lens offers for a chord in a key.
+// Every keyboard voicing a lens offers for a chord in a key. The Wildcard
+// draws on chance, from `random` (0 to 1).
 export function lensVoicings(
   lens: Lens,
   key: Key,
   chord: ChordName,
+  random: () => number = Math.random,
 ): LensVoicing[] {
+  if (lens === 'wildcard') return wildcardVoicings(key, chord, random)
   const settings = LENS_SETTINGS[lens]
   const found = lensColours(lens, key, chord).flatMap((colour) =>
     settings.forms.flatMap((form) =>
@@ -450,12 +719,69 @@ export function chooseVoicings<V extends LensVoicing>(
 }
 
 // A progression voiced on the keyboard through a lens.
-export function voiceProgression(lens: Lens, steps: LensStep[]): LensChoice[] {
+export function voiceProgression(
+  lens: Lens,
+  steps: LensStep[],
+  random: () => number = Math.random,
+): LensChoice[] {
   return chooseVoicings(
     lens,
     steps,
-    steps.map((s) => lensVoicings(lens, s.key, s.chord)),
+    steps.map((s) => lensVoicings(lens, s.key, s.chord, random)),
   )
+}
+
+// The Wildcard (David's request): every other lens's voicings for a chord,
+// each lens's few favourites after a roll of chance, labelled with the lens
+// they come from. The search still weighs how they move, lightly, so the
+// result is surprising but hangs together. A fresh `random` gives a fresh
+// result every time.
+const WILD_CHANCE = 8 // points of chance added to each voicing's cost
+const WILD_KEEP = 6 // voicings kept from each lens
+const WILD_TASTE = 0.25 // how much each lens's own liking still counts
+
+export function wildcardVoicings(
+  key: Key,
+  chord: ChordName,
+  random: () => number,
+): LensVoicing[] {
+  return wildcardPick(
+    ALL_LENSES.filter((l) => l !== 'wildcard'),
+    (lens) => lensVoicings(lens, key, chord),
+    random,
+  )
+}
+
+// Rolls chance over each lens's voicings and keeps a few from each, so the
+// guitar's Wildcard can share it.
+export function wildcardPick<V extends LensVoicing>(
+  lenses: Lens[],
+  voicingsOf: (lens: Lens) => V[],
+  random: () => number,
+): V[] {
+  return lenses.flatMap((lens) =>
+    voicingsOf(lens)
+      .map((v) => ({
+        ...v,
+        label: `${LENS_SETTINGS[lens].name}: ${v.label}`,
+        cost: v.cost * WILD_TASTE + random() * WILD_CHANCE,
+      }))
+      .sort((a, b) => a.cost - b.cost)
+      .slice(0, WILD_KEEP),
+  )
+}
+
+// A repeatable stream of chance from a seed (mulberry32), for tests and for
+// holding one roll steady while the page redraws.
+export function seededRandom(seed: number): () => number {
+  let a = seed >>> 0
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0
+    let t = a
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
 }
 
 // The baseline every lens must beat (PLAN Phase 5): each chord in close
