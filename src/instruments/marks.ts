@@ -13,6 +13,7 @@ import {
   type Key,
   type Note,
 } from '../theory'
+import { chordTones, type ChordTone } from './chord-tones'
 
 export type Mark = {
   note: Note // spelled, with the octave that sounds the pitch
@@ -22,6 +23,7 @@ export type Mark = {
   inScale: boolean
   chordTone: boolean
   held: boolean // being played on the MIDI keyboard, at this exact pitch
+  tone?: ChordTone // a tone of the current chord, by its interval
 }
 
 // A function from MIDI number to its mark, or undefined for a pitch that is
@@ -39,6 +41,7 @@ export function noteMarker(
   const rootPitch = pitchClass(key.tonic)
   const scalePitches = new Set(scale.map(pitchClass))
   const tonePitches = new Set(tones.map(pitchClass))
+  const toneOf = chord ? chordTones(chord) : new Map<number, ChordTone>()
   const playedAt = new Map(
     played.map((n) => [
       midiNumber(n),
@@ -61,6 +64,7 @@ export function noteMarker(
       inScale: scalePitches.has(pitch),
       chordTone: tonePitches.has(pitch),
       held: playedAt.has(midi),
+      tone: toneOf.get(pitch),
     }
   }
 }

@@ -434,3 +434,31 @@ Phase 3 task 6 (`src/theory/voicing.ts`, golden fixture `tests/fixtures/voicings
 - **Drops are for chords of up to four notes,** as pianists and arrangers use them. A 9th, 11th or 13th chord has no drop voicing, and a power chord has no drop-3. A triad's drop-2 is its open voicing, and its drop-3 drops the bass alone.
 - **Register:** each voicing is moved by whole octaves until its notes average closest to middle C. Close C is C4 E4 G4, as when you click a chord; F is F3 A3 C4. A first inversion sits a little lower than the click voicing (C/E is E3 G3 C4, not E4 G4 C5), since this rule centres the whole chord rather than placing the bass.
 - **The split (SPEC 5):** the left hand plays the bass at the highest octave below C3. It plays the bass alone by default, or with the chord's 5th, or doubled an octave up. In an inversion it plays the inverted bass alone or doubled, since a 5th above E isn't C major's 5th. The right hand plays the chord in root position, in any of the five styles, around middle C.
+
+## 2026-10-22 — Chord boxes before MIDI-to-shapes (David's choice)
+
+Phase 3 tasks 8 and 9 are done before task 7. Task 7 (play a chord on the MIDI keyboard and jump to its guitar shapes) needs somewhere to show the shapes, and the chord boxes are that place, so building them first avoids a stopgap list that would be thrown away. Task 7 comes next.
+
+## 2026-10-22 — Chord boxes and chord-tone colours
+
+Phase 3 tasks 8 and 9 (`src/workspace/ChordBoxes.tsx`, `src/instruments/chord-box.ts`, `src/instruments/chord-tones.ts`, golden fixture `tests/fixtures/chord-tones.ts`). Choices the plan didn't settle:
+
+- **Chord box:** the shape at the top of the list, easiest first. ◀ ▶ steps through every shape and wraps round at the ends, with "3 of 246" between the arrows.
+  - **Heading:** the shape's name, such as "A (G shape, capo 2)".
+  - **Underneath:** the frets as written (x32010) and the inversion.
+  - **Drawing:** the nut is drawn at the top when the shape fits in the first four frets, or a capo bar with the capo on. Further up the neck, the box starts at the shape's lowest fret, with that fret's number beside it. ○ marks open strings and × muted ones, and each string's fret is written underneath.
+  - **On the neck:** the shape on show is ringed.
+  - **Sound:** clicking the box strums the shape. Clicking a chord in the chord rows with the guitar showing strums the shape the box will show, as SPEC 5 asks.
+- **Filters,** folded away under the box: inversion (as chosen, any, or a numbered inversion), strings (all, top four, top three, middle four, bottom four), stretch (3–6 frets), open strings, and leave out the 5th. A numbered inversion a new chord doesn't have (a triad's 3rd inversion) goes back to "as chosen".
+- **Chord-tone colours:** red root, amber 3rd, blue 5th, purple 7th, and teal for every other tone, with the rest of the scale faded grey.
+  - A 3rd, 5th or 7th keeps its colour whatever its quality, so the ♭5 of Cm7♭5 is blue.
+  - A sus chord's 2nd or 4th, a 6th, and a bass outside the chord take the shared colour. G over F reads as the 9th, but C under D/C reads as the ♭7.
+  - Notes being played on the MIDI keyboard stay green.
+
+## 2026-10-22 — Top layout and the keyboard's voicing box (David's choice)
+
+- **Top of the page:** the key name, key signature and step pattern stack on the left, and the scale's degree boxes sit beside them. The boxes are smaller, about the height of those three lines. On a phone the scale stays in the bottom sheet, where the boxes wrap below.
+- **Keyboard:** laid out like the guitar view, with a box to the right of the keyboard for the current chord's voicing.
+  - **Stepping:** ◀ ▶ step through close, open, drop-2, drop-3, spread and the left/right-hand split (Phase 3 task 6), skipping any a chord can't take.
+  - **Drawing:** a small keyboard shows the voicing in chord-tone colours, and the same notes are ringed on the main keyboard. A split lists each hand's notes.
+  - **Sound:** clicking the box plays the voicing. Clicking a chord in the chord rows plays the voicing on show. The style stays as you move between chords, and falls back to close for a chord that can't take it.
