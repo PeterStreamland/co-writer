@@ -9,6 +9,7 @@ import {
 import {
   DEFAULT_FRET_RANGE,
   MAX_CAPO,
+  capoNotes,
   makeGuitar,
   type Guitar,
 } from '../instruments/guitar'
@@ -142,6 +143,7 @@ export function InstrumentView({
             capo,
             high: lastFret,
           })}
+          keyValue={value}
           mark={mark}
           labels={labels}
         />
@@ -293,18 +295,24 @@ function Keyboard({
 
 // Horizontal tab view: nut on the left, low string at the bottom (SPEC 5),
 // each string's open note named on the far left. Frets behind a capo are
-// greyed out and the capo is drawn as a bar.
+// greyed out and the capo is drawn as a bar, with the open notes it gives
+// named in the fret just before it.
 function Fretboard({
   guitar,
+  keyValue,
   mark,
   labels,
 }: {
   guitar: Guitar
+  keyValue: Key
   mark: (midi: number) => Mark | undefined
   labels: Labels
 }) {
   const strings = guitar.strings
   const grid = fretboardGrid(guitar, mark)
+  const capoNames = capoNotes(guitar, keyValue).map((n) =>
+    formatNote({ ...n, octave: undefined }),
+  )
   const frets = grid[0].map((f) => f.fret)
   const label = (m: Mark) => (labels === 'names' ? m.name : m.degree)
   return (
@@ -339,6 +347,9 @@ function Fretboard({
             >
               {spot.mark && (
                 <span class={markClass(spot.mark)}>{label(spot.mark)}</span>
+              )}
+              {guitar.capo > 0 && spot.fret === guitar.capo - 1 && (
+                <span class="capo-name">{capoNames[spot.string]}</span>
               )}
             </button>
           )),

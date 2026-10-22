@@ -44,3 +44,19 @@ export const capoPitches: {
     midi: [36, 41, 48, 53, 58, 62, 67],
   },
 ]
+
+// Golden fixture: the names shown just before the capo, lowest string
+// first, spelled by the key: scale notes as the scale spells them, others
+// by the key signature (as for a lone note played on a MIDI keyboard).
+export const capoNames: {
+  tuning: string
+  capo: number
+  key: string
+  names: string
+}[] = [
+  { tuning: 'standard', capo: 2, key: 'D major', names: 'F♯ B E A C♯ F♯' },
+  { tuning: 'standard', capo: 1, key: 'F major', names: 'F B♭ E♭ A♭ C F' },
+  { tuning: 'standard', capo: 3, key: 'G major', names: 'G C F A♯ D G' },
+  { tuning: 'dadgad', capo: 2, key: 'E natural-minor', names: 'E B E A B E' },
+  { tuning: 'open-g', capo: 5, key: 'C major', names: 'G C G C E G' },
+]
