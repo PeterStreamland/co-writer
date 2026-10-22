@@ -202,12 +202,11 @@ function diatonic(key: Key, previous: ChordName | undefined): Candidate[] {
     }
   }
   if (previous && hasDiatonicChords(key.mode)) {
-    // The key's 7th chords by the same flow. Dominant 7ths are left out:
-    // V7 is offered above, and another (D7 in E minor) would read as a
-    // dominant pointing elsewhere.
+    // The key's 7th chords by the same flow, V7 aside (offered above).
+    // Other dominant 7ths are the key's own too: D7 in E minor is ♭VII7.
     for (const seventh of diatonicChords(key, 'seventh')) {
       const chord = plain(seventh)
-      if (seventh.quality === '7') continue
+      if (seventh.degree === 5 && seventh.quality === '7') continue
       const label = degreeLabel(key.tonic, chord.root)
       const fn = DEGREE_FUNCTIONS[label]
       if (!fn) continue

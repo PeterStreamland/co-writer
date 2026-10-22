@@ -620,13 +620,13 @@ David asked for a way to turn the style slider off and for jazz, blues and class
   - **Blues:** favours dominant 7ths on I, IV and V, the ♭III and falling-4th steps.
   - **Classical:** favours functional harmony, the deceptive cadence, leading-note 7ths, pivots, suspensions and pedal points, with no rock moves or tritone substitutes.
 - **New rules:**
-  - **Diatonic 7th chords** (Imaj7, ii7, vi7). They fit half a point below their triads, so without a style the plain triads still lead. Dominant 7ths other than V7 are left out, because the next-chord fixture says D7 must not be offered in E minor.
+  - **Diatonic 7th chords** (Imaj7, ii7, vi7, and ♭VII7 in a minor key). They fit half a point below their triads, so without a style the plain triads still lead.
   - **Blues dominant 7ths** (I7, IV7, V7). They sit under Rock moves, as SPEC 6.2's categories have no blues group.
 - **Fits:**
   - A tritone substitute heading home (D♭7 to C) now fits like V7/V. Others fit half a point below their target's secondary dominant.
   - Classical rates leading-note chords at 5, so vii°7/V outranks V7/ii there.
 - **Golden fixture:** `tests/fixtures/style-rankings.ts` gains five rows for the new styles.
-- **Question for David:** should ♭VII7 in a minor key (D7 in E minor) be offered as an ordinary diatonic 7th? The next-chord fixture currently rules it out.
+- **♭VII7 in minor (David's choice):** D7 in E minor is offered as the key's own ♭VII7. The next-chord fixture's row changed with his go-ahead: it said D7 must not be offered, and now says it is offered as diatonic ♭VII7, never as a secondary dominant.
 
 ## 2026-10-22 — The progression strip
 
