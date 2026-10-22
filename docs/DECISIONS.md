@@ -549,3 +549,25 @@ David asked for a way to pick two chords and have the app suggest chords to brid
 
 - **Why Phase 4, after the strip:** it reuses this task's generators, scoring each candidate against the chord after it as well as the chord before. It needs the progression strip (task 5) to pick the two chords, and the ⓘ panel (task 6) to explain them, so it comes last in the phase, before the Phase 4 gate.
 - **Not Phase 6:** Phase 6's passing and approach lines are single notes between chords; this is whole chords.
+
+## 2026-10-22 — Style profiles, blending and the style editor
+
+Phase 4 task 3 (`src/theory/style.ts`, built-in weights in `src/theory/styles.json`, editor at `#/styles`). Choices the plan and SPEC didn't settle:
+
+- **A weight per rule:** each style gives every next-chord rule a whole-number weight from 0 to 5 (SPEC 6.6's dots). Borrowed chords now have one rule per source mode, rather than one for all, so a style can favour some sources over others: metal rates Phrygian's ♭II at 5 and pop at 1.
+- **How a weight changes a score:** a suggestion's score is its fit in context (how well it follows the previous chord) times its weight out of 5. A 5 keeps a move at full strength and a 0 sends it to the bottom, where the ranker's wildcard can still find it. Without a style, every rule counts in full, as before.
+- **The style picks the reading:** where two rules offer the same chord, the style decides which reading leads. A♭ in C shows as a borrowed chord in pop but as a rock move in metal.
+- **Blending:** two styles blend rule by rule, with the mix snapped to 25% steps (SPEC 6.6). Each section's blend will be saved with it once sections and the blend control arrive with the strip (task 5). Until then the engine takes the weights directly.
+- **Starting weights:** David should tune these in the editor.
+  - **Pop:** strong on functional harmony, secondary dominants, the deceptive cadence and suspensions.
+  - **Rock:** strong on Mixolydian, ♭VII, ♭III, power chords and static harmony.
+  - **Metal:** strong on ♭VI, ♭VII, Phrygian, harmonic minor, chromatic mediants, power chords and pedal points; low on secondary dominants, tritone substitutes and modulation.
+- **The style editor:**
+  - It lists every rule under its category with five dots per style.
+  - Tapping a dot sets the weight; tapping the last filled dot takes one off, so 0 is reachable.
+  - Edits save in the browser and are marked •. Reset goes back to the built-in weights.
+  - Export as default downloads a `styles.json` written exactly as the built-in file, ready to commit.
+  - On a phone, one style shows at a time, with a Pop/Rock/Metal switch.
+  - Saved edits are read over the built-in weights, so a rule added later still gets a weight.
+- **Section adjustments** (SPEC 3: Chorus favours tonic arrivals, and so on) wait for sections to reach the engine.
+- **Exit criterion not yet ticked:** "Switching profile moves the ranking the expected way" passes against the full candidate list. A new golden fixture, `tests/fixtures/style-rankings.ts`, has ten cases, including metal ranking ♭VI and ♭VII above where pop does. It will be ticked once the ranker (task 4) shows the same on its top eight.

@@ -22,6 +22,7 @@ import type { Interval } from './interval'
 import { formatNote, pitchClass, type Note } from './note'
 import { describeNumeral, keyName, romanNumeral } from './numeral'
 import { getScale, keySignature, scaleNotes, type Key } from './scale'
+import { MAX_WEIGHT, styleScore, type StyleWeights } from './style'
 import {
   SUGGESTION_CATEGORIES,
   chordKey,
@@ -56,7 +57,13 @@ export {
 } from './next-chord-data'
 
 // The chords so far, oldest first; the last one is the chord to follow.
-export type NextChordContext = { key: Key; previous: readonly ChordName[] }
+// With weights (a blended style, see style.ts), each reading's score is
+// scaled by its rule's weight; without them every rule counts in full.
+export type NextChordContext = {
+  key: Key
+  previous: readonly ChordName[]
+  weights?: StyleWeights
+}
 
 // A modulation suggestion also carries the key it leads into (SPEC 6.4).
 export type NextChordSuggestion = ChordSuggestion & { keyChange?: Key }
@@ -329,7 +336,7 @@ function borrowed(ctx: Context): Candidate[] {
   const { key } = ctx
   const own = getScale(key.mode)?.id
   const candidates: Candidate[] = []
-  for (const { mode, weight } of BORROW_SOURCES) {
+  for (const { mode, rule } of BORROW_SOURCES) {
     if (mode === own) continue
     const source = { tonic: key.tonic, mode }
     for (const triad of diatonicChords(source, 'triad')) {
@@ -343,8 +350,7 @@ function borrowed(ctx: Context): Candidate[] {
       }
       candidates.push({
         chord,
-        rule: 'borrowed.parallel',
-        score: weight,
+        rule,
         values: {
           description: describeNumeral(key, reading),
           colour:
@@ -534,12 +540,18 @@ function pedal(ctx: Context): Candidate[] {
   return candidates
 }
 
-function toSuggestion(candidate: Candidate): NextChordSuggestion {
+function toSuggestion(
+  candidate: Candidate,
+  weights: StyleWeights | undefined,
+): NextChordSuggestion {
   const rule = RULES.get(candidate.rule)
   if (!rule) throw new Error(`unknown rule ${candidate.rule}`)
   const suggestion: NextChordSuggestion = makeChordSuggestion({
     candidate: candidate.chord,
-    score: candidate.score ?? rule.weight,
+    score: styleScore(
+      candidate.score ?? rule.weight,
+      weights?.[rule.id] ?? MAX_WEIGHT,
+    ),
     tags: [rule.category, ...(candidate.tags ?? [])],
     ruleIds: [rule.id],
     explanation: fillTemplate(rule.template, {
@@ -613,7 +625,7 @@ export function nextChordCandidates(
     ) {
       continue
     }
-    const suggestion = toSuggestion(candidate)
+    const suggestion = toSuggestion(candidate, context.weights)
     const id =
       chordKey(candidate.chord) +
       (candidate.keyChange ? ` > ${keyName(candidate.keyChange)}` : '')
