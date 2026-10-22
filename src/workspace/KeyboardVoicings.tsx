@@ -9,7 +9,7 @@ import {
   type ChordName,
   type Note,
 } from '../theory'
-import { AddButton } from './AddButton'
+import { AddButton, type BoxActions } from './AddButton'
 import type { ChordVoicing } from '../sketch/progression'
 import { inversionChoices } from './shape-filters'
 import { chordWithBass } from './voicing-chord'
@@ -32,6 +32,7 @@ export function KeyboardVoicings({
   filters,
   onFiltersChange,
   onAdd,
+  replace,
 }: {
   chord: ChordName
   voicings: Voicing[]
@@ -40,6 +41,7 @@ export function KeyboardVoicings({
   filters: VoicingFilters
   onFiltersChange: (filters: VoicingFilters) => void
   onAdd?: (chord: ChordName, voicing: ChordVoicing) => void
+  replace?: BoxActions['replace']
 }) {
   const set = (change: Partial<VoicingFilters>) =>
     onFiltersChange({ ...filters, ...change })
@@ -54,11 +56,12 @@ export function KeyboardVoicings({
         <h3>
           {chordSymbol(chord)} · {voicing.label}
         </h3>
-        {onAdd && (
+        {(onAdd || replace) && (
           <AddButton
             chord={chordWithBass(chord, voicing.notes)}
             voicing={{ instrument: 'keyboard', notes: voicing.notes }}
             onAdd={onAdd}
+            replace={replace}
           />
         )}
       </div>

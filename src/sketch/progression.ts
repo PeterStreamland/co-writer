@@ -303,16 +303,20 @@ export function insertAllBetween(
 }
 
 // Changes the chord at a slot, giving it its own copy first if it was
-// shared. The old chord's shape goes with it.
+// shared. The old chord's shape goes with it, replaced by the new chord's
+// when it has one (a chord box's Replace). Its length and any key change
+// stay.
 export function changeAt(
   p: Progression,
   index: number,
   chord: ChordName,
+  voicing?: ChordVoicing,
 ): Progression {
   const own = materialise(p, index)
   const id = own.activePath[index]
   const changed: ChordNode = { ...node(own, id), chord }
   delete changed.voicing
+  if (voicing) changed.voicing = voicing
   return { ...own, nodes: { ...own.nodes, [id]: changed } }
 }
 
