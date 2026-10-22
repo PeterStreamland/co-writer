@@ -8,11 +8,17 @@ import {
   formatNote,
   romanNumeral,
   spellPitches,
+  type ChordName,
   type Key,
   type Note,
 } from '../theory'
 
-export type PlayedName = { symbol: string; numeral: string; reading: string }
+export type PlayedName = {
+  chord: ChordName
+  symbol: string
+  numeral: string
+  reading: string
+}
 
 export type Played = { notes: Note[]; labels: string[]; names: PlayedName[] }
 
@@ -23,7 +29,10 @@ export function played(key: Key, midis: number[]): Played {
   const names = chordNames(notes, { key }).map((name) => {
     const numeral = romanNumeral(key, name)
     const omitted = (name.omitted ?? []).map((n) => TONE_NAMES[n] ?? `${n}th`)
+    const chord: ChordName = { root: name.root, quality: name.quality }
+    if (name.bass) chord.bass = name.bass
     return {
+      chord,
       symbol: chordSymbol(name),
       numeral: numeral.numeral,
       reading:

@@ -462,3 +462,20 @@ Phase 3 tasks 8 and 9 (`src/workspace/ChordBoxes.tsx`, `src/instruments/chord-bo
   - **Stepping:** ◀ ▶ step through close, open, drop-2, drop-3, spread and the left/right-hand split (Phase 3 task 6), skipping any a chord can't take.
   - **Drawing:** a small keyboard shows the voicing in chord-tone colours, and the same notes are ringed on the main keyboard. A split lists each hand's notes.
   - **Sound:** clicking the box plays the voicing. Clicking a chord in the chord rows plays the voicing on show. The style stays as you move between chords, and falls back to close for a chord that can't take it.
+
+## 2026-10-22 — From the MIDI keyboard to the chord boxes
+
+Phase 3 task 7 (`src/workspace/last-chord.ts`, the MIDI panel). Choices the plan and SPEC didn't settle:
+
+- **The chord stays after you let go.** You can't click a button while both hands are on the keys, so the MIDI panel keeps showing the last chord you played, marked "Last chord".
+  - It keeps the fullest chord of each go: letting the keys up one at a time doesn't swap C for the C5 left under your fingers.
+  - A lone note starting the next chord doesn't clear it.
+- **One click to the shapes.** "Guitar shapes ▸" beside the chord's name makes it the current chord and switches to the guitar's chord boxes. Each other name under "Also" does the same for its reading, since C6 and Am7/C give different shapes.
+- **Follow my playing,** off by default, makes every chord you play the current chord without a click. With the guitar showing, the boxes follow your playing.
+
+## 2026-10-22 — The boxes always show, and the keyboard matches the neck (David)
+
+After trying the published app, David couldn't see the chord boxes, and the keyboard was much larger than the fretboard.
+
+- **Boxes:** they appeared only once a chord was picked. The box beside each instrument now always shows, framed, with a prompt until a chord is clicked or played.
+- **Keyboard size:** the keyboard stretched across the whole page. It is now as wide as the 15-fret neck, with its box right beside it, as the box sits beside the neck.
