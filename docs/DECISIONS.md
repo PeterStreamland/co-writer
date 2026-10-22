@@ -800,3 +800,34 @@ Phase 5 task 2 (`src/theory/voice-leading.ts`, weights in `src/theory/voice-lead
 - **The cost** adds them up with weights stored as data: 1 per semitone, 2 per shared note let go, 6 per crossing and 3 per overlap. These are defaults; the lenses (tasks 3–4) will weight them their own way.
 - **Average movement** over a progression is the measure for the exit criterion "every lens beats a root-position baseline".
 - **New golden fixture:** `tests/fixtures/voice-leading.ts` has ten hand-worked cases, including G7 to C in four parts, a tenor crossing the alto, a triad into a 7th chord and back, and C♯ held as D♭.
+
+## 2026-10-22 — Voice-leading rule checks and lens weights
+
+Phase 5 task 3 (`src/theory/voice-rules.ts`, settings in `src/theory/voice-rules-data.ts`). Each rule hit names its rule, its voices and what went wrong ("Parallel 5ths: the bass and tenor move C3–G3 to D3–A3."). A lens turns hits into a penalty with its own weights, so no rule is a hard limit (plan). Choices the plan and SPEC didn't settle:
+
+- **Parallel 5ths and octaves:**
+  - Two voices a perfect 5th apart (or a unison or octave apart) in both chords, with both voices moving, count as parallel. Compound intervals count too (a 12th is a 5th).
+  - **5ths and octaves by contrary motion count as well,** as strict classical writing forbids them. The explanation adds "in contrary motion".
+  - Intervals are read by spelling, so B–F (a diminished 5th) to C–G isn't parallel 5ths.
+  - A voice holding its note (oblique motion) never makes a parallel.
+- **The leading note** (a semitone below the tonic, raised in minor) must rise to the tonic when V or vii° goes to I. **An inner voice may fall to the tonic chord's 5th instead,** as textbooks allow. In V to vi it may fall.
+- **A chord's 7th** must fall by a tone or semitone when the chord changes. **Holding it into the next chord is fine** (Dm7 to Am keeps C).
+- **Spacing:** no more than an octave between neighbouring upper voices; the bass may be further below.
+- **Low register:** each interval between neighbouring notes has a lowest note it sounds clear above, from arrangers' low-interval-limit tables: a minor 3rd from C3, a major 3rd or 4th from B♭2, a 5th from B♭1. Intervals wider than an octave are exempt.
+- **3rds under gain** are checked only when the sound is distorted. Any 3rd counts, including a 10th. 6ths don't.
+- **Motion rules need voicings of the same size,** since they follow each voice. Chord rules look at the new chord by pitch.
+- **Lens weights** (points per hit; 0 switches a rule off):
+
+| Rule             | Classical | Rock | Open | Jazz |
+| ---------------- | --------- | ---- | ---- | ---- |
+| Parallel 5ths    | 20        | 0    | 1    | 1    |
+| Parallel octaves | 20        | 0    | 1    | 3    |
+| Leading note     | 6         | 0    | 0    | 0    |
+| 7th              | 6         | 0    | 0    | 3    |
+| Spacing          | 4         | 0    | 0    | 1    |
+| Low register     | 3         | 3    | 4    | 4    |
+| 3rds under gain  | 0         | 5    | 0    | 0    |
+
+Jazz doesn't charge for the leading note, because in G7 to Cmaj7 it often stays as the major 7th. Task 4 builds the lenses on these weights, along with task 2's voice-leading cost.
+
+- **New golden fixture:** `tests/fixtures/voice-rules.ts` has 22 hand-worked cases, including G7 to C in four parts, the frustrated leading note, A minor's G♯, and an open E chord under distortion.

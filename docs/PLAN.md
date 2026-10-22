@@ -199,7 +199,7 @@ Goal: give a progression, get voicings that move well, in several style lenses s
 
 1. Progression entry by typing chord symbols or playing each chord on your MIDI keyboard (Phase 8 builds analysis on this). ✅
 2. Voice-leading cost: total semitone movement, common tones kept, voice crossing. ✅
-3. Rule checks as weighted penalties per lens: parallel 5ths and octaves, leading-note and 7th resolution, spacing, low-register muddiness, and thirds under high gain.
+3. Rule checks as weighted penalties per lens: parallel 5ths and octaves, leading-note and 7th resolution, spacing, low-register muddiness, and thirds under high gain. ✅
 4. Lenses: classical (smooth, strict), rock (power chords, open strings, parallels fine), open/ambient (spread, sus, add9) and jazz (drop-2, rootless, shells).
 5. Two to four lenses shown side by side on guitar and keyboard, each with playback.
 
