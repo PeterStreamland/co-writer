@@ -1267,3 +1267,146 @@ body:has(.workspace) #app {
   font-size: 0.85rem;
   padding: 0.15rem 0.6rem;
 }
+
+/* Progression strip (SPEC 2, 6.5): above the instrument view. */
+.strip {
+  margin: 0.75rem 0 1rem;
+}
+
+.strip-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.strip h2 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.strip-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.strip-tools button {
+  padding: 0.25rem 0.6rem;
+}
+
+.strip .chips {
+  list-style: none;
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding: 0.5rem 0 0.25rem;
+  margin: 0;
+}
+
+.strip .chips li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  flex: none;
+}
+
+.strip .chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 4rem;
+  min-height: 3rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: inherit;
+  cursor: pointer;
+}
+
+.strip li.selected .chip {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.strip .chip .symbol {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.strip .chip .numeral,
+.strip .chip .key-change {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.strip .chip.add {
+  border-style: dashed;
+  color: var(--accent);
+  justify-content: center;
+}
+
+.strip .chip.add:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.strip .alts {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.strip .alts button {
+  min-width: 1.75rem;
+  min-height: 1.75rem;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+}
+
+.strip .tree {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin-top: 0.5rem;
+  overflow-x: auto;
+}
+
+.strip .tree ul {
+  list-style: none;
+  margin: 0;
+  padding-left: 1.25rem;
+  border-left: 1px solid var(--line);
+}
+
+.strip .tree > ul {
+  padding-left: 0;
+  border-left: none;
+}
+
+.strip .tree li {
+  margin: 0.2rem 0;
+}
+
+.strip .tree button {
+  min-height: 2rem;
+  padding: 0.15rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+}
+
+.strip .tree button.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}

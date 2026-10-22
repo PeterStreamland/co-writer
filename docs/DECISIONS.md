@@ -627,3 +627,21 @@ David asked for a way to turn the style slider off and for jazz, blues and class
   - Classical rates leading-note chords at 5, so vii°7/V outranks V7/ii there.
 - **Golden fixture:** `tests/fixtures/style-rankings.ts` gains five rows for the new styles.
 - **Question for David:** should ♭VII7 in a minor key (D7 in E minor) be offered as an ordinary diatonic 7th? The next-chord fixture currently rules it out.
+
+## 2026-10-22 — The progression strip
+
+Phase 4 task 5 (`src/sketch/progression.ts`, `src/sketch/history.ts`, strip above the instrument view). It follows SPEC 6.5's tree. Choices the plan and SPEC didn't settle:
+
+- **Selecting and adding:**
+  - Tapping a chord in the strip selects it, plays it and makes it the current chord. Suggestions follow the strip up to the selected chord.
+  - Using a suggestion after the last chord extends the progression. Using one after an earlier chord adds it as an alternative at the next slot, sharing what follows; this is how you branch.
+- **Chords you add yourself (SPEC 6.3):**
+  - A chord picked in Explore or played on MIDI that isn't the selected chord counts as the next chord. The strip's + adds it, and suggestions follow it.
+  - Using a suggestion then adds both chords, so "pick a chord, accept what's next" still works from an empty strip.
+- **Remembered branches:** each chord keeps track of the branch last shown after it (`activeChild`, an addition to SPEC 12's ChordNode). Switching back to an alternative brings back the continuation it had.
+- **Shared continuations:** adding or changing a chord after a shared one first copies the shared chords up to that point, so the alternative gets its own continuation (SPEC 6.5).
+- **Key changes:** accepting a pivot with "Yes" stores the new key on that chord. Chords after it are read in the new key, as are the suggestions that follow it (SPEC 6.4). The section's key in the header stays as it was.
+- **Undo and redo:** they cover every change to the progression, up to 200 steps. Changes to the key and style aren't covered yet; they join when sketches and sections hold them.
+- **Saving:** the progression is saved in the browser until sketches get autosave and version history (Phase 10).
+- **Tree view:** 🌳 lists every branch as an indented tree, with the active path marked. Tapping a chord makes the path through it active.
+- **Not yet:** removing a single chord from the middle (Undo and Clear cover mistakes for now), and sections with their own progressions (SPEC 3).

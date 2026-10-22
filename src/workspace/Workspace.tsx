@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'preact/hooks'
 import {
   formatNote,
+  chordKey,
   inversions,
   keyName as nameOfKey,
   type ChordName,
@@ -38,6 +39,25 @@ import { SuggestPanel } from './SuggestPanel'
 import { StyleBlendControl } from './StyleBlendControl'
 import { loadStyles } from './style-editor'
 import { blendedWeights, loadBlend, saveBlend } from './style-blend'
+import { ProgressionStrip } from './ProgressionStrip'
+import {
+  EMPTY_PROGRESSION,
+  addAfter,
+  chordsUpTo,
+  keyAfter,
+  pathNodes,
+  selectNode,
+  switchAt,
+  type Progression,
+} from '../sketch/progression'
+import {
+  record,
+  redo,
+  startHistory,
+  undo,
+  type History,
+} from '../sketch/history'
+import { loadProgression, saveProgression } from '../sketch/storage'
 import { useNarrow } from './useNarrow'
 import { played } from './played'
 import {
@@ -76,6 +96,42 @@ export function Workspace() {
   const [blend, setBlend] = useState<StyleBlend>(() => loadBlend(styles))
   useEffect(() => saveBlend(blend), [blend])
   const weights = useMemo(() => blendedWeights(styles, blend), [styles, blend])
+  // The progression strip (SPEC 6.5), with undo and redo over every change,
+  // and the selected chord, which suggestions follow. The current chord,
+  // when it isn't the selected one (picked in Explore or played), counts as
+  // the next chord: + on the strip adds it, and suggestions follow it.
+  const [history, setHistory] = useState<History<Progression>>(() =>
+    startHistory(loadProgression()),
+  )
+  const progression = history.present
+  useEffect(() => saveProgression(progression), [progression])
+  const path = pathNodes(progression)
+  const [selectedAt, setSelectedAt] = useState(() => path.length - 1)
+  const selected = Math.min(selectedAt, path.length - 1)
+  const selectedChord = selected >= 0 ? path[selected].chord : undefined
+  const freeChord =
+    chord && (!selectedChord || chordKey(chord) !== chordKey(selectedChord))
+      ? chord
+      : undefined
+  const previous = [
+    ...chordsUpTo(progression, selected),
+    ...(freeChord ? [freeChord] : []),
+  ]
+  const suggestKey = keyAfter(progression, selected, key)
+  // A change to the progression, selecting a slot in the new path.
+  function change(next: Progression, select: number) {
+    setHistory(record(history, next))
+    setSelectedAt(select)
+    const n = pathNodes(next)[select]
+    setChord(n?.chord)
+  }
+  function step(next: History<Progression>) {
+    setHistory(next)
+    const nodes = pathNodes(next.present)
+    const at = Math.min(selected, nodes.length - 1)
+    setSelectedAt(at)
+    setChord(nodes[at]?.chord)
+  }
   const [instrument, setInstrument] = useState<Instrument>('keyboard')
   const [sheetOpen, setSheetOpen] = useState(true)
   const [settings, setSettings] = useState<GuitarSettings>(DEFAULT_GUITAR)
@@ -174,33 +230,66 @@ export function Workspace() {
     void playChord(voicing.notes)
     return true
   }
-  // Previewing a suggestion plays the current chord, then the suggestion.
+  // Previewing a suggestion plays the last chord, then the suggestion.
   function previewSuggestion(s: NextChordSuggestion) {
     setPreview(s)
-    if (!chord) {
+    const last = previous.at(-1)
+    if (!last) {
       playNow(s.candidate)
       return
     }
-    playNow(chord)
+    playNow(last)
     setTimeout(() => playNow(s.candidate), PREVIEW_GAP_MS)
   }
-  // Using a suggestion makes it the current chord; a pivot asks whether to
-  // carry on in its new key (SPEC 6.4).
+  // Using a suggestion adds it after the selected chord (after the current
+  // chord too, when that isn't in the strip yet): at the end it extends the
+  // progression, mid-strip it becomes an alternative at the next slot. A
+  // pivot asks whether to carry on in its new key (SPEC 6.4).
   function acceptSuggestion(s: NextChordSuggestion) {
-    if (
-      s.keyChange &&
-      confirm(`Continue in ${nameOfKey(s.keyChange)} from here?`)
-    ) {
-      setKey(s.keyChange)
-    }
-    setChord(s.candidate)
+    const keyChange =
+      s.keyChange && confirm(`Continue in ${nameOfKey(s.keyChange)} from here?`)
+        ? s.keyChange
+        : undefined
+    let next = progression
+    let at = selected
+    if (freeChord) next = addAfter(next, at++, freeChord)
+    next = addAfter(next, at++, s.candidate, keyChange)
+    change(next, at)
     setPreview(undefined)
     playNow(s.candidate)
   }
+  function selectSlot(index: number) {
+    setSelectedAt(index)
+    setChord(path[index].chord)
+    playNow(path[index].chord)
+  }
+  const strip = (
+    <ProgressionStrip
+      progression={progression}
+      sectionKey={key}
+      selected={selected}
+      freeChord={freeChord}
+      canUndo={history.past.length > 0}
+      canRedo={history.future.length > 0}
+      onSelect={selectSlot}
+      onSwitch={(index, by) => change(switchAt(progression, index, by), index)}
+      onAddFree={() =>
+        freeChord &&
+        change(addAfter(progression, selected, freeChord), selected + 1)
+      }
+      onUndo={() => step(undo(history))}
+      onRedo={() => step(redo(history))}
+      onClear={() => change(EMPTY_PROGRESSION, -1)}
+      onPickNode={(id) => {
+        const next = selectNode(progression, id)
+        change(next, next.activePath.indexOf(id))
+      }}
+    />
+  )
   const suggest = (
     <SuggestPanel
-      keyValue={key}
-      chord={chord}
+      keyValue={suggestKey}
+      previous={previous}
       weights={weights}
       preview={preview}
       onPreview={previewSuggestion}
@@ -227,6 +316,7 @@ export function Workspace() {
       </header>
       <div class="layout">
         <main class="stage">
+          {strip}
           {!narrow && scale}
           <InstrumentView
             value={key}
