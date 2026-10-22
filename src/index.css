@@ -302,3 +302,96 @@ body:has(.workspace) {
     min-width: 1.6rem;
   }
 }
+
+.chords h2 {
+  font-size: 1.2rem;
+  margin: 1.5rem 0 0.5rem;
+}
+
+.chords .scroll {
+  overflow-x: auto;
+}
+
+.chords table {
+  border-collapse: collapse;
+}
+
+.chords th,
+.chords td {
+  border: 1px solid var(--line);
+  padding: 0.2rem;
+  text-align: center;
+  vertical-align: top;
+}
+
+.chords thead th {
+  font-weight: 700;
+  padding: 0.3rem 0.5rem;
+}
+
+.chords tbody th {
+  text-align: left;
+  white-space: nowrap;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 0.3rem 0.5rem;
+  vertical-align: middle;
+}
+
+.chords .empty {
+  color: var(--muted);
+  vertical-align: middle;
+}
+
+.chords button.chord {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  width: 100%;
+  min-width: 4.5rem;
+  min-height: 2.75rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  padding: 0.3rem 0.4rem;
+  cursor: pointer;
+}
+
+.chords button.chord:hover {
+  border-color: var(--accent);
+}
+
+.chords button.chord.selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.chords .symbol {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.chords .numeral {
+  font-family: Georgia, serif;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.chords > button {
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.6rem;
+}
+
+.chords .current {
+  min-height: 1.5rem;
+}
+
+.chords tbody th,
+.chords thead th:first-child {
+  position: sticky;
+  left: 0;
+  background: Canvas;
+  z-index: 1;
+}
