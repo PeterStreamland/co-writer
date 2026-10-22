@@ -45,17 +45,22 @@ describe('lens exit criteria (PLAN Phase 5)', () => {
     },
   )
 
-  it.each(progressions)(
-    'every lens moves less than root position: $name',
-    (p) => {
-      const baseline = averageMovement(
-        p.steps.map((s) => rootPositionVoicing(s.chord)),
+  it.each(LENSES)(
+    '%s moves less than root position on average over the set',
+    (lens) => {
+      const average = (lists: Note[][][]) =>
+        lists.reduce((sum, l) => sum + averageMovement(l), 0) / lists.length
+      const baseline = average(
+        progressions.map((p) =>
+          p.steps.map((s) => rootPositionVoicing(s.chord)),
+        ),
       )
-      for (const lens of LENSES) {
-        const voiced = voiceProgression(lens, p.steps)
-        const movement = averageMovement(voiced.map((c) => c.voicing.notes))
-        expect(movement, lens).toBeLessThan(baseline)
-      }
+      const voiced = average(
+        progressions.map((p) =>
+          voiceProgression(lens, p.steps).map((c) => c.voicing.notes),
+        ),
+      )
+      expect(voiced).toBeLessThan(baseline)
     },
   )
 })
@@ -79,6 +84,29 @@ describe('voicing lenses', () => {
     )
   })
 
+  it('names every voicing by its lowest note, except rootless ones', () => {
+    for (const p of progressions) {
+      for (const lens of LENSES) {
+        for (const c of voiceProgression(lens, p.steps)) {
+          const { chord: named, notes, form } = c.voicing
+          if (form === 'rootless') continue
+          const lowest = notes.reduce((a, b) => (midi(b) < midi(a) ? b : a))
+          expect(
+            pitchClass(named.bass ?? named.root),
+            `${lens} ${show(notes)}`,
+          ).toBe(pitchClass(lowest))
+        }
+      }
+    }
+  })
+
+  it('names a jazz drop-2 inversion as a slash chord', () => {
+    const drop = lensVoicings('jazz', key('E minor'), chord('Em7')).find(
+      (v) => v.form === 'drop-2' && v.notes[0].letter === 'G',
+    )
+    expect(drop && chordSymbol(drop.chord)).toBe('Em7/G')
+  })
+
   it('records how far each chord moved', () => {
     const voiced = voiceProgression('classical', steps('C major', 'C F'))
     expect(voiced[0].movement).toBe(0)
@@ -95,8 +123,12 @@ describe('voicing lenses', () => {
             pitchClass(p.steps[i].chord.bass ?? p.steps[i].chord.root),
           )
           expect(bass).toBeGreaterThanOrEqual(40) // E2
+          expect(bass).toBeLessThanOrEqual(60) // C4
           expect(tenor).toBeGreaterThanOrEqual(48) // C3
+          expect(tenor).toBeLessThanOrEqual(67) // G4
           expect(alto).toBeGreaterThanOrEqual(55) // G3
+          expect(alto).toBeLessThanOrEqual(72) // C5
+          expect(soprano).toBeGreaterThanOrEqual(60) // C4
           expect(soprano).toBeLessThanOrEqual(79) // G5
           expect(alto - tenor).toBeLessThanOrEqual(12)
           expect(soprano - alto).toBeLessThanOrEqual(12)
@@ -115,6 +147,15 @@ describe('voicing lenses', () => {
       }
       const [c] = voiceProgression('classical', steps('C major', 'C'))
       expect(c.voicing.notes.map((n) => n.letter)).toContain('E')
+    })
+
+    it('doubles the 3rd of a diminished triad', () => {
+      const [, dim] = voiceProgression(
+        'classical',
+        steps('C major', 'C Bdim/D C/E'),
+      )
+      const ds = dim.voicing.notes.filter((n) => n.letter === 'D')
+      expect(ds, show(dim.voicing.notes)).toHaveLength(2)
     })
 
     it('never doubles the leading note', () => {

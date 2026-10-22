@@ -8,7 +8,7 @@
 // size; rules on one chord look at the second voicing, by pitch.
 import { chordIntervals } from './chord'
 import { chordNotes, type ChordName } from './chord-symbol'
-import { intervalBetween, transpose, transposeDown } from './interval'
+import { intervalBetween, transpose } from './interval'
 import {
   formatNote,
   midiNumber,
@@ -16,7 +16,7 @@ import {
   pitchClass,
   type Note,
 } from './note'
-import type { Key } from './scale'
+import { scaleNotes, type Key } from './scale'
 import {
   LENS_RULE_WEIGHTS,
   LOW_INTERVAL_LIMITS,
@@ -115,21 +115,43 @@ function parallels(from: Note[], to: Note[]): RuleHit[] {
   return hits
 }
 
-// The leading note: a semitone below the tonic, raised in minor keys.
-function leadingNote(key: Key): Note {
-  return transposeDown(key.tonic, { quality: 'm', number: 2 })
+// Whether a chord has an interval of this quality and number from its root.
+function has(chord: ChordName, quality: string, number: number): boolean {
+  return (chordIntervals(chord.quality) ?? []).some(
+    (i) => i.quality === quality && i.number === number,
+  )
 }
 
-// In V or vii° going to I, the leading note rises a semitone to the tonic.
-// An inner voice may fall to the tonic chord's 5th instead, as the textbooks
-// allow, and any voice may hold it when the tonic chord has it too (G7 to
-// Cmaj7 keeps B as the major 7th).
+// The note that must rise a semitone into the next chord's root, if the
+// first chord leads into it: a dominant a 5th above (its 3rd), or a
+// diminished chord a semitone below (its root). That is the key's own
+// leading note in V or vii° to I, and a secondary one in a dominant 7th or
+// a chord from outside the key (E7 to Am in C: G♯; D to G: F♯). Diatonic
+// chords a 5th apart (C to F in C) aren't dominants, so E needn't rise to F.
+function leadingNoteInto(key: Key, from: ChordName, to: ChordName) {
+  const target = pitchClass(to.root)
+  const lead = (target + 11) % 12
+  const root = pitchClass(from.root)
+  const scale = new Set(scaleNotes(key.tonic, key.mode).map(pitchClass))
+  const home = target === pitchClass(key.tonic)
+  if (root === (target + 7) % 12 && has(from, 'M', 3)) {
+    if (home || has(from, 'm', 7) || !scale.has(lead)) return lead
+  }
+  if (root === lead && has(from, 'm', 3) && has(from, 'd', 5)) {
+    if (home || !scale.has(lead)) return lead
+  }
+  return undefined
+}
+
+// The leading note rises a semitone to the root of the chord it leads into
+// (V or vii° to I, or a secondary dominant to its target). An inner voice
+// may fall to that chord's 5th instead, as the textbooks allow, and any
+// voice may hold it when the next chord has it too (G7 to Cmaj7 keeps B as
+// the major 7th).
 function leadingNoteHits(key: Key, from: Voiced, to: Voiced): RuleHit[] {
-  const tonic = pitchClass(key.tonic)
-  const lead = pitchClass(leadingNote(key))
-  const root = pitchClass(from.chord.root)
-  const dominant = root === (tonic + 7) % 12 || root === lead
-  if (!dominant || pitchClass(to.chord.root) !== tonic) return []
+  const lead = leadingNoteInto(key, from.chord, to.chord)
+  if (lead === undefined) return []
+  const target = pitchClass(to.chord.root)
   const count = to.notes.length
   const keeps = chordNotes(to.chord).some((n) => pitchClass(n) === lead)
   const hits: RuleHit[] = []
@@ -137,10 +159,10 @@ function leadingNoteHits(key: Key, from: Voiced, to: Voiced): RuleHit[] {
     if (pitchClass(note) !== lead) return
     const next = to.notes[i]
     const step = pitch(next) - pitch(note)
-    if (step === 1 && pitchClass(next) === tonic) return
+    if (step === 1 && pitchClass(next) === target) return
     if (step === 0 && keeps) return
     const inner = i > 0 && i < count - 1
-    const toFifth = step < 0 && pitchClass(next) === (tonic + 7) % 12
+    const toFifth = step < 0 && pitchClass(next) === (target + 7) % 12
     if (inner && toFifth) return
     hits.push(hit('leading-note', [i], count, show(note)))
   })
@@ -150,7 +172,8 @@ function leadingNoteHits(key: Key, from: Voiced, to: Voiced): RuleHit[] {
 const sameChord = (a: ChordName, b: ChordName) =>
   pitchClass(a.root) === pitchClass(b.root) && a.quality === b.quality
 
-// A chord's 7th, when the chord changes, falls by step or is held.
+// A chord's 7th, when the chord changes, falls by step, or is held when the
+// next chord has it too.
 function seventhHits(from: Voiced, to: Voiced): RuleHit[] {
   if (sameChord(from.chord, to.chord)) return []
   const interval = chordIntervals(from.chord.quality)?.find(
@@ -158,11 +181,12 @@ function seventhHits(from: Voiced, to: Voiced): RuleHit[] {
   )
   if (!interval) return []
   const seventh = pitchClass(transpose(from.chord.root, interval))
+  const keeps = chordNotes(to.chord).some((n) => pitchClass(n) === seventh)
   const hits: RuleHit[] = []
   from.notes.forEach((note, i) => {
     if (pitchClass(note) !== seventh) return
     const step = pitch(to.notes[i]) - pitch(note)
-    if (step === 0 || step === -1 || step === -2) return
+    if (step === -1 || step === -2 || (step === 0 && keeps)) return
     hits.push(hit('seventh', [i], to.notes.length, show(note)))
   })
   return hits

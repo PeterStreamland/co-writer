@@ -7,7 +7,7 @@
 // The search is generic, so the guitar's lens shapes (src/instruments) use
 // it too.
 import { chordIntervals } from './chord'
-import type { ChordName } from './chord-symbol'
+import { chordNotes, type ChordName } from './chord-symbol'
 import { transpose, transposeDown } from './interval'
 import { inversions } from './inversion'
 import { midiNumber, parseNote, pitchClass, type Note } from './note'
@@ -49,8 +49,10 @@ export type LensChoice<V extends LensVoicing = LensVoicing> = {
 // The cost of a chord left as written when nothing in the lens fits it.
 const FALLBACK_COST = 10
 // Doubling costs in four-part writing: the root, then the 5th, then the
-// 3rd; never the leading note.
+// 3rd; never the leading note. A diminished triad doubles its 3rd instead,
+// and hardly ever its diminished 5th.
 const DOUBLING_COST: Record<number, number> = { 1: 0, 5: 0.5, 3: 1.5 }
+const DIMINISHED_DOUBLING_COST: Record<number, number> = { 3: 0, 1: 1, 5: 3 }
 const OTHER_DOUBLING_COST = 2
 // Leaving tones out when a chord has more than the voices: the 5th first.
 const OMIT_FIFTH_COST = 0.5
@@ -149,6 +151,11 @@ function toneSets(
     return [{ bass, upper: rest.map((t) => t.note), cost: 0 }]
   }
   const lead = pitchClass(transposeDown(key.tonic, { quality: 'm', number: 2 }))
+  const intervals = (chordIntervals(quality) ?? []).map(
+    (i) => `${i.quality}${i.number}`,
+  )
+  const doubling =
+    intervals.join() === 'P1,m3,d5' ? DIMINISHED_DOUBLING_COST : DOUBLING_COST
   const sets: ToneSet[] = []
   // Doubles tones of the chord (not one left out) until the voices are
   // full.
@@ -160,7 +167,7 @@ function toneSets(
     for (let i = from; i < pool.length; i++) {
       const t = pool[i]
       if (pitchClass(t.note) === lead) continue
-      const extra = DOUBLING_COST[t.number] ?? OTHER_DOUBLING_COST
+      const extra = doubling[t.number] ?? OTHER_DOUBLING_COST
       fill(pool, i, [...upper, t.note], cost + extra)
     }
   }
@@ -330,6 +337,21 @@ export function lensColours(
   ]
 }
 
+// A chord named by the lowest note of a voicing: as a slash chord when that
+// isn't the root (C5 with G lowest is C5/G), spelled as the chord spells it.
+export function nameByLowest(chord: ChordName, notes: Note[]): ChordName {
+  const named: ChordName = { root: chord.root, quality: chord.quality }
+  if (notes.length === 0) return chord
+  const lowest = notes.reduce((a, b) => (pitch(b) < pitch(a) ? b : a))
+  const pc = pitchClass(lowest)
+  if (pc === pitchClass(chord.root)) return named
+  const tone =
+    chordNotes(named).find((n) => pitchClass(n) === pc) ??
+    (chord.bass && pitchClass(chord.bass) === pc ? chord.bass : lowest)
+  named.bass = { letter: tone.letter, accidental: tone.accidental }
+  return named
+}
+
 // Every keyboard voicing a lens offers for a chord in a key.
 export function lensVoicings(
   lens: Lens,
@@ -345,9 +367,15 @@ export function lensVoicings(
       })),
     ),
   )
-  // The same notes reached two ways keep the cheaper.
+  // The same notes reached two ways keep the cheaper. Each is named by its
+  // lowest note (a drop-2 Em7 with G at the bottom is Em7/G), except
+  // rootless voicings, which leave the bass to the bass player.
   const unique = new Map<string, LensVoicing>()
-  for (const v of found) {
+  for (const each of found) {
+    const v =
+      each.form === 'rootless'
+        ? each
+        : { ...each, chord: nameByLowest(each.chord, each.notes) }
     const id = `${v.form} ${v.notes.map(pitch).join()}`
     const seen = unique.get(id)
     if (!seen || v.cost < seen.cost) unique.set(id, v)
