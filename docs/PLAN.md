@@ -167,6 +167,8 @@ Goal: cycle any chord through playable guitar shapes and keyboard voicings.
 
 Your test: play the top shapes for those 30 chords on guitar; flag anything awkward so the scorer gets tuned.
 
+Gate passed: the theory-reviewer confirmed every exit criterion, David closed the phase, and the release is tagged `v0.3-fingerings`. ✅
+
 ## Phases 4–7: suggestion engines
 
 These phases build the four judgement features on one shared pattern: generators propose candidates, a style profile scores them, and every suggestion carries its tags and explanation.

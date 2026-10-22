@@ -5,14 +5,17 @@ import type { Played } from './played'
 
 // The MIDI keyboard's connection, the notes being held, and every name for
 // the chord last played, the best fit for the key first (SPEC 5). Each name
-// jumps to its guitar shapes in the chord boxes (Phase 3 task 7), and Follow
-// my playing makes each chord played the current chord.
+// jumps to its shapes on the other instrument: the guitar's chord boxes from
+// the keyboard view (Phase 3 task 7), the piano voicings from the guitar
+// view (David's choice). Follow my playing makes each chord played the
+// current chord.
 export function MidiPanel({
   midi,
   playing,
   last,
   follow,
   onFollowChange,
+  shapesOn,
   onShowShapes,
 }: {
   midi: Midi
@@ -20,6 +23,7 @@ export function MidiPanel({
   last: LastChord
   follow: boolean
   onFollowChange: (follow: boolean) => void
+  shapesOn: 'guitar' | 'keyboard' // where the shapes button goes
   onShowShapes: (chord: ChordName) => void
 }) {
   if (midi.status === 'unsupported') {
@@ -66,7 +70,7 @@ export function MidiPanel({
             <strong class="played-name">{first.symbol}</strong> ·{' '}
             {first.reading}{' '}
             <button type="button" onClick={() => onShowShapes(first.chord)}>
-              Guitar shapes ▸
+              {shapesOn === 'guitar' ? 'Guitar shapes ▸' : 'Piano shapes ▸'}
             </button>
           </p>
           {others.length > 0 && (
@@ -77,7 +81,7 @@ export function MidiPanel({
                   key={n.symbol}
                   type="button"
                   class="link"
-                  title={`Show the guitar shapes for ${n.symbol}`}
+                  title={`Show the ${shapesOn === 'guitar' ? 'guitar' : 'piano'} shapes for ${n.symbol}`}
                   onClick={() => onShowShapes(n.chord)}
                 >
                   {n.symbol} ({n.numeral})

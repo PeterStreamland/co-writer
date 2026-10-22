@@ -479,3 +479,30 @@ After trying the published app, David couldn't see the chord boxes, and the keyb
 
 - **Boxes:** they appeared only once a chord was picked. The box beside each instrument now always shows, framed, with a prompt until a chord is clicked or played.
 - **Keyboard size:** the keyboard stretched across the whole page. It is now as wide as the 15-fret neck, with its box right beside it, as the box sits beside the neck.
+
+## 2026-10-22 — Shapes button follows the view, and piano filters (David's choice)
+
+- **Shapes button:** the MIDI panel's button goes to the other instrument. On the keyboard it reads "Guitar shapes ▸" and opens the guitar's chord boxes. On the guitar it reads "Piano shapes ▸" and opens the keyboard's voicing box. The names under "Also" do the same.
+- **Piano filters,** folded under the keyboard's voicing box like the guitar's:
+  - **Inversion:** as chosen, any, or a numbered inversion. With "any", the box steps through each style for each inversion in turn and says which inversion it shows.
+  - **Left hand under the split:** bass alone, root and 5th, or an octave (SPEC 5).
+  - The guitar's other filters (strings, stretch, open strings) have no piano meaning, so there are none for them.
+
+## 2026-10-22 — Phase 3 gate passed
+
+David closed the phase after trying the chord boxes, voicings and MIDI keyboard ("everything works well"). Gate check, done in this session against `v0.2-key-explorer`..`main`:
+
+- **Exit criteria,** each confirmed by the theory-reviewer with evidence:
+  - **Textbook shapes in the top five:** all 30 shapes in Claude's list (David isn't supplying his own, recorded above) are the standard chord-book shapes, checked string by string. All 30 rank in their chord's top five, and 22 rank first. Every shape that outranks one is a valid voicing of the chord.
+  - **Every result physically valid:** a checker independent of the search tests every result. It covers one note per string, chord tones only, the right bass, the required tones, the span and the fingers. It runs on 42 chords across standard, drop D, DADGAD with a capo, 7-string and 7-string drop D, at spans 3, 4 and 6.
+  - **Drop D and 7-string shapes:** every fixture shape was checked by hand against its tuning, including the capo-on-alternate-tuning case from SPEC 13.
+  - **Under 50 ms per chord:** at the default settings every common chord passes on all five guitars, mostly in 1–3 ms. At the widest settings, a 7-string with 24 frets and a stretch of 6, a 13th chord takes about 90 ms. That's still quick to use, and it can be sped up if it ever shows.
+- **No musical errors** were found in the six new golden fixtures (shapes, textbook shapes, CAGED shapes, voicings, chord tones, capo) or in the code checked. No earlier golden fixture changed in Phase 3. The theory core still imports no UI, audio or DOM code.
+- **All 2,725 tests,** lint, typecheck and build pass.
+- **For David to look at when convenient** (none blocks the gate):
+  - Five textbook shapes rank 4th or 5th: Bm, Gm, Cm, Fmaj7 and E5. For Bm and Gm the first shape is a lighter voicing (x20402, 310033). If they feel odd, the playability weights can be tuned.
+  - With a capo, a note outside the scale is spelled by the key signature, so G major at capo 3 names A♯ where many guitarists would say B♭ (the blue note). This follows the rule recorded earlier; David can ask for B♭.
+  - The piano split's "Root and 5th" plays the bass alone in an inversion. That's correct, but the label could say so.
+  - The CAGED fixture's opening comment says every chord appears in all five shapes, but only C, A and G do. The data is right; the comment is in a golden fixture, so it's left for David to approve.
+
+Phase 3 is released as `v0.3-fingerings`, tagged on `main` once this record is merged.
