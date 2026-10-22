@@ -5,9 +5,13 @@
 // no more than the maximum, and it needs no more than four fingers, a barre
 // at its lowest fret counting as one. Each shape is scored for how easy it
 // is to play (task 3), by the rules in playability-data.ts, easiest first.
+// Filters (task 4) pick the inversion, the strings that may sound, the
+// span, whether open strings are used, and whether the 5th is left out.
 import {
   chordIntervals,
   chordNotes,
+  inversionOf,
+  inversions,
   mod,
   noteAtMidi,
   pitchClass,
@@ -28,9 +32,12 @@ import {
 // string, or the capo's fret with a capo on, needs no finger. score is 100
 // less the costs of the playability rules that apply, so higher is easier;
 // costs lists each rule that applied, how many times, and its points.
+// inversion is 0 for root position, 1 for the first inversion and so on, and
+// undefined when the bass is outside the chord (F/G).
 export type Fingering = {
   frets: (number | null)[]
   notes: (Note | null)[]
+  inversion: number | undefined
   score: number
   costs: PlayabilityCost[]
 }
@@ -41,7 +48,25 @@ export type PlayabilityCost = {
   points: number
 }
 
-export type FingeringOptions = { maxSpan?: number }
+// The filters (plan, Phase 3 task 4; SPEC 5), all off by default.
+// - maxSpan: the widest stretch, in frets (3–6, default 4).
+// - inversion: which tone is in the bass, as a number (0 root position, 1
+//   first inversion…), or 'any' for every inversion. By default the chord's
+//   own bass: its root, or the bass of a slash chord (C/E, F/G). A number
+//   or 'any' replaces the chord's own bass.
+// - strings: the strings that may sound, lowest string 0; the rest are
+//   muted. Every string by default.
+// - openStrings: false to keep every string fretted (with a capo, off the
+//   capo's fret too).
+// - omitFifth: true to leave the perfect 5th out wherever the 5th is
+//   optional (not from a power chord); a 5th asked for in the bass stays.
+export type FingeringOptions = {
+  maxSpan?: number
+  inversion?: number | 'any'
+  strings?: number[]
+  openStrings?: boolean
+  omitFifth?: boolean
+}
 
 // SPEC 5 and 11: a span of 4 frets by default, adjustable from 3 to 6. A span
 // counts the frets the fretted notes cover: frets 1–4 span 4.
@@ -68,22 +93,58 @@ function optional(intervals: Interval[]): (i: Interval) => boolean {
   }
 }
 
-function tonesOf(chord: ChordName) {
+// The bass the filters ask for: the chord's own, one inversion's, or every
+// inversion's (root, 3rd, 5th and 6th or 7th).
+function basses(chord: ChordName, inversion: number | 'any' | undefined) {
+  if (inversion === undefined) return [chord.bass ?? chord.root]
+  const all = inversions(chord).map((i) => i.chord.bass ?? i.chord.root)
+  if (inversion === 'any') return all
+  if (!Number.isInteger(inversion) || !all[inversion]) {
+    throw new RangeError(
+      `${chord.quality} chords have inversions 0–${all.length - 1}`,
+    )
+  }
+  return [all[inversion]]
+}
+
+function tonesOf(chord: ChordName, options: FingeringOptions) {
   const intervals = chordIntervals(chord.quality)
   if (!intervals) throw new Error(`unknown chord quality ${chord.quality}`)
   const isOptional = optional(intervals)
-  const bass = pitchClass(chord.bass ?? chord.root)
-  let required = 1 << bass
-  let all = 1 << bass
+  const bassNotes = basses(chord, options.inversion)
+  let bass = 0
+  for (const note of bassNotes) bass |= 1 << pitchClass(note)
+  let required = 0
+  let all = 0
+  let left = 0
   for (const interval of intervals) {
     const pc = 1 << pitchClass(transpose(chord.root, interval))
+    if (
+      options.omitFifth &&
+      isOptional(interval) &&
+      `${interval.quality}${interval.number}` === 'P5'
+    ) {
+      left |= pc
+      continue
+    }
     all |= pc
     if (!isOptional(interval)) required |= pc
   }
-  // Each pitch class the chord sounds, with the chord's own spelling.
+  // A slash chord's bass outside the chord is a tone too (F/G).
+  if (bassNotes.length === 1) required |= bass
+  // Each pitch class the shape can sound, with the chord's own spelling: a
+  // 5th left out only in the bass.
   const spelling = new Map<number, Note>()
-  for (const note of chordNotes(chord)) spelling.set(pitchClass(note), note)
-  return { bass, required, all, spelling }
+  const named: ChordName = { ...chord, bass: bassNotes[0] }
+  if (bassNotes.length > 1) delete named.bass
+  for (const note of [...chordNotes(named), ...bassNotes]) {
+    const pc = pitchClass(note)
+    if (!spelling.has(pc)) spelling.set(pc, note)
+  }
+  const upper = (pc: number) => spelling.has(pc) && !(left & (1 << pc))
+  // With every inversion allowed, a 5th left out can't be the bass either.
+  if (bassNotes.length > 1) bass &= ~left
+  return { bass, required, all, spelling, upper }
 }
 
 // The fingers a shape needs, and whether it needs a barre: one finger per
@@ -201,17 +262,28 @@ export function findFingerings(
   if (!Number.isInteger(maxSpan) || maxSpan < MIN_SPAN || maxSpan > MAX_SPAN) {
     throw new RangeError(`span must be ${MIN_SPAN}–${MAX_SPAN} frets`)
   }
-  const { bass, required, all, spelling } = tonesOf(chord)
+  const { bass, required, all, spelling, upper } = tonesOf(chord, options)
   const open = guitar.capo
   const strings = guitar.strings.length
+  const allowed = new Set(options.strings ?? guitar.strings.keys())
+  if (
+    allowed.size === 0 ||
+    [...allowed].some((s) => !Number.isInteger(s) || s < 0 || s >= strings)
+  ) {
+    throw new RangeError(`strings must be some of 0–${strings - 1}`)
+  }
+  const openStrings = options.openStrings ?? true
 
-  // Each string's frets that sound a chord tone.
+  // Each string's frets that sound a chord tone, if the string may sound.
   const choices = guitar.strings.map((_, s) =>
-    playableFrets(guitar, s).flatMap((fret) => {
-      const midi = fretMidi(guitar, s, fret) as number
-      const pc = mod(midi, 12)
-      return spelling.has(pc) ? [{ fret, midi, pc }] : []
-    }),
+    !allowed.has(s)
+      ? []
+      : playableFrets(guitar, s).flatMap((fret) => {
+          if (fret === open && !openStrings) return []
+          const midi = fretMidi(guitar, s, fret) as number
+          const pc = mod(midi, 12)
+          return spelling.has(pc) ? [{ fret, midi, pc }] : []
+        }),
   )
 
   const found: Found[] = []
@@ -230,14 +302,17 @@ export function findFingerings(
       const hand =
         (sounded & required) === required && fingersNeeded(frets, open)
       if (hand) {
+        const notes = midis.map((m) =>
+          m === null
+            ? null
+            : (noteAtMidi(spelling.get(mod(m, 12)) as Note, m) as Note),
+        )
+        const lowest = notes.find((n) => n !== null) as Note
         found.push({
           fingering: {
             frets: [...frets],
-            notes: midis.map((m) =>
-              m === null
-                ? null
-                : (noteAtMidi(spelling.get(mod(m, 12)) as Note, m) as Note),
-            ),
+            notes,
+            inversion: inversionOf({ ...chord, bass: lowest }),
             ...playability(frets, open, hand, {
               omitted: bits(all & ~sounded),
               full: Math.min(FULL, bits(all) + 1),
@@ -256,8 +331,11 @@ export function findFingerings(
     frets.pop()
     midis.pop()
     for (const choice of choices[s]) {
-      // The lowest sounding string plays the bass.
-      if (sounded === 0 && choice.pc !== bass) continue
+      // The lowest sounding string plays the bass; a 5th left out sounds
+      // nowhere else.
+      if (sounded === 0 ? !(bass & (1 << choice.pc)) : !upper(choice.pc)) {
+        continue
+      }
       let nextLow = low
       let nextHigh = high
       if (choice.fret > open) {

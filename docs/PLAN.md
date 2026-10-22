@@ -153,7 +153,7 @@ Goal: cycle any chord through playable guitar shapes and keyboard voicings.
 1. Fretboard model: tuning as an array of open-string pitches, plus string count, capo and fret range. ✅
 2. Fingering search: for each string, every fret that gives a chord tone, or muted; keep shapes with all required tones (5th optional), the right bass note for the inversion, and a span within the limit. ✅
 3. Playability score: span, barre needed, muted inner strings, open strings, neck position. ✅
-4. Filters: inversion, string set, maximum span, open strings on or off, omit the 5th.
+4. Filters: inversion, string set, maximum span, open strings on or off, omit the 5th. ✅
 5. Grouping by CAGED shape in standard tuning.
 6. Keyboard voicings: close, open, drop-2, drop-3, spread, and a left-hand/right-hand split.
 7. Play a chord on your MIDI keyboard and jump straight to its guitar shapes.
