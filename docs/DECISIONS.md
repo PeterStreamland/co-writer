@@ -267,3 +267,15 @@ Phase 2 task 4 (`src/audio/`, samples in `public/samples/`). SPEC 5 sets block c
 - **The other sounds** SPEC 5 lists (distorted guitar, bass, pad) arrive with the phases that need them.
 
 Why: recorded instruments sound far closer to the real thing than synths, and tying the sound to the view means you hear the instrument you are looking at.
+
+## 2026-10-22 — Tuning presets, a 7-string switch, and piano for everything
+
+Phase 2 task 5 (`src/instruments/tunings.ts`, golden fixture `tests/fixtures/tunings.ts`), with two changes David asked for:
+
+- **Presets:** Standard (E A D G B E), Drop D (D A D G B E) and DADGAD, chosen from a Tuning list in the guitar view. Tunings are data, so adding one is a data edit.
+- **7-string is a switch, not a preset (David's choice):** 6-string / 7-string sits beside the tuning list. The 7-string adds a low B (B1) below whichever tuning is chosen, so Standard becomes 7-string B standard, the preset the plan names. Drop D on 7 strings is B D A D G B E. David can ask for the 7th string to follow the preset instead (A for Drop D, say).
+- **String names:** each string's open note is shown to the left of the nut, so a non-standard tuning reads at a glance.
+- **Piano for everything (David's choice, changing SPEC 5):** David prefers the piano samples, so the guitar view plays piano too. Chords there are still strummed low to high, about 15 ms apart, as SPEC 5 says; the keyboard view plays block chords. The clean-guitar samples were removed (they can come back from git history). The distorted guitar, bass and pad that SPEC 5 lists are left for the phases that need them, to be revisited then.
+- **Exit criterion:** a test walks every key and scale through every tuning, 6- and 7-string, and checks that exactly the scale's pitches are marked and each plays its fret's pitch. That ticks "Changing tuning moves the fretboard highlights correctly".
+
+Why: a 7-string is a different guitar, not another tuning of the same one, so a switch fits better than a fifth preset. The piano was David's ear's choice.

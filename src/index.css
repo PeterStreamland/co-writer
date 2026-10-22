@@ -573,3 +573,19 @@ body:has(.workspace) {
   display: block;
   line-height: 0.8;
 }
+
+.instrument .tuning {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.fretboard .string-name {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+}

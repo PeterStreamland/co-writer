@@ -41,7 +41,7 @@ export function Workspace() {
           value={key}
           current={chord}
           onSelect={setChord}
-          sound={instrument === 'keyboard' ? 'piano' : 'guitar'}
+          strum={instrument === 'guitar'}
         />
       </main>
       <footer>

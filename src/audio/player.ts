@@ -1,40 +1,36 @@
-// Playback through Tone.js (SPEC 5): sampled piano played as block chords,
-// sampled clean guitar played as a quick strum, low string first.
+// Playback through Tone.js (SPEC 5, as changed by David): the sampled piano
+// for everything, as block chords in the keyboard view and as a quick strum,
+// low note first, in the guitar view.
 import * as Tone from 'tone'
 import type { Note } from '../theory'
 import { frequency } from './pitch'
-import { sampleMap, strumSchedule, type Sound } from './sounds'
+import { sampleMap, strumSchedule } from './sounds'
 
-const samplers: Partial<Record<Sound, Tone.Sampler>> = {}
+let piano: Tone.Sampler | undefined
 
-// Each sound's samples are fetched the first time it plays.
-function sampler(sound: Sound): Tone.Sampler {
-  samplers[sound] ??= new Tone.Sampler({
-    urls: sampleMap(sound),
-    baseUrl: `${import.meta.env.BASE_URL}samples/${sound}/`,
-    release: sound === 'piano' ? 1 : 0.5,
-  }).toDestination()
-  return samplers[sound]
-}
+export type PlayOptions = { strum?: boolean; seconds?: number }
 
-// Plays the notes as a chord: together on the piano, strummed on the guitar.
-// The browser only allows sound after a click or key press, so call this
-// from one.
+// Plays the notes as a chord. The samples are fetched the first time, and the
+// browser only allows sound after a click or key press, so call this from
+// one.
 export async function playChord(
   notes: Note[],
-  sound: Sound,
-  seconds = 1.5,
+  { strum = false, seconds = 1.5 }: PlayOptions = {},
 ): Promise<void> {
   await Tone.start()
-  const instrument = sampler(sound)
+  piano ??= new Tone.Sampler({
+    urls: sampleMap(),
+    baseUrl: `${import.meta.env.BASE_URL}samples/piano/`,
+    release: 1,
+  }).toDestination()
   await Tone.loaded()
-  instrument.releaseAll()
+  piano.releaseAll()
   const now = Tone.now()
-  if (sound === 'guitar') {
+  if (strum) {
     for (const { note, offset } of strumSchedule(notes)) {
-      instrument.triggerAttackRelease(frequency(note), seconds, now + offset)
+      piano.triggerAttackRelease(frequency(note), seconds, now + offset)
     }
   } else {
-    instrument.triggerAttackRelease(notes.map(frequency), seconds, now)
+    piano.triggerAttackRelease(notes.map(frequency), seconds, now)
   }
 }
