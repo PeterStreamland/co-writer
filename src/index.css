@@ -461,9 +461,14 @@ body:has(.workspace) {
 }
 
 .instrument .dot.chord-tone {
+  background: var(--chord);
+}
+
+/* The key's root keeps a red ring when it is also in the current chord. */
+.instrument .dot.root.chord-tone {
   box-shadow:
     0 0 0 2px Canvas,
-    0 0 0 4px var(--chord);
+    0 0 0 4px var(--root);
 }
 
 .instrument .legend .dot {
@@ -471,10 +476,6 @@ body:has(.workspace) {
   height: 0.9rem;
   vertical-align: middle;
   margin: 0 0.2rem 0 0.6rem;
-}
-
-.instrument .legend .dot.chord-tone {
-  background: none;
 }
 
 .keyboard {

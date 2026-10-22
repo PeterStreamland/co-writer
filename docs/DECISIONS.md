@@ -232,3 +232,10 @@ Phase 2 gains a seventh task, after MIDI input and before the gate: a **workspac
 The **visual design** (colours, type, spacing, the dark and light themes) waits until the features are all working, near the end of the plan.
 
 Why: where things sit shapes how Phase 4's progression strip and suggestion panel get built, so the layout should be in place before them. Restyling the look while features keep changing would be wasted work.
+
+## 2026-10-22 — Chord-tone colour and chord boxes (David's choice)
+
+- **Chord tones are filled orange** on the keyboard and fretboard, not ringed, so the current chord stands out. When the key's root is also in the chord, it is orange with a red ring, so the root stays visible.
+- **Chord boxes join Phase 3** as task 8. The current chord's shape appears as a small vertical chord box to the right of the full neck, with ◀ ▶ arrows to step through its shapes, positions and inversions, and the shape on show is also marked on the neck. The fingering search, scoring and filters of Phase 3 tasks 1–4 supply the shapes; SPEC 5 already set the box style (nut at the top, low string on the left, fret dots only).
+
+Why: David's request after trying the fretboard view. The boxes need Phase 3's fingering search, so they arrive with it rather than in Phase 2.

@@ -155,6 +155,7 @@ Goal: cycle any chord through playable guitar shapes and keyboard voicings.
 5. Grouping by CAGED shape in standard tuning.
 6. Keyboard voicings: close, open, drop-2, drop-3, spread, and a left-hand/right-hand split.
 7. Play a chord on your MIDI keyboard and jump straight to its guitar shapes.
+8. Chord boxes beside the fretboard (David's choice): the current chord's shape as a small vertical box (nut at the top, fret numbers underneath) to the right of the full neck, with ◀ ▶ arrows to step through its shapes, positions and inversions. The shape on show is also marked on the neck.
 
 - [ ] For 30 common chords in standard tuning, the textbook shapes you supply appear in the top five
 - [ ] Every result is physically valid: one note per string, span within the setting
