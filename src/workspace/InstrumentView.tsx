@@ -295,8 +295,9 @@ function Keyboard({
 
 // Horizontal tab view: nut on the left, low string at the bottom (SPEC 5),
 // each string's open note named on the far left. Frets behind a capo are
-// greyed out and the capo is drawn as a bar, with the open notes it gives
-// named in the fret just before it.
+// greyed out and the capo is drawn as a bar. The capo's fret is the new open
+// position: a note there in the scale keeps its colour with a grey ring, and
+// one outside the scale is named in grey.
 function Fretboard({
   guitar,
   keyValue,
@@ -346,9 +347,18 @@ function Fretboard({
               onClick={() => play(spot.mark)}
             >
               {spot.mark && (
-                <span class={markClass(spot.mark)}>{label(spot.mark)}</span>
+                <span
+                  class={
+                    markClass(spot.mark) +
+                    (guitar.capo > 0 && spot.fret === guitar.capo
+                      ? ' capo-open'
+                      : '')
+                  }
+                >
+                  {label(spot.mark)}
+                </span>
               )}
-              {guitar.capo > 0 && spot.fret === guitar.capo - 1 && (
+              {!spot.mark && guitar.capo > 0 && spot.fret === guitar.capo && (
                 <span class="capo-name">{capoNames[spot.string]}</span>
               )}
             </button>
