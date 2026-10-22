@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_FRET_RANGE,
+  capoNotes,
   MAX_CAPO,
   MAX_FRET,
   fretMidi,
@@ -10,8 +11,8 @@ import {
   stringCount,
 } from '../../src/instruments/guitar'
 import { STANDARD_TUNING, tuningStrings } from '../../src/instruments/tunings'
-import { capoPitches } from '../fixtures/capo'
-import { parseNote, type Note } from '../../src/theory'
+import { capoNames, capoPitches } from '../fixtures/capo'
+import { formatNote, midiNumber, parseNote, type Note } from '../../src/theory'
 
 describe('guitar model', () => {
   it('defaults to no capo and frets 0–15 (SPEC 5)', () => {
@@ -37,6 +38,20 @@ describe('guitar model', () => {
       guitar.strings.forEach((_, s) =>
         expect(fretMidi(guitar, s, capo)).toBe(midi[s]),
       )
+    },
+  )
+
+  it.each(capoNames)(
+    'names the open notes at capo $capo on $tuning in $key',
+    ({ tuning, capo, key, names }) => {
+      const [tonic, mode] = key.split(' ')
+      const guitar = makeGuitar(tuningStrings(tuning, false), { capo })
+      const notes = capoNotes(guitar, { tonic: parseNote(tonic)!, mode })
+      expect(
+        notes.map((n) => formatNote({ ...n, octave: undefined })).join(' '),
+      ).toBe(names)
+      // Each name sounds the capo fret's pitch.
+      expect(notes.map(midiNumber)).toEqual(soundingOpenStrings(guitar))
     },
   )
 

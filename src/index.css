@@ -647,6 +647,18 @@ body:has(.workspace) #app {
   opacity: 0.35;
 }
 
+.fretboard .fret.behind-capo:has(.capo-name) {
+  opacity: 1;
+}
+
+.fretboard .capo-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: Canvas;
+  padding: 0 0.15rem;
+}
+
 .fretboard .fret.capo {
   border-right: 6px solid #57534e;
 }

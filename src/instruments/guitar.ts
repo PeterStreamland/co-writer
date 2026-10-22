@@ -2,7 +2,13 @@
 // first, plus a capo and the fret range to search. Frets are numbered from
 // the nut, capo or not (SPEC 5). Pitches are derived from the spelled
 // strings, never stored.
-import { midiNumber, type Note } from '../theory'
+import {
+  midiNumber,
+  noteAtMidi,
+  spellPitches,
+  type Key,
+  type Note,
+} from '../theory'
 
 export type FretRange = { low: number; high: number }
 
@@ -70,5 +76,13 @@ export function fretMidi(
 export function soundingOpenStrings(guitar: Guitar): number[] {
   return guitar.strings.map(
     (_, s) => fretMidi(guitar, s, guitar.capo) as number,
+  )
+}
+
+// The open notes with the capo on, spelled by the key, each on its own as a
+// lone note is: the scale's spelling, or else by the key signature.
+export function capoNotes(guitar: Guitar, key: Key): Note[] {
+  return soundingOpenStrings(guitar).map(
+    (midi) => noteAtMidi(spellPitches([midi], key)[0], midi) as Note,
   )
 }

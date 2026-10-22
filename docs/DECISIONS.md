@@ -355,3 +355,7 @@ Phase 3 task 1 (`src/instruments/guitar.ts`, golden fixture `tests/fixtures/capo
 - **Capo:** up to fret 12. Frets are still numbered from the nut (SPEC 5). Frets behind the capo can't be played and are greyed out on the neck; the capo is drawn as a dark bar, and the capo's fret sounds as the open string. The tuning names left of the nut stay the open strings' names; the notes on the neck show what sounds. David can ask for a higher capo limit.
 - **Fret range:** frets 0–15 by default, up to 24 (SPEC 5). The guitar view has a Frets list (0–15, 17, 19, 21, 22 or 24) that sets how far the neck runs. The range can also start up the neck (frets 5–9, say) for the search; the open strings stay available then, and the "open strings on or off" filter (task 4) is what turns them off.
 - **Golden fixture:** what the open strings sound with a capo, including capo on DADGAD, Open G and 7-string Drop D, covering SPEC 13's "capo with alternate tuning" case at the pitch level. Sounding chord names with a capo arrive with the fingering search.
+
+## 2026-10-22 — The capo's open notes named beside it (David's choice)
+
+With a capo on, the tuning names left of the nut stay as they are, and the fret just before the capo now names the strings' new open notes (capo 3 on standard: G C F A♯ D G, low string at the bottom). They are spelled by the key, each as a lone note is: the scale's spelling where the note is in the scale, otherwise by the key signature, so capo 1 in F major reads F B♭ E♭ A♭ C F. Golden fixture: `capoNames` in `tests/fixtures/capo.ts`.
