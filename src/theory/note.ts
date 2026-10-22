@@ -108,3 +108,12 @@ export function sameSpelling(a: Note, b: Note): boolean {
 export function mod(n: number, m: number): number {
   return ((n % m) + m) % m
 }
+
+// The note spelled as given, in the octave that sounds this MIDI number: B♯
+// at 60 is B♯3, C♭ at 59 is C♭4. Undefined if the spelling isn't that pitch.
+export function noteAtMidi(spelling: Note, midi: number): Note | undefined {
+  const offset = NATURAL_SEMITONES[spelling.letter] + spelling.accidental
+  const octave = (midi - offset) / 12 - 1
+  if (!Number.isInteger(octave)) return undefined
+  return { letter: spelling.letter, accidental: spelling.accidental, octave }
+}

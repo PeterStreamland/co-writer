@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'preact/hooks'
 import { formatNote, type ChordName, type Key } from '../theory'
 import { ChordRows } from './ChordRows'
+import { InstrumentView } from './InstrumentView'
 import {
   keyName,
   loadKey,
@@ -15,8 +16,9 @@ import {
   withTonic,
 } from './key-picker'
 
-// The single workspace (SPEC 2): the header key picker, and the Explore
-// panel's scale view and chord rows; the rest arrives task by task.
+// The single workspace (SPEC 2): the header key picker, the Explore panel's
+// scale view, the instrument view and the chord rows; the rest arrives task
+// by task.
 export function Workspace() {
   const [key, setKey] = useState<Key>(loadKey)
   const [chord, setChord] = useState<ChordName>()
@@ -28,6 +30,7 @@ export function Workspace() {
       </header>
       <main>
         <ScalePanel value={key} />
+        <InstrumentView value={key} chord={chord} />
         <ChordRows value={key} current={chord} onSelect={setChord} />
       </main>
       <footer>

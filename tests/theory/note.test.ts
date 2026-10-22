@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   enharmonic,
   formatNote,
+  noteAtMidi,
   midiNumber,
   parseNote,
   pitchClass,
@@ -121,5 +122,24 @@ describe('pitch class and enharmonics', () => {
     expect(enharmonic(note('B#4'), note('C4'))).toBe(false)
     expect(sameSpelling(note('Eb4'), note('Eb4'))).toBe(true)
     expect(sameSpelling(note('Eb4'), note('Eb'))).toBe(false)
+  })
+})
+
+describe('noteAtMidi', () => {
+  const at = (text: string, midi: number) => {
+    const note = noteAtMidi(parseNote(text)!, midi)
+    return note && formatNote(note, { ascii: true })
+  }
+
+  it('puts a spelling in the octave that sounds the pitch', () => {
+    expect(at('C', 60)).toBe('C4')
+    expect(at('E', 40)).toBe('E2')
+    expect(at('B#', 60)).toBe('B#3')
+    expect(at('Cb', 59)).toBe('Cb4')
+    expect(at('F##', 43)).toBe('F##2')
+  })
+
+  it('refuses a spelling of another pitch', () => {
+    expect(at('C#', 60)).toBeUndefined()
   })
 })
