@@ -152,7 +152,7 @@ Goal: cycle any chord through playable guitar shapes and keyboard voicings.
 
 1. Fretboard model: tuning as an array of open-string pitches, plus string count, capo and fret range. ✅
 2. Fingering search: for each string, every fret that gives a chord tone, or muted; keep shapes with all required tones (5th optional), the right bass note for the inversion, and a span within the limit. ✅
-3. Playability score: span, barre needed, muted inner strings, open strings, neck position.
+3. Playability score: span, barre needed, muted inner strings, open strings, neck position. ✅
 4. Filters: inversion, string set, maximum span, open strings on or off, omit the 5th.
 5. Grouping by CAGED shape in standard tuning.
 6. Keyboard voicings: close, open, drop-2, drop-3, spread, and a left-hand/right-hand split.
@@ -160,7 +160,7 @@ Goal: cycle any chord through playable guitar shapes and keyboard voicings.
 8. Chord boxes beside the fretboard (David's choice): the current chord's shape as a small vertical box (nut at the top, fret numbers underneath) to the right of the full neck, with ◀ ▶ arrows to step through its shapes, positions and inversions. The shape on show is also marked on the neck.
 9. Chord-tone colours (David's choice), built with the chord boxes: a third label setting, Chord tones, beside Note names and Degrees. The current chord's notes are coloured by their interval, with one colour each for root, 3rd, 5th and 7th and one shared colour for 9ths, 11ths, 13ths and altered notes. Each dot is labelled with its interval (R, ♭3, 5, ♭7, 9), and the rest of the scale fades to grey. The chord boxes use the same colours. With no chord selected, the views show the usual scale colours.
 
-- [ ] For 30 common chords in standard tuning, the textbook shapes you supply appear in the top five
+- [x] For 30 common chords in standard tuning, the textbook shapes you supply appear in the top five
 - [x] Every result is physically valid: one note per string, span within the setting
 - [x] Drop D and 7-string fixtures produce correct shapes
 - [x] Search returns in under 50 ms per chord

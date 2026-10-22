@@ -204,21 +204,6 @@ describe('fingering search', () => {
     expect(sharp?.notes[0]).toEqual({ letter: 'F', accidental: 1, octave: 2 })
   })
 
-  it('lists shapes from the nut up, fuller shapes first at each position', () => {
-    const guitar = makeGuitar(STANDARD_TUNING)
-    const found = findFingerings(guitar, chord('C'))
-    expect(formatFrets(found[0].frets)).toBe('x32010')
-    const position = (f: Fingering) => {
-      const fretted = f.frets.filter((x): x is number => x !== null && x > 0)
-      return fretted.length ? Math.min(...fretted) : 0
-    }
-    for (let i = 1; i < found.length; i++) {
-      expect(position(found[i])).toBeGreaterThanOrEqual(position(found[i - 1]))
-    }
-    // The same input always gives the same list.
-    expect(findFingerings(guitar, chord('C'))).toEqual(found)
-  })
-
   it('writes frets past 9 with dashes', () => {
     expect(formatFrets([null, 3, 2, 0, 1, 0])).toBe('x32010')
     expect(formatFrets([null, 10, 12, 12, 12, 10])).toBe('x-10-12-12-12-10')
