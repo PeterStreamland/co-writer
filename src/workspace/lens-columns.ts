@@ -11,18 +11,19 @@ import {
   type Lens,
   type LensStep,
   type LensVoicing,
+  type MeterMap,
 } from '../theory'
 import {
   addAllAfter,
   keyAfter,
   keyAt,
-  lengthOf,
   pathNodes,
   setKeyChangeAt,
   type AddOptions,
+  timingOf,
   type Progression,
 } from '../sketch/progression'
-import type { Dur } from '../sketch/time'
+import { DEFAULT_TIME, type Dur } from '../sketch/time'
 
 export const MAX_LENSES = 4
 export const DEFAULT_LENSES: Lens[] = ['classical', 'rock']
@@ -39,15 +40,17 @@ export function toggleLens(chosen: Lens[], lens: Lens): Lens[] {
 }
 
 // The progression's active path as lens steps, each chord in its own key
-// (after any key change), with its length for playback.
+// (after any key change), with its length in the bars for playback.
 export function lensSteps(
   progression: Progression,
   sectionKey: Key,
+  time: MeterMap = DEFAULT_TIME,
 ): (LensStep & { length: Dur })[] {
+  const timing = timingOf(progression, time)
   return pathNodes(progression).map((n, i) => ({
     key: keyAt(progression, i, sectionKey),
     chord: n.chord,
-    length: lengthOf(n),
+    length: timing[i].length,
   }))
 }
 

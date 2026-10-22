@@ -54,8 +54,8 @@ import {
   chordsUpTo,
   insertAllBetween,
   insertBetween,
-  lengthOf,
   setLengthAt,
+  timingOf,
   keyAfter,
   pathNodes,
   selectNode,
@@ -72,7 +72,7 @@ import {
   type History,
 } from '../sketch/history'
 import { loadProgression, saveProgression } from '../sketch/storage'
-import { loadBpm, saveBpm, secondsOf } from '../sketch/time'
+import { loadBpm, loadTime, saveBpm, saveTime, secondsOf } from '../sketch/time'
 import { useNarrow } from './useNarrow'
 import { played } from './played'
 import { recordedChord } from './recorded'
@@ -112,6 +112,9 @@ export function Workspace() {
   // The tempo for playing the progression, remembered in this browser.
   const [bpm, setBpm] = useState(loadBpm)
   useEffect(() => saveBpm(bpm), [bpm])
+  // The time signature and any bars that override it (SPEC 7.1).
+  const [time, setTime] = useState(loadTime)
+  useEffect(() => saveTime(time), [time])
   const shown = playingChord ?? preview?.candidate ?? chord
   // The style weights as edited on the Style weights page, blended by the
   // header's control.
@@ -128,6 +131,8 @@ export function Workspace() {
   )
   const progression = history.present
   useEffect(() => saveProgression(progression), [progression])
+  // Where each chord falls in the bars, and how long it lasts there.
+  const timing = useMemo(() => timingOf(progression, time), [progression, time])
   const path = pathNodes(progression)
   const [selectedAt, setSelectedAt] = useState(() => path.length - 1)
   const selected = Math.min(selectedAt, path.length - 1)
@@ -404,7 +409,7 @@ export function Workspace() {
       return
     }
     // Each chord rings for its length at the tempo, then the next comes in.
-    const seconds = secondsOf(lengthOf(n), bpm)
+    const seconds = secondsOf(timing[playingAt].length, bpm, time.meter)
     setPlayingChord(n.chord)
     showNode(n)
     playNode(n, seconds)
@@ -415,8 +420,8 @@ export function Workspace() {
     )
     return () => clearTimeout(timer)
   }, [playingAt])
-  // Any change to the progression stops playback.
-  useEffect(() => setPlayingAt(undefined), [progression])
+  // Any change to the progression or its time stops playback.
+  useEffect(() => setPlayingAt(undefined), [progression, time])
   function selectSlot(index: number) {
     setSelectedAt(index)
     setBetweenAt(undefined)
@@ -448,6 +453,9 @@ export function Workspace() {
       }}
       bpm={bpm}
       onBpmChange={setBpm}
+      time={time}
+      timing={timing}
+      onTimeChange={setTime}
       onLengthChange={(length) =>
         change(setLengthAt(progression, selected, length), selected)
       }
@@ -478,6 +486,7 @@ export function Workspace() {
       guitar={guitar}
       instrument={instrument}
       bpm={bpm}
+      time={time}
       narrow={narrow}
       onUse={(voicings, on, where) => {
         const next = addLensVoicings(progression, key, voicings, on, where)
