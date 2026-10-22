@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'preact/hooks'
 import { formatNote, type ChordName, type Key } from '../theory'
 import { ChordRows } from './ChordRows'
-import { InstrumentView } from './InstrumentView'
+import { InstrumentView, type Instrument } from './InstrumentView'
 import {
   keyName,
   loadKey,
@@ -22,6 +22,7 @@ import {
 export function Workspace() {
   const [key, setKey] = useState<Key>(loadKey)
   const [chord, setChord] = useState<ChordName>()
+  const [instrument, setInstrument] = useState<Instrument>('keyboard')
   useEffect(() => saveKey(key), [key])
   return (
     <div class="workspace">
@@ -30,8 +31,18 @@ export function Workspace() {
       </header>
       <main>
         <ScalePanel value={key} />
-        <InstrumentView value={key} chord={chord} />
-        <ChordRows value={key} current={chord} onSelect={setChord} />
+        <InstrumentView
+          value={key}
+          chord={chord}
+          instrument={instrument}
+          onInstrumentChange={setInstrument}
+        />
+        <ChordRows
+          value={key}
+          current={chord}
+          onSelect={setChord}
+          sound={instrument === 'keyboard' ? 'piano' : 'guitar'}
+        />
       </main>
       <footer>
         <a href="#/audit">Phase 1 audit table</a>

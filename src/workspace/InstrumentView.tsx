@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks'
 import { playChord } from '../audio/player'
+import type { Sound } from '../audio/sounds'
 import {
   DEFAULT_FRETS,
   DOT_FRETS,
@@ -16,20 +17,23 @@ import { noteMarker, type Mark } from '../instruments/marks'
 import { STANDARD_TUNING } from '../instruments/tunings'
 import type { ChordName, Key } from '../theory'
 
-type Instrument = 'keyboard' | 'guitar'
+export type Instrument = 'keyboard' | 'guitar'
 type Labels = 'names' | 'degrees'
 
 // The instrument view (SPEC 2, 5): keyboard or full-neck fretboard, with the
-// scale highlighted, the root marked and the current chord ringed. Clicking a
-// highlighted note plays it.
+// scale highlighted, the root marked and the current chord filled orange.
+// Clicking a highlighted note plays it, on piano or guitar to match the view.
 export function InstrumentView({
   value,
   chord,
+  instrument,
+  onInstrumentChange,
 }: {
   value: Key
   chord: ChordName | undefined
+  instrument: Instrument
+  onInstrumentChange: (instrument: Instrument) => void
 }) {
-  const [instrument, setInstrument] = useState<Instrument>('keyboard')
   const [labels, setLabels] = useState<Labels>('names')
   const mark = noteMarker(value, chord)
   return (
@@ -42,7 +46,7 @@ export function InstrumentView({
             ['keyboard', 'Keyboard'],
             ['guitar', 'Guitar'],
           ]}
-          onChange={setInstrument}
+          onChange={onInstrumentChange}
         />
         <Toggle
           label="Labels"
@@ -107,8 +111,8 @@ function markClass(mark: Mark): string {
   ].join(' ')
 }
 
-function play(mark: Mark | undefined) {
-  if (mark) void playChord([mark.note], 1)
+function play(mark: Mark | undefined, sound: Sound) {
+  if (mark) void playChord([mark.note], sound, 1)
 }
 
 function useNarrow(): boolean {
@@ -159,7 +163,7 @@ function Keyboard({
       aria-label={
         k.mark ? `${k.mark.name}, degree ${k.mark.degree}` : undefined
       }
-      onClick={() => play(k.mark)}
+      onClick={() => play(k.mark, 'piano')}
     >
       {k.mark && <span class={markClass(k.mark)}>{label(k.mark)}</span>}
     </button>
@@ -226,7 +230,7 @@ function Fretboard({
                   ? `${spot.mark.name} on string ${grid.length - spot.string}, fret ${spot.fret}`
                   : undefined
               }
-              onClick={() => play(spot.mark)}
+              onClick={() => play(spot.mark, 'guitar')}
             >
               {spot.mark && (
                 <span class={markClass(spot.mark)}>{label(spot.mark)}</span>
