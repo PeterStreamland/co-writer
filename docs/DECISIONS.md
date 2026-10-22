@@ -523,3 +523,29 @@ This settles the open question from the Phase 1 gate before Phase 4's engine rel
 - **Why:** the app already reads B7 in E minor as V7, borrowed from harmonic minor, so a minor key's dominant is major. A chord that leads to it should be named after the chord it actually goes to, as most charts write it.
 - **Only minor keys:** modes keep their own v, so F♯7 in E Dorian stays V7/v. Harmonic and melodic minor already have a major V.
 - **The golden fixture changed:** the numerals fixture's F♯7-in-E-minor row went from V7/v to V7/V, with David's go-ahead. Two rows were added: A♯°7 in E minor and F♯7 in E Dorian.
+
+## 2026-10-22 — Next-chord candidate generators
+
+Phase 4 task 2 (`src/theory/next-chord.ts`, rules in `src/theory/next-chord-data.ts`). Given the key and the chords so far, the generators list every chord worth offering next, each a Suggestion with its category, rule id, a neutral score and an explanation. Style profiles (task 3) and the ranker (task 4) will reweight and trim the list; nothing is shown in the app yet. Choices the plan and SPEC didn't settle:
+
+- **Rules are data:** each rule has an id, a category, a neutral 0–5 weight (the style editor's scale) and an explanation template. Diatonic chords are scored by how the previous chord's function flows into theirs (predominant to dominant to tonic scores highest), with iii and vii° marked down as weaker members of their function.
+- **What each category offers:**
+  - **Diatonic:** the key's triads and V7. After a dominant, vi is offered as a deceptive cadence. After a secondary chord, its target ranks top (E7 then Am). In a minor key the major V and V7 from harmonic minor count as diatonic, as that is the key's usual dominant.
+  - **Secondary:** V7 and vii°7 of each major or minor chord of the key except the tonic and ♭VII, kept only where the numeral reads them as secondary (D7 in E minor is the key's own ♭VII7).
+  - **Borrowed:** major and minor triads from the parallel modes, credited to the closest source (A♭ in C from C Aeolian). Locrian is left out as too remote.
+  - **Chromatic:** tritone substitutes for the dominants of chords on unaltered degrees (I, ii, IV, V and vi in major; i, iv and V in minor), as subs aimed at ♭III or ♭VI read awkwardly (D♭7 to C in E minor is 𝄫VII7), and chromatic mediants of the previous chord: same quality, a 3rd away, one shared note.
+  - **Modulation:** one pivot chord into each closely related key (no more than one sharp or flat away), preferring a chord that is ii or IV in the new key. The suggestion carries the new key for SPEC 6.4's prompt.
+  - **Rock moves:** ♭VII, ♭VI and ♭III, and power chords on 1, ♭2, ♭3, 4, 5, ♭6 and ♭7 after a power chord.
+  - **Pedal/static:** stay on the chord, move the harmony over its bass note (G/C, F/C), or suspend it (Csus4, Csus2).
+- **With no chord picked,** only the key's own chords are offered, the tonic first.
+- **One suggestion per chord:** where two rules offer the same chord, the higher-scoring reading leads (category order on a tie) and the other's rule id and explanation are kept, the explanation under More. So B♭ in C shows as borrowed from Mixolydian, with the rock ♭VII under More, and a style that favours rock moves can still find it.
+- **Scales that don't stack in thirds** (pentatonics, blues) get diatonic, rock, mediant and pedal suggestions only.
+- **For the next tasks:** the context's phrase position and overuse (SPEC 6.1) belong to the ranker.
+- **New golden fixture:** `tests/fixtures/next-chords.ts`, written by hand, lists chords each case must and must not offer, with their categories and numerals. David may want to check it. The E7 explanation in the existing suggestions fixture is now produced by the engine word for word.
+
+## 2026-10-22 — Passing chords between two chords (David's idea)
+
+David asked for a way to pick two chords and have the app suggest chords to bridge them. This is added to Phase 4 as task 7, with an exit criterion, and as SPEC 6.7.
+
+- **Why Phase 4, after the strip:** it reuses this task's generators, scoring each candidate against the chord after it as well as the chord before. It needs the progression strip (task 5) to pick the two chords, and the ⓘ panel (task 6) to explain them, so it comes last in the phase, before the Phase 4 gate.
+- **Not Phase 6:** Phase 6's passing and approach lines are single notes between chords; this is whole chords.
