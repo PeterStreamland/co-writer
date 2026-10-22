@@ -7,7 +7,7 @@
 // Rules on motion pair voices in order, so they need voicings of the same
 // size; rules on one chord look at the second voicing, by pitch.
 import { chordIntervals } from './chord'
-import type { ChordName } from './chord-symbol'
+import { chordNotes, type ChordName } from './chord-symbol'
 import { intervalBetween, transpose, transposeDown } from './interval'
 import {
   formatNote,
@@ -122,7 +122,8 @@ function leadingNote(key: Key): Note {
 
 // In V or vii° going to I, the leading note rises a semitone to the tonic.
 // An inner voice may fall to the tonic chord's 5th instead, as the textbooks
-// allow.
+// allow, and any voice may hold it when the tonic chord has it too (G7 to
+// Cmaj7 keeps B as the major 7th).
 function leadingNoteHits(key: Key, from: Voiced, to: Voiced): RuleHit[] {
   const tonic = pitchClass(key.tonic)
   const lead = pitchClass(leadingNote(key))
@@ -130,12 +131,14 @@ function leadingNoteHits(key: Key, from: Voiced, to: Voiced): RuleHit[] {
   const dominant = root === (tonic + 7) % 12 || root === lead
   if (!dominant || pitchClass(to.chord.root) !== tonic) return []
   const count = to.notes.length
+  const keeps = chordNotes(to.chord).some((n) => pitchClass(n) === lead)
   const hits: RuleHit[] = []
   from.notes.forEach((note, i) => {
     if (pitchClass(note) !== lead) return
     const next = to.notes[i]
     const step = pitch(next) - pitch(note)
     if (step === 1 && pitchClass(next) === tonic) return
+    if (step === 0 && keeps) return
     const inner = i > 0 && i < count - 1
     const toFifth = step < 0 && pitchClass(next) === (tonic + 7) % 12
     if (inner && toFifth) return

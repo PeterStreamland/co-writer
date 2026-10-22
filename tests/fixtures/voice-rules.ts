@@ -74,6 +74,20 @@ export const voiceRules: {
     hits: [],
   },
   {
+    name: 'G7 to Cmaj7: the leading note may stay as the major 7th',
+    key: 'C major',
+    from: { chord: 'G7', notes: 'G2 F3 G3 B3' },
+    to: { chord: 'Cmaj7', notes: 'C3 E3 G3 B3' },
+    hits: [],
+  },
+  {
+    name: 'G to C: the leading note may not stay when C has no B',
+    key: 'C major',
+    from: { chord: 'G', notes: 'G2 D3 G3 B3' },
+    to: { chord: 'C', notes: 'C3 E3 G3 B3' },
+    hits: ['leading-note 3'],
+  },
+  {
     name: 'A minor: the raised leading note G# rises to A',
     key: 'A minor',
     from: { chord: 'E', notes: 'E3 B3 E4 G#4' },
