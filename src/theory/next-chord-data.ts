@@ -170,7 +170,7 @@ export const NEXT_CHORD_RULES = [
     category: 'rock',
     weight: 3,
     template:
-      '{chord} is {numeral}, the rock ♭VII: a Mixolydian lift a tone below {tonicChord}, heard all over classic rock.',
+      '{chord} is {numeral}, the rock ♭VII: a whole tone below {tonicChord}, a lift heard all over classic rock and metal.',
   },
   {
     id: 'rock.flat-six',
@@ -202,7 +202,7 @@ export const NEXT_CHORD_RULES = [
     category: 'rock',
     weight: 3,
     template:
-      '{chord} is {numeral}: its root falls a 4th from {previous}, the plagal step behind rock’s I–♭VII–IV.',
+      '{chord} is {numeral}: its root falls a 4th from {previous}, the step behind rock’s I–♭VII–IV.',
   },
   {
     id: 'rock.return-home',

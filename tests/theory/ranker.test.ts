@@ -237,3 +237,14 @@ describe('switching style moves the shown ranking (golden fixture)', () => {
     },
   )
 })
+
+describe('tonic arrival (Phase 4 gate review)', () => {
+  it('does not count an earlier Cm or C7 as the tonic arriving', () => {
+    const c = context('C major', ['Cm', 'F', 'G7'], 'pop')
+    const all = rankNextChords(c).shown
+    const tonic = all.find((s) => chordKey(s.candidate) === 'C')
+    expect(tonic?.contextNotes).toContain(
+      'Ranked higher: the tonic hasn’t arrived yet after 3 chords',
+    )
+  })
+})

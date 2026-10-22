@@ -9,6 +9,7 @@ import {
   chordSymbol,
   diatonicChords,
   hasDiatonicChords,
+  qualityNumeral,
   type Chord,
 } from './chord'
 import { chordNotes, type ChordName } from './chord-symbol'
@@ -178,6 +179,7 @@ function diatonic(key: Key, previous: ChordName | undefined): Candidate[] {
     } else if (
       before === 'dominant' &&
       degreeLabel(key.tonic, previous.root) === '5' &&
+      qualityNumeral(previous.quality)?.secondary === 'dominant' &&
       (label === '6' || label === '♭6') &&
       (chord.quality === 'M' || chord.quality === 'm')
     ) {
@@ -484,7 +486,15 @@ function pivots(ctx: Context): Candidate[] {
       mode: triad.quality === 'M' ? 'major' : 'natural-minor',
     }
     const theirs = keySignature(newKey)
-    if (theirs === undefined || Math.abs(theirs - signature) > 1) continue
+    // Closely related, and a key the picker can show (at most 7 sharps or
+    // flats): C♯ major's neighbour G♯ major would need 8.
+    if (
+      theirs === undefined ||
+      Math.abs(theirs - signature) > 1 ||
+      Math.abs(theirs) > 7
+    ) {
+      continue
+    }
     const shared = diatonicChords(newKey, 'triad').filter(
       (c) =>
         (c.quality === 'M' || c.quality === 'm') &&
@@ -713,8 +723,10 @@ export function nextChordCandidates(
       (candidate.keyChange ? ` > ${keyName(candidate.keyChange)}` : '')
     groups.set(id, [...(groups.get(id) ?? []), suggestion])
   }
-  return sortSuggestions(
-    [...groups.values()].map(merge),
-    chordKey,
-  ) as NextChordSuggestion[]
+  // Grouped by chord and key change before sorting, so ties (one pivot into
+  // two keys) fall the same way whatever order the generators ran in.
+  const merged = [...groups.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([, group]) => merge(group))
+  return sortSuggestions(merged, chordKey) as NextChordSuggestion[]
 }

@@ -51,6 +51,12 @@ export const PASSING_LEADS = {
     lead: 2.5,
     template: '{chord} steps into {next}, its root moving by step.',
   },
+  // When nothing pulls, how the root moves into the next chord.
+  other: {
+    id: 'passing.other',
+    lead: 1,
+    template: '{chord} moves on into {next}: {motion}.',
+  },
 } as const satisfies Record<string, PassingLead>
 
 export const PASSING = {

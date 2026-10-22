@@ -139,6 +139,16 @@ describe('key changes (SPEC 6.4)', () => {
   })
 })
 
+describe('answering No to a key change (SPEC 13)', () => {
+  it('keeps later chords in the old key', () => {
+    let p = build('C', 'F')
+    p = addAfter(p, 1, parse('Am')) // the pivot, without a key change
+    p = addAfter(p, 2, parse('D'))
+    expect(keyAt(p, 3, C_MAJOR)).toEqual(C_MAJOR)
+    expect(keyAfter(p, 3, C_MAJOR)).toEqual(C_MAJOR)
+  })
+})
+
 describe('undo and redo (SPEC 13)', () => {
   it('undoes across a branch switch', () => {
     let h = startHistory(addAfter(build('C', 'F', 'G'), 0, parse('Am')))

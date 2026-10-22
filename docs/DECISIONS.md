@@ -729,3 +729,34 @@ David asked for a BPM for playback and a length for each chord. A first slice of
   - Play moves on after each chord's length at that tempo, and each chord now rings for its whole length.
 - **For now everything is 4/4:** a beat is a quarter note.
 - **Left for Phase 6:** meters, odd groupings, per-bar overrides, strong beats and a count-in. The ranker's phrase position still counts one chord as one bar; it should count real bars once the grid arrives.
+
+## 2026-10-22 — Phase 4 gate: review and fixes (gate still open)
+
+The theory-reviewer checked `v0.3-fingerings`..`main`:
+
+- **Exit criteria 1–4** are confirmed with evidence: categories and explanations, deterministic rankings and wildcards, the style rankings, and the 10 known progressions.
+- **Criterion 5** (passing chords) was only partly met.
+- **Spelling, numerals and the ⓘ lines** check out, and so does the enharmonic swap (D♭/C♯, F♯/G♭, D♯m/E♭m, B/C♭).
+- **Golden fixtures:** the two that changed (numerals F♯7-in-E-minor, next-chords D7-in-E-minor) both have David's go-ahead recorded.
+
+Fixed from its findings, each with a test:
+
+- **Passing chords now read roots by spelling, not pitch.** Between C and A♭, A7 no longer "stands in for the dominant of A♭", and D♯dim7 no longer "falls a 5th into A♭" (SPEC 4).
+- **Every passing suggestion says how it leads in,** including every wildcard Another reaches. When nothing pulls, it names the root's move ("C♯dim7 moves on into G: its root …"). This completes criterion 5.
+- **A secondary chord reads as dominant in passing chords:** "E7 leads on into A♭" no longer calls E7 a tonic.
+- **Pivots never lead to a key beyond 7 sharps or flats,** so A♭ minor no longer offers D♭ minor (8 flats). The enharmonic-swap test now compares everything but pivots, since C♯ major loses its pivots into G♯ major and E♯ minor while D♭ major keeps A♭ major and F minor.
+- **Wording:**
+  - The rock ♭VII no longer says "Mixolydian", which was wrong in minor keys.
+  - The falling-4th step no longer says "plagal".
+  - The deceptive cadence is offered only after a major or dominant V, so not after Bm in E minor.
+  - ⓘ names a note's move by its spelled interval: "C down a diminished 3rd to A♯", not "a tone".
+- **"The tonic hasn't arrived" now uses the same test as tonic arrivals,** so an earlier Cm or C7 doesn't count.
+- **Determinism:** a pivot offered into two keys sorts the same way whatever order the generators run in.
+- **New test:** answering No to a key change keeps later chords in the old key (SPEC 13).
+
+Settled by David:
+
+- **Passing-chord order:** his fixture stands for now, so between C and G, Dm (ii) leads and D7 (V7/V) comes close behind. SPEC 6.7 is updated to match: chords that lead strongly into the second rank highest, with a fall of a 5th (ii into V) counting as strongly as a secondary dominant.
+- **The passing-chords fixture's jazz comment** now reads "ii7 and V7/V". The row itself was already right. Changed with his go-ahead.
+
+Still open: David's play-test. After that the gate closes and Phase 4 is tagged `v0.4-next-chord`.

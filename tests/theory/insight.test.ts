@@ -29,3 +29,16 @@ describe('chordInsight (golden fixture)', () => {
     },
   )
 })
+
+describe('chordInsight spelling (Phase 4 gate review)', () => {
+  it('names a move by its spelled interval', () => {
+    const insight = chordInsight(
+      key('C major'),
+      parseChordSymbol('F#')!,
+      parseChordSymbol('C')!,
+    )
+    expect(insight.moves).toBe(
+      'Moves: G down a semitone to F♯, C down a diminished 3rd to A♯, E down a minor 3rd to C♯.',
+    )
+  })
+})
