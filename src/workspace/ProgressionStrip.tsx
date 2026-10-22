@@ -17,8 +17,8 @@ import {
 // The progression strip (SPEC 2, 6.5): the active path of the section's
 // progression. Tap a chord to select it (suggestions then follow it); the
 // arrows under a chord switch between its alternatives; + adds the current
-// chord after the selected one. Undo and redo cover every change, and the
-// tree button shows every branch.
+// chord after the selected one. Play plays every chord from the start.
+// Undo and redo cover every change, and the tree button shows every branch.
 export function ProgressionStrip({
   progression,
   sectionKey,
@@ -33,6 +33,9 @@ export function ProgressionStrip({
   onRedo,
   onClear,
   onPickNode,
+  playingAt,
+  onPlay,
+  onStop,
 }: {
   progression: Progression
   sectionKey: Key
@@ -47,6 +50,9 @@ export function ProgressionStrip({
   onRedo: () => void
   onClear: () => void
   onPickNode: (id: string) => void
+  playingAt: number | undefined
+  onPlay: () => void
+  onStop: () => void
 }) {
   const [treeOpen, setTreeOpen] = useState(false)
   const path = pathNodes(progression)
@@ -55,6 +61,20 @@ export function ProgressionStrip({
       <div class="strip-bar">
         <h2>Progression</h2>
         <div class="strip-tools">
+          {playingAt === undefined ? (
+            <button
+              type="button"
+              class="play"
+              onClick={onPlay}
+              disabled={path.length === 0}
+            >
+              ▶ Play
+            </button>
+          ) : (
+            <button type="button" class="play" onClick={onStop}>
+              ■ Stop
+            </button>
+          )}
           <button type="button" onClick={onUndo} disabled={!canUndo}>
             ⟲ Undo
           </button>
@@ -87,7 +107,13 @@ export function ProgressionStrip({
           const at = options.indexOf(n.id)
           const key = keyAt(progression, i, sectionKey)
           return (
-            <li key={`${i}-${n.id}`} class={i === selected ? 'selected' : ''}>
+            <li
+              key={`${i}-${n.id}`}
+              class={[
+                i === selected ? 'selected' : '',
+                i === playingAt ? 'playing' : '',
+              ].join(' ')}
+            >
               <button
                 type="button"
                 class="chip"

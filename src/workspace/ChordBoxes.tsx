@@ -9,6 +9,8 @@ import {
   type ChordName,
   type Note,
 } from '../theory'
+import { AddButton } from './AddButton'
+import { chordWithBass } from './voicing-chord'
 import {
   SPANS,
   STRING_SETS,
@@ -28,6 +30,7 @@ export function ChordBoxes({
   onAt,
   filters,
   onFiltersChange,
+  onAdd,
 }: {
   guitar: Guitar
   chord: ChordName
@@ -36,6 +39,7 @@ export function ChordBoxes({
   onAt: (at: number) => void
   filters: ShapeFilters
   onFiltersChange: (filters: ShapeFilters) => void
+  onAdd?: (chord: ChordName) => void
 }) {
   const shape = shapes[at]
   const step = (by: number) => onAt((at + by + shapes.length) % shapes.length)
@@ -43,7 +47,12 @@ export function ChordBoxes({
     onFiltersChange({ ...filters, ...change })
   return (
     <section class="chord-boxes" aria-label="Chord shapes">
-      <h3>{shape ? shapeName(guitar, chord, shape) : chordSymbol(chord)}</h3>
+      <div class="box-head">
+        <h3>{shape ? shapeName(guitar, chord, shape) : chordSymbol(chord)}</h3>
+        {shape && onAdd && (
+          <AddButton chord={chordWithBass(chord, shape.notes)} onAdd={onAdd} />
+        )}
+      </div>
       {shape ? (
         <>
           <button

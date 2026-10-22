@@ -9,7 +9,9 @@ import {
   type ChordName,
   type Note,
 } from '../theory'
+import { AddButton } from './AddButton'
 import { inversionChoices } from './shape-filters'
+import { chordWithBass } from './voicing-chord'
 import {
   LEFT_HANDS,
   type Voicing,
@@ -28,6 +30,7 @@ export function KeyboardVoicings({
   onAt,
   filters,
   onFiltersChange,
+  onAdd,
 }: {
   chord: ChordName
   voicings: Voicing[]
@@ -35,6 +38,7 @@ export function KeyboardVoicings({
   onAt: (at: number) => void
   filters: VoicingFilters
   onFiltersChange: (filters: VoicingFilters) => void
+  onAdd?: (chord: ChordName) => void
 }) {
   const set = (change: Partial<VoicingFilters>) =>
     onFiltersChange({ ...filters, ...change })
@@ -45,9 +49,17 @@ export function KeyboardVoicings({
   const right = voicing.left ? voicing.notes.slice(voicing.left.length) : []
   return (
     <section class="chord-boxes keys-box" aria-label="Keyboard voicings">
-      <h3>
-        {chordSymbol(chord)} · {voicing.label}
-      </h3>
+      <div class="box-head">
+        <h3>
+          {chordSymbol(chord)} · {voicing.label}
+        </h3>
+        {onAdd && (
+          <AddButton
+            chord={chordWithBass(chord, voicing.notes)}
+            onAdd={onAdd}
+          />
+        )}
+      </div>
       <button
         type="button"
         class="box"

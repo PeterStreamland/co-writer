@@ -645,3 +645,16 @@ Phase 4 task 5 (`src/sketch/progression.ts`, `src/sketch/history.ts`, strip abov
 - **Saving:** the progression is saved in the browser until sketches get autosave and version history (Phase 10).
 - **Tree view:** 🌳 lists every branch as an indented tree, with the active path marked. Tapping a chord makes the path through it active.
 - **Not yet:** removing a single chord from the middle (Undo and Clear cover mistakes for now), and sections with their own progressions (SPEC 3).
+
+## 2026-10-22 — Strip under the MIDI panel, divider lines, Play, and + on the chord boxes (David's choices)
+
+- **Where the strip sits:** under the MIDI panel, just above the side panel's tabs, instead of at the top of the stage. This replaces the layout entry's "the strip will sit above it".
+- **Divider lines:** a plain line separates the header, scale, instrument, MIDI, progression and side panel. It is black in light mode and white in dark.
+- **Play:**
+  - It plays the progression from the first chord, 1.2 seconds per chord, until the beat grid gives chords their own lengths (Phase 6).
+  - The chord sounding is lit in the strip and shown on the instrument.
+  - Stop, or any change to the progression, stops it.
+  - Each chord plays as the instrument view would play it: the top guitar shape strummed, or the keyboard voicing on show.
+- **+ on the chord boxes:**
+  - The guitar's chord box and the keyboard's voicing box each have a + that adds the chord as shaped after the selected chord.
+  - The shape's lowest note becomes the bass, so an inversion is added as a slash chord (C/E). The bass is spelled as the chord spells that tone.

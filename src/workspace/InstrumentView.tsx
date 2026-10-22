@@ -66,6 +66,8 @@ export type Shapes = {
   onAt: (at: number) => void
   filters: ShapeFilters
   onFiltersChange: (filters: ShapeFilters) => void
+  // Adds the shape, inversion and all, to the progression.
+  onAdd?: (chord: ChordName) => void
 }
 
 // The current chord's keyboard voicings, and which one is showing.
@@ -75,6 +77,8 @@ export type Voicings = {
   onAt: (at: number) => void
   filters: VoicingFilters
   onFiltersChange: (filters: VoicingFilters) => void
+  // Adds the voicing, inversion and all, to the progression.
+  onAdd?: (chord: ChordName) => void
 }
 
 // The instrument view (SPEC 2, 5): keyboard or full-neck fretboard, with the
@@ -214,6 +218,7 @@ export function InstrumentView({
               onAt={voicings.onAt}
               filters={voicings.filters}
               onFiltersChange={voicings.onFiltersChange}
+              onAdd={voicings.onAdd}
             />
           ) : (
             <EmptyBox label="Keyboard voicings" what="voicings" />
@@ -238,6 +243,7 @@ export function InstrumentView({
               onAt={shapes.onAt}
               filters={shapes.filters}
               onFiltersChange={shapes.onFiltersChange}
+              onAdd={shapes.onAdd}
             />
           ) : (
             <EmptyBox label="Chord shapes" what="guitar shapes" />
