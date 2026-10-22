@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'preact/hooks'
 import {
+  EXPERIMENTAL_LENSES,
   LENSES,
   LENS_SETTINGS,
   averageMovement,
@@ -39,6 +40,12 @@ const LENS_BLURBS: Record<Lens, string> = {
   rock: 'Power chords low down, moving in parallel; no 3rds under the gain.',
   open: 'A low bass under wide, ringing notes, with add9 and sus colours.',
   jazz: '7th chords as rootless voicings, shells and drop-2.',
+  quartal: 'Notes of the key stacked in 4ths over the root: open, floating.',
+  cluster: 'The chord squeezed close, with a 2nd, 4th or 6th from the key.',
+  upper: 'Another triad from the key floating over the root, 3rd and 7th.',
+  drone: 'The key note held low under every chord, the chords moving above.',
+  wildcard:
+    'Any lens, by chance, still moving smoothly. Fresh every time: Another rolls again.',
 }
 
 type Choice = LensChoice<LensVoicing | GuitarLensVoicing>
@@ -47,7 +54,8 @@ type Choice = LensChoice<LensVoicing | GuitarLensVoicing>
 const SWIPE = 50
 
 // The Voice tab (Phase 5 task 5, SPEC 8): the progression voiced through two
-// to four lenses side by side, on guitar or keyboard for all of them at once,
+// to four lenses side by side (from the four core lenses and the experimental
+// ones), on guitar or keyboard for all of them at once,
 // each column with its own Play. Tap a chord to hear it. Each column can go
 // into the progression as a new branch, or on the end (David's request). On
 // a phone one lens shows at a time; swipe or use the arrows to change it.
@@ -82,19 +90,30 @@ export function VoicePanel({
     [progression, sectionKey],
   )
   const shown = narrow ? [lenses[phoneAt % lenses.length]] : lenses
-  const columns = useMemo(
+  const voice = (lens: Lens) =>
+    (instrument === 'guitar'
+      ? voiceProgressionOnGuitar(guitar, lens, steps)
+      : voiceProgression(lens, steps)) as Choice[]
+  const settled = useMemo(
     () =>
-      shown.map((lens) => ({
-        lens,
-        choices: (instrument === 'guitar'
-          ? voiceProgressionOnGuitar(guitar, lens, steps)
-          : voiceProgression(lens, steps)) as Choice[],
-      })),
+      shown
+        .filter((l) => l !== 'wildcard')
+        .map((lens) => ({ lens, choices: voice(lens) })),
     [steps, instrument, guitar, shown.join()],
+  )
+  // The Wildcard rolls fresh whenever the progression or instrument changes,
+  // and again on Another (David's choice).
+  const [rolls, setRolls] = useState(0)
+  const wild = useMemo(
+    () => (shown.includes('wildcard') ? voice('wildcard') : []),
+    [steps, instrument, guitar, shown.includes('wildcard'), rolls],
+  )
+  const columns = shown.map(
+    (lens) => settled.find((c) => c.lens === lens) ?? { lens, choices: wild },
   )
   // The column playing and the chord sounding in it.
   const [playing, setPlaying] = useState<{ lens: Lens; at: number }>()
-  useEffect(() => setPlaying(undefined), [columns])
+  useEffect(() => setPlaying(undefined), [settled, wild])
   useEffect(() => {
     if (!playing) return
     const column = columns.find((c) => c.lens === playing.lens)
@@ -137,26 +156,31 @@ export function VoicePanel({
           <legend class="muted">
             Lenses ({MIN_LENSES}–{MAX_LENSES})
           </legend>
-          {LENSES.map((lens) => {
-            const on = lenses.includes(lens)
-            const locked =
-              (on && lenses.length <= MIN_LENSES) ||
-              (!on && lenses.length >= MAX_LENSES)
-            return (
-              <label key={lens} class="check">
-                <input
-                  type="checkbox"
-                  checked={on}
-                  disabled={locked}
-                  onChange={() => {
-                    setLenses(toggleLens(lenses, lens))
-                    setPhoneAt(0)
-                  }}
-                />
-                {LENS_SETTINGS[lens].name}
-              </label>
-            )
-          })}
+          {[LENSES, EXPERIMENTAL_LENSES].map((group, g) => (
+            <span key={g} class="lens-group">
+              <span class="muted">{g === 0 ? 'Core:' : 'Experimental:'}</span>
+              {group.map((lens: Lens) => {
+                const on = lenses.includes(lens)
+                const locked =
+                  (on && lenses.length <= MIN_LENSES) ||
+                  (!on && lenses.length >= MAX_LENSES)
+                return (
+                  <label key={lens} class="check">
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      disabled={locked}
+                      onChange={() => {
+                        setLenses(toggleLens(lenses, lens))
+                        setPhoneAt(0)
+                      }}
+                    />
+                    {LENS_SETTINGS[lens].name}
+                  </label>
+                )
+              })}
+            </span>
+          ))}
         </fieldset>
         <div class="toggle" role="group" aria-label="Instrument">
           {(['guitar', 'keyboard'] as const).map((i) => (
@@ -210,6 +234,9 @@ export function VoicePanel({
             onPlay={() => setPlaying({ lens, at: 0 })}
             onStop={() => setPlaying(undefined)}
             onHear={(choice) => play(choice)}
+            onAnother={
+              lens === 'wildcard' ? () => setRolls(rolls + 1) : undefined
+            }
             onUse={(where) =>
               onUse(
                 choices.map((c) => c.voicing),
@@ -233,6 +260,7 @@ function LensColumn({
   onPlay,
   onStop,
   onHear,
+  onAnother,
   onUse,
 }: {
   lens: Lens
@@ -243,6 +271,7 @@ function LensColumn({
   onPlay: () => void
   onStop: () => void
   onHear: (choice: Choice) => void
+  onAnother?: () => void // the Wildcard's roll again
   onUse: (where: 'branch' | 'end') => void
 }) {
   const movement = averageMovement(choices.map((c) => c.voicing.notes))
@@ -250,6 +279,11 @@ function LensColumn({
     <section class="lens-column" aria-label={LENS_SETTINGS[lens].name}>
       <header>
         <h3>{LENS_SETTINGS[lens].name}</h3>
+        {onAnother && (
+          <button type="button" onClick={onAnother}>
+            🎲 Another
+          </button>
+        )}
         {playingAt === undefined ? (
           <button type="button" class="play" onClick={onPlay}>
             ▶ Play

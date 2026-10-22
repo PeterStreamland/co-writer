@@ -950,3 +950,34 @@ Fixed from its findings, each with a test:
 **Play-test:** David tried the lenses and they work for him.
 
 The gate closes when this is merged. Phase 5 is released as `v0.5-voicings` on that merge; David adds the tag, as this session can't push tags. Next: the four experimental lenses and the Wildcard lens David asked for, then Phase 6.
+
+## 2026-10-22 — Experimental lenses and the Wildcard (David's request)
+
+David asked for more versatile, experimental lenses that are still informed by theory, and chose both ideas offered: four new lenses and a Wildcard, fresh every time. They sit beside the four core lenses (`EXPERIMENTAL_LENSES` in `src/theory/voice-rules-data.ts`, forms in `lens-data.ts`, generators in `lens.ts`). The Phase 5 exit criteria stay with the core four.
+
+- **Every experimental voicing uses only notes of the key (or of the chord itself).** It may not add a note a semitone above a chord tone: no ♭9 over the root, no 4th over a major 3rd, no ♭6 over the 5th (the avoid notes of arrangers' chord scales).
+- **Quartal:**
+  - The root, then notes stacked in perfect 4ths, three to five of them, with a major 3rd allowed on top. This finds E A D G B over Dm7, the "So What" voicing.
+  - A stack must sound at least two of the chord's notes, counting the bass. So What has no F, so the 3rd can't be required.
+- **Clusters:** the chord's tones squeezed within about a 5th, with one or two added 2nds, 4ths or 6ths from the key, so at least two notes sit a tone or a semitone apart.
+- **Upper structures:**
+  - The root, its 3rd (and 7th), and a major or minor triad from the key above them. The triad has a different root and adds at least one new note: Em over C adds B, Dm over G7 adds the 13th, G over C adds the 9th.
+  - The column names the triad ("Em over C").
+  - A lighter form with only the 3rd under the triad suits the guitar.
+- **Drone:**
+  - The key's tonic held low (with its 5th, in one form) under every chord, the chord in close position above. C F G C becomes C F/C G/C C.
+  - A lighter form leaves out the chord's 5th.
+  - After a key change the drone moves to the new tonic.
+- **Names:** clusters, stacks and upper structures are named from their notes where the namer can (Cadd9, Cmaj9, E7♯9), keeping the chord's root. Otherwise they keep the chord's name, and their label says what they are.
+- **Wildcard:**
+  - For each chord, a few voicings from every other lens after a roll of chance. Each lens's own liking counts a quarter.
+  - The search still weighs how they move, lightly, so the result surprises but hangs together.
+  - Each voicing is labelled with its lens ("Jazz: drop-2").
+  - It rolls fresh whenever the progression or instrument changes, and again on **🎲 Another**. ⑂ New branch keeps a roll you like.
+- **On guitar:**
+  - The experimental lenses fret their keyboard voicings exactly, using a new search for exact notes (`src/instruments/fret-notes.ts`): one note per string, within the 4-fret stretch.
+  - It tries the voicing as it is, an octave up or down, with notes below the low string raised an octave, and with everything above the lowest note an octave higher.
+  - Open strings far from the hand cost more, as in the fingering search.
+  - **Drones fit best in keys whose tonic is an open string (E, A, D, G).** In C, a held low C under Dm7 needs a 5-fret stretch, so some chords fall back to "as written", and the column says so.
+- **The picker** groups the lenses as Core and Experimental. Two to four show side by side, chosen from all nine.
+- **A bass range fix for the core lenses:** three bass ranges ran E2 to C3, which left no room for a D or E♭ bass. Jazz shells now cover D and E♭ chords too. The ranges now run E2 to E♭3.

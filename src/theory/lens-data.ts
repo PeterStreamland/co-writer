@@ -14,7 +14,26 @@ import type { Lens } from './voice-rules-data'
 // - shell: the bass, then the 3rd and 7th (or 6th)
 // - rootless: no bass; the 3rd, 5th, 7th and 9th
 // - drop-2: the arranger's drop-2 of each inversion (voicing.ts)
-export type FormKind = 'all' | 'power' | 'shell' | 'rootless' | 'drop-2'
+// The experimental lenses' forms take only notes of the key (or the chord):
+// - quartal: the bass, then notes stacked in perfect 4ths, with a major 3rd
+//   allowed on top ("So What"), sounding at least two of the chord's notes
+// - cluster: the bass, then the chord's tones packed close with an added
+//   2nd, 4th or 6th from the key
+// - upper: the bass, its 3rd and 7th, and a triad from the key above them
+//   that adds a colour (Em over Cmaj7)
+// - drone: the key's tonic held low under every chord, the chord above it
+// No added note may sit a semitone above the root or the 3rd (the clash
+// arrangers avoid).
+export type FormKind =
+  | 'all'
+  | 'power'
+  | 'shell'
+  | 'rootless'
+  | 'drop-2'
+  | 'quartal'
+  | 'cluster'
+  | 'upper'
+  | 'drone'
 
 export type LensForm = {
   id: string
@@ -31,6 +50,11 @@ export type LensForm = {
   maxSpan?: number // the widest the upper notes may spread
   double?: boolean // fill out a chord of fewer than four tones by doubling
   fifthBass?: boolean // power chords: the 5th under the root (C5/G)
+  size?: [fewest: number, most: number] // upper notes, for stacks and clusters
+  guide?: [low: string, high: string] // upper structures: the 3rd and 7th
+  thirdOnly?: boolean // upper structures: the 3rd alone under the triad
+  fifth?: boolean // drones: the tonic's 5th held with it
+  omitFifth?: boolean // drones: the chord's own 5th left out above it
 }
 
 // A colour a lens gives a chord quality: the quality it becomes and the
@@ -173,7 +197,7 @@ export const LENS_SETTINGS: Record<Lens, LensSettings> = {
         kind: 'shell',
         label: 'shell',
         cost: 1,
-        bass: ['E2', 'C3'],
+        bass: ['E2', 'Eb3'],
         upper: ['C3', 'G4'],
         maxGap: 11,
         maxBassGap: 16,
@@ -208,6 +232,135 @@ export const LENS_SETTINGS: Record<Lens, LensSettings> = {
       m6: ['m6/9'],
     },
     movement: { semitone: 1, missedCommonTone: 2, crossing: 4, overlap: 2 },
+    gain: false,
+  },
+  // Chords stacked in 4ths over the root, floating rather than pulling.
+  quartal: {
+    id: 'quartal',
+    name: 'Quartal',
+    forms: [
+      {
+        id: 'quartal',
+        kind: 'quartal',
+        label: 'stacked 4ths',
+        cost: 0,
+        bass: ['E2', 'Eb3'],
+        upper: ['C3', 'C5'],
+        size: [3, 5],
+      },
+    ],
+    recolour: {},
+    keep: 0,
+    movement: { semitone: 1, missedCommonTone: 1, crossing: 2, overlap: 1 },
+    gain: false,
+  },
+  // The chord's tones squeezed together with a 2nd, 4th or 6th added.
+  cluster: {
+    id: 'cluster',
+    name: 'Clusters',
+    forms: [
+      {
+        id: 'cluster',
+        kind: 'cluster',
+        label: 'cluster',
+        cost: 0,
+        bass: ['C2', 'C3'],
+        upper: ['G3', 'C5'],
+        maxGap: 3,
+        maxSpan: 7,
+        size: [3, 5],
+      },
+    ],
+    recolour: {},
+    keep: 0,
+    movement: { semitone: 1, missedCommonTone: 1, crossing: 2, overlap: 1 },
+    gain: false,
+  },
+  // A different triad from the key floating over the root, 3rd and 7th.
+  upper: {
+    id: 'upper',
+    name: 'Upper structures',
+    forms: [
+      {
+        id: 'upper',
+        kind: 'upper',
+        label: 'upper structure',
+        cost: 0,
+        bass: ['E2', 'Eb3'],
+        guide: ['A2', 'E4'],
+        upper: ['A3', 'E5'],
+        maxGap: 5,
+        maxSpan: 9,
+      },
+      {
+        id: 'upper-light',
+        kind: 'upper',
+        label: 'upper structure',
+        cost: 1,
+        bass: ['E2', 'Eb3'],
+        guide: ['A2', 'E4'],
+        upper: ['A3', 'E5'],
+        maxGap: 5,
+        maxSpan: 9,
+        thirdOnly: true,
+      },
+    ],
+    recolour: {},
+    keep: 0,
+    movement: { semitone: 1, missedCommonTone: 1, crossing: 3, overlap: 1 },
+    gain: false,
+  },
+  // The tonic held low as a pedal under every chord.
+  drone: {
+    id: 'drone',
+    name: 'Drone',
+    forms: [
+      {
+        id: 'drone',
+        kind: 'drone',
+        label: 'over the drone',
+        cost: 0,
+        bass: ['C2', 'B2'],
+        upper: ['G3', 'E5'],
+        maxGap: 5,
+        maxSpan: 12,
+      },
+      {
+        id: 'drone-fifth',
+        kind: 'drone',
+        label: 'over the drone and its 5th',
+        cost: 0.5,
+        bass: ['C2', 'B2'],
+        upper: ['G3', 'E5'],
+        maxGap: 5,
+        maxSpan: 12,
+        fifth: true,
+      },
+      {
+        id: 'drone-light',
+        kind: 'drone',
+        label: 'over the drone',
+        cost: 1,
+        bass: ['C2', 'B2'],
+        upper: ['G3', 'E5'],
+        maxGap: 5,
+        maxSpan: 12,
+        omitFifth: true,
+      },
+    ],
+    recolour: {},
+    keep: 0,
+    movement: { semitone: 1, missedCommonTone: 1, crossing: 2, overlap: 1 },
+    gain: false,
+  },
+  // Every lens's voicings, picked at random each time; see lens.ts.
+  wildcard: {
+    id: 'wildcard',
+    name: 'Wildcard',
+    forms: [],
+    recolour: {},
+    keep: 0,
+    movement: { semitone: 0.5, missedCommonTone: 0, crossing: 1, overlap: 0.5 },
     gain: false,
   },
 }

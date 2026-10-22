@@ -55,10 +55,24 @@ export const LOW_INTERVAL_LIMITS: Record<number, string> = {
   11: 'F2', // major 7th
 }
 
-// The voicing lenses (SPEC 8) and how many points each hit costs.
-export type Lens = 'classical' | 'rock' | 'open' | 'jazz'
+// The voicing lenses (SPEC 8) and how many points each hit costs: the four
+// core lenses the Phase 5 exit criteria hold for, then the experimental
+// ones (David's request): quartal, clusters, upper structures, a drone, and
+// a wildcard that mixes them all at random.
+export type CoreLens = 'classical' | 'rock' | 'open' | 'jazz'
+export type ExperimentalLens =
+  'quartal' | 'cluster' | 'upper' | 'drone' | 'wildcard'
+export type Lens = CoreLens | ExperimentalLens
 
-export const LENSES: Lens[] = ['classical', 'rock', 'open', 'jazz']
+export const LENSES: CoreLens[] = ['classical', 'rock', 'open', 'jazz']
+export const EXPERIMENTAL_LENSES: ExperimentalLens[] = [
+  'quartal',
+  'cluster',
+  'upper',
+  'drone',
+  'wildcard',
+]
+export const ALL_LENSES: Lens[] = [...LENSES, ...EXPERIMENTAL_LENSES]
 
 export const LENS_RULE_WEIGHTS: Record<Lens, Record<VoiceRule, number>> = {
   // Strict: parallels all but ruled out, tendency notes resolve, voices
@@ -102,6 +116,57 @@ export const LENS_RULE_WEIGHTS: Record<Lens, Record<VoiceRule, number>> = {
     seventh: 3,
     spacing: 1,
     'low-register': 4,
+    'thirds-under-gain': 0,
+  },
+  // Stacked 4ths float free of tonal pull: parallels are their nature, a
+  // muddy low end isn't.
+  quartal: {
+    'parallel-fifths': 0,
+    'parallel-octaves': 1,
+    'leading-note': 0,
+    seventh: 0,
+    spacing: 0,
+    'low-register': 4,
+    'thirds-under-gain': 0,
+  },
+  // Clusters are close on purpose; only mud below them counts.
+  cluster: {
+    'parallel-fifths': 0,
+    'parallel-octaves': 1,
+    'leading-note': 0,
+    seventh: 1,
+    spacing: 0,
+    'low-register': 4,
+    'thirds-under-gain': 0,
+  },
+  // A triad over a shell: the guide tones still lead.
+  upper: {
+    'parallel-fifths': 1,
+    'parallel-octaves': 2,
+    'leading-note': 1,
+    seventh: 2,
+    spacing: 0,
+    'low-register': 4,
+    'thirds-under-gain': 0,
+  },
+  // The chords move over a held note; tendency notes still lean.
+  drone: {
+    'parallel-fifths': 1,
+    'parallel-octaves': 2,
+    'leading-note': 2,
+    seventh: 2,
+    spacing: 1,
+    'low-register': 3,
+    'thirds-under-gain': 0,
+  },
+  // Anything goes, but bare parallels and mud still cost a little.
+  wildcard: {
+    'parallel-fifths': 2,
+    'parallel-octaves': 2,
+    'leading-note': 1,
+    seventh: 1,
+    spacing: 0,
+    'low-register': 2,
     'thirds-under-gain': 0,
   },
 }
