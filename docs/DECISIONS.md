@@ -321,3 +321,7 @@ Phase 2 task 7 (`src/workspace/Workspace.tsx`, `SidePanel.tsx`), arranging the s
 - **Phone and narrow windows:** the side panel is a sheet along the bottom (SPEC 2), open by default at up to 42% of the screen height. Hide and Show collapse it to its tab bar, and the page leaves room so nothing hides behind it. On a phone the header and toolbar are tighter and the app name is hidden, so the instrument fits above the sheet.
 - **First chord without the wait:** the piano samples now download into the browser's cache once the page is idle. The first press anywhere on the page starts decoding them, so they are ready before the first chord. No sound plays until you ask for one.
 - **"Usable on your phone's screen"** stays unticked until David has tried the layout on his phone.
+
+## 2026-10-22 — Side panel under the instrument (David's choice)
+
+After trying the side-by-side layout, David preferred the side panel **under the instrument view at full width**: beside it, the chord rows were too narrow and needed scrolling sideways. On laptops and tablets the page now runs header, instrument view, MIDI panel, then the side panel's tabs (Explore) at full width. On phones (under 40rem) the side panel stays a sheet along the bottom with Hide and Show, as before. This changes SPEC 2's sketch, which put the side panel to the right.

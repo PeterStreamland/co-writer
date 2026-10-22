@@ -23,7 +23,7 @@ import {
 
 // The single workspace (SPEC 2): the key picker in the header, the
 // instrument view with MIDI input as the stage, and the side panel's tools
-// beside it on a laptop or as a sheet along the bottom on a phone.
+// under it, or as a sheet along the bottom on a phone.
 export function Workspace() {
   const [key, setKey] = useState<Key>(loadKey)
   const [chord, setChord] = useState<ChordName>()
@@ -60,15 +60,15 @@ export function Workspace() {
             onInstrumentChange={setInstrument}
           />
           <MidiPanel midi={midi} playing={playing} />
-          <footer>
-            <a href="#/audit">Phase 1 audit table</a>
-          </footer>
         </main>
         <SidePanel
           tabs={[{ id: 'explore', label: 'Explore', content: explore }]}
           open={sheetOpen}
           onOpenChange={setSheetOpen}
         />
+        <footer>
+          <a href="#/audit">Phase 1 audit table</a>
+        </footer>
       </div>
     </div>
   )

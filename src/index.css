@@ -171,8 +171,9 @@ body:has(.workspace) #app {
   align-self: start;
 }
 
-/* Layout (SPEC 2): header, then the stage (instrument view) beside the side
-   panel on a laptop; on a phone the side panel is a sheet along the bottom. */
+/* Layout (SPEC 2, as changed by David): header, then the stage (instrument
+   view) with the side panel under it; on a phone the side panel is a sheet
+   along the bottom. */
 .workspace .top {
   display: flex;
   flex-wrap: wrap;
@@ -197,7 +198,7 @@ body:has(.workspace) #app {
   min-width: 0;
 }
 
-.stage footer {
+.layout footer {
   border-top: 1px solid var(--line);
   margin-top: 2rem;
   padding-top: 0.75rem;
@@ -245,31 +246,15 @@ body:has(.workspace) #app {
   padding-top: 0.25rem;
 }
 
-@media (min-width: 64rem) {
-  .layout {
-    grid-template-columns: minmax(0, 1fr) minmax(22rem, 28rem);
-    align-items: start;
-  }
-
-  /* The side panel scrolls on its own, beside the instrument view. */
-  .side {
-    position: sticky;
-    top: 0.5rem;
-    max-height: calc(100vh - 1rem);
-    display: flex;
-    flex-direction: column;
-  }
-
-  .side-content {
-    overflow-y: auto;
-  }
-
+/* Laptops and tablets: the side panel sits under the instrument view at full
+   width (David's choice), so the chord rows fit without scrolling sideways. */
+@media (min-width: 40rem) {
   .sheet-toggle {
     display: none;
   }
 }
 
-@media (max-width: 63.99rem) {
+@media (max-width: 39.99rem) {
   /* A sheet along the bottom: the tab bar always shows, the content when
      open, and the page leaves room for it. */
   .side {
@@ -295,11 +280,11 @@ body:has(.workspace) #app {
     display: block;
   }
 
-  .stage {
+  .layout {
     padding-bottom: 4rem;
   }
 
-  .workspace.sheet-open .stage {
+  .workspace.sheet-open .layout {
     padding-bottom: 48vh;
   }
 }
