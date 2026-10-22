@@ -50,7 +50,7 @@ export const passingChords: {
   },
   // A leading-note diminished 7th into V.
   { key: 'C major', style: 'classical', from: 'C', to: 'G', shown: ['F#dim7'] },
-  // Jazz: ii7 and the tritone substitute of V7/V.
+  // Jazz: ii7 and V7/V (comment corrected 2026-10-22 with David's go-ahead).
   { key: 'C major', style: 'jazz', from: 'C', to: 'G', shown: ['Dm7', 'D7'] },
   // Minor key: the dominant of iv.
   { key: 'E minor', style: 'metal', from: 'Em', to: 'Am', shown: ['E7'] },

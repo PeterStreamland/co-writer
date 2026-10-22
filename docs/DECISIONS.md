@@ -754,8 +754,9 @@ Fixed from its findings, each with a test:
 - **Determinism:** a pivot offered into two keys sorts the same way whatever order the generators run in.
 - **New test:** answering No to a key change keeps later chords in the old key (SPEC 13).
 
-Open, for David:
+Settled by David:
 
-- **Passing-chord order (SPEC 6.7):** the spec says a chord that points at the second (its secondary dominant, leading-note chord or tritone substitute) ranks highest. The passing-chords fixture instead wants Dm before D7 between C and G. Which should lead?
-- **A golden-fixture comment:** the passing-chords fixture's jazz row says "the tritone substitute of V7/V" but lists D7, which is V7/V itself. The comment should say "V7/V".
-- **David's play-test.** After that the gate closes and Phase 4 is tagged `v0.4-next-chord`.
+- **Passing-chord order:** his fixture stands for now, so between C and G, Dm (ii) leads and D7 (V7/V) comes close behind. SPEC 6.7 is updated to match: chords that lead strongly into the second rank highest, with a fall of a 5th (ii into V) counting as strongly as a secondary dominant.
+- **The passing-chords fixture's jazz comment** now reads "ii7 and V7/V". The row itself was already right. Changed with his go-ahead.
+
+Still open: David's play-test. After that the gate closes and Phase 4 is tagged `v0.4-next-chord`.
