@@ -46,6 +46,7 @@ import {
   EMPTY_PROGRESSION,
   addAfter,
   chordsUpTo,
+  insertBetween,
   keyAfter,
   pathNodes,
   selectNode,
@@ -124,10 +125,17 @@ export function Workspace() {
     chord && (!selectedChord || chordKey(chord) !== chordKey(selectedChord))
       ? chord
       : undefined
+  // Passing chords (SPEC 6.7): + between beside the selected chord fills
+  // the gap to the next one, until another chord is selected.
+  const [betweenAt, setBetweenAt] = useState<number>()
+  const between =
+    betweenAt === selected && selected + 1 < path.length ? betweenAt : undefined
+  const nextChord = between === undefined ? undefined : path[between + 1].chord
   const previous = [
     ...chordsUpTo(progression, selected),
-    ...(freeChord ? [freeChord] : []),
+    ...(freeChord && between === undefined ? [freeChord] : []),
   ]
+  const [tab, setTab] = useState('explore')
   const suggestKey = keyAfter(progression, selected, key)
   // A change to the progression, selecting a slot in the new path.
   function change(next: Progression, select: number) {
@@ -257,15 +265,28 @@ export function Workspace() {
       playNow(s.candidate)
       return
     }
-    if (freeChord || selected < 0) playNow(last)
+    if (between === undefined && (freeChord || selected < 0)) playNow(last)
     else playNode(path[selected])
     setTimeout(() => playNow(s.candidate), PREVIEW_GAP_MS)
+    // A passing chord is heard between the two chords.
+    if (between !== undefined) {
+      const after = path[between + 1]
+      setTimeout(() => playNode(after), 2 * PREVIEW_GAP_MS)
+    }
   }
   // Using a suggestion adds it after the selected chord (after the current
   // chord too, when that isn't in the strip yet): at the end it extends the
   // progression, mid-strip it becomes an alternative at the next slot. A
   // pivot asks whether to carry on in its new key (SPEC 6.4).
   function acceptSuggestion(s: NextChordSuggestion) {
+    if (between !== undefined) {
+      // A passing chord goes in between the two chords.
+      change(insertBetween(progression, between, s.candidate), between + 1)
+      setBetweenAt(undefined)
+      setPreview(undefined)
+      playNow(s.candidate)
+      return
+    }
     const keyChange =
       s.keyChange && confirm(`Continue in ${nameOfKey(s.keyChange)} from here?`)
         ? s.keyChange
@@ -331,6 +352,7 @@ export function Workspace() {
   useEffect(() => setPlayingAt(undefined), [progression])
   function selectSlot(index: number) {
     setSelectedAt(index)
+    setBetweenAt(undefined)
     setChord(path[index].chord)
     showNode(path[index])
     playNode(path[index])
@@ -356,12 +378,20 @@ export function Workspace() {
         const next = selectNode(progression, id)
         change(next, next.activePath.indexOf(id))
       }}
+      between={between}
+      onBetween={(index) => {
+        setBetweenAt(between === index ? undefined : index)
+        setTab('suggest')
+        setSheetOpen(true)
+      }}
     />
   )
   const suggest = (
     <SuggestPanel
       keyValue={suggestKey}
       previous={previous}
+      next={nextChord}
+      onLeave={() => setBetweenAt(undefined)}
       weights={weights}
       preview={preview}
       onPreview={previewSuggestion}
@@ -447,6 +477,8 @@ export function Workspace() {
           ]}
           open={sheetOpen}
           onOpenChange={setSheetOpen}
+          active={tab}
+          onActiveChange={setTab}
         />
         <footer>
           <a href="#/audit">Phase 1 audit table</a>

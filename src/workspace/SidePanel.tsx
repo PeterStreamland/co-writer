@@ -13,14 +13,25 @@ export function SidePanel({
   aside,
   open,
   onOpenChange,
+  active: shownTab,
+  onActiveChange,
 }: {
   tabs: Tab[]
   // Shown to the right of every tab's content (the chord box).
   aside?: ComponentChildren
   open: boolean
   onOpenChange: (open: boolean) => void
+  // The tab showing, when the workspace chooses it (+ between opens
+  // Suggest); otherwise the panel keeps track itself.
+  active?: string
+  onActiveChange?: (id: string) => void
 }) {
-  const [active, setActive] = useState(tabs[0].id)
+  const [own, setOwn] = useState(tabs[0].id)
+  const active = shownTab ?? own
+  const setActive = (id: string) => {
+    setOwn(id)
+    onActiveChange?.(id)
+  }
   const current = tabs.find((t) => t.id === active) ?? tabs[0]
   return (
     <aside class={open ? 'side open' : 'side'}>

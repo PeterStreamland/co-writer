@@ -677,3 +677,38 @@ David found that a chord added from a chord box played back in root position, wh
 - **Selecting or playing the chord** shows the same shape in the chord box, where the box still offers it with the current filters.
 - **Chords added any other way** (a suggestion, or the strip's + for a chord picked in Explore) have no stored shape. They play as the instrument view would, as before.
 - **Shapes travel and drop as needed:** a shared chord copied for an alternative keeps its shape, and changing a chord drops it.
+
+## 2026-10-22 — The ⓘ panel
+
+Phase 4 task 6 (`src/theory/insight.ts`, `src/workspace/ChordInfo.tsx`). Choices the plan and SPEC didn't settle:
+
+- **On each suggestion card:** the first line is the rule's explanation, as before, followed by ⓘ. One context note shows on the card; the rest are under ⓘ. One panel is open at a time.
+- **The panel holds:**
+  - the chord's reading in the key and its notes ("♭VI, borrowed from C Aeolian · A♭ C E♭")
+  - **More:** how the root moves from the chord before, the short way round ("The root rises a perfect 4th, G to C"); the notes the two share; and how the other notes move, each from the nearest free note of the chord before ("B up a semitone to C, F down a semitone to E"). Any other reading of the same chord follows as "Also: …".
+  - **Why it ranks here:** the context notes.
+  - Corpus examples join More in Phase 9.
+- **Chords in the strip (SPEC 6.3):** the selected chord shows its reading under the strip, with an ⓘ that compares it with the chord before. This applies to every chord, suggested or added by hand.
+- **New golden fixture:** `tests/fixtures/insights.ts` has six hand-written cases, including G7 to C (the leading note rising, the 7th falling) and Em to F (♭II from Phrygian, no shared notes).
+
+## 2026-10-22 — Passing chords
+
+Phase 4 task 7 (`src/theory/passing.ts`, settings in `src/theory/passing-data.ts`), following SPEC 6.7. Choices the spec didn't settle:
+
+- **Where + between appears:** in the strip, beside the selected chord when another chord follows it. It switches the Suggest tab to "Between C and G" until another chord is selected or "Back to what comes next" is tapped.
+- **How passing chords are scored:**
+  - The candidates are those that could follow the first chord (styled as usual, minus pivots).
+  - Each is rescored as half its fit after the first chord, plus how strongly it leads into the second. That lead is the strongest of these relations:
+    - the second chord's dominant (5)
+    - a chord a 5th above that falls into it, as ii does into V (5)
+    - its leading-note chord (4.5)
+    - its tritone substitute (4)
+    - the key's function flow, scaled to at most 4
+    - a root a step away (2.5)
+  - On a tie, the more specific relation wins.
+  - A chord on the first chord's root barely moves (Csus4 between C and F), so its lead counts half, unless it is a dominant 7th (C7, I to I7 to IV).
+- **What the card says:** how the chord leads into the second one ("D7 is the dominant of G, so it pulls straight into it"). Its reading after the first chord moves under ⓘ's More.
+- **Using one** inserts it between the two chords. The second chord and everything after it move along under the new chord, and other alternatives at that slot stay where they were. Undo covers it.
+- **The preview** plays all three chords.
+- **New golden fixture:** `tests/fixtures/passing-chords.ts` has eight hand-written cases: the plan's three textbook bridges (V7/V and ii between I and V, V7 between ii and I), secondary dominants, a leading-note diminished 7th in classical, jazz's ii7, and a minor-key case. The exit criterion is ticked.
+- **Next:** all seven Phase 4 tasks and all five exit criteria are done, so the Phase 4 gate comes next.

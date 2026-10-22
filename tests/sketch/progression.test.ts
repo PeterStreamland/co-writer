@@ -6,6 +6,7 @@ import {
   changeAt,
   chordsUpTo,
   isProgression,
+  insertBetween,
   isShared,
   keyAfter,
   keyAt,
@@ -158,6 +159,34 @@ describe('undo and redo (SPEC 13)', () => {
     expect(h.future).toEqual([])
     expect(record(h, h.present)).toBe(h)
     expect(undo(startHistory(EMPTY_PROGRESSION)).past).toEqual([])
+  })
+})
+
+describe('passing chords', () => {
+  it('inserts a chord between two others', () => {
+    const p = insertBetween(build('C', 'G', 'Am'), 0, parse('D7'))
+    expect(strip(p)).toBe('C D7 G Am')
+    expect(isShared(p, 2)).toBe(false)
+    expect(isShared(p, 3)).toBe(false)
+  })
+
+  it('keeps the other alternatives at the next slot', () => {
+    let p = addAfter(build('C', 'G'), 0, parse('F')) // C F, G an alternative
+    p = insertBetween(p, 0, parse('Dm'))
+    expect(strip(p)).toBe('C Dm F')
+    // G, with no chords of its own after it, shares Dm's F.
+    expect(strip(switchAt(p, 1, -1))).toBe('C G F')
+  })
+
+  it('gives a shared chord its own copy before inserting', () => {
+    let p = addAfter(build('C', 'F', 'G'), 0, parse('Am')) // C Am G (shared)
+    p = insertBetween(p, 1, parse('D7'))
+    expect(strip(p)).toBe('C Am D7 G')
+    expect(strip(switchAt(p, 1, 1))).toBe('C F G')
+  })
+
+  it('needs a chord after the slot', () => {
+    expect(() => insertBetween(build('C'), 0, parse('G'))).toThrow()
   })
 })
 

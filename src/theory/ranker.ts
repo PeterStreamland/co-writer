@@ -184,7 +184,7 @@ function hash(text: string): number {
   return h
 }
 
-function seedOf(context: NextChordContext): number {
+export function seedOf(context: NextChordContext): number {
   const weights = Object.entries(context.weights ?? {})
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     .map(([id, w]) => `${id}=${w}`)
@@ -209,6 +209,25 @@ function wildcardPool(
   return rest.slice(0, Math.ceil(rest.length * RANKING.wildcardShare))
 }
 
+// Shows a sorted list as six to eight grouped suggestions plus a wildcard,
+// picked by the seed and stepped on by Another. The passing-chord ranker
+// shares it.
+export function presentRanked(
+  sorted: NextChordSuggestion[],
+  seed: number,
+  another = 0,
+): RankedChords {
+  const shown = pick(sorted)
+  const pool = wildcardPool(sorted, shown)
+  const ranked: RankedChords = {
+    shown,
+    groups: group(shown),
+    wildcards: pool.length,
+  }
+  if (pool.length) ranked.wildcard = pool[(seed + another) % pool.length]
+  return ranked
+}
+
 // The ranked next chords for the context. another counts presses of
 // Another: each steps to the next wildcard, and none repeats until the pool
 // wraps round.
@@ -220,16 +239,5 @@ export function rankNextChords(
     nextChordCandidates(context).map((s) => withContext(context, s)),
     chordKey,
   ) as NextChordSuggestion[]
-  const shown = pick(sorted)
-  const pool = wildcardPool(sorted, shown)
-  const ranked: RankedChords = {
-    shown,
-    groups: group(shown),
-    wildcards: pool.length,
-  }
-  if (pool.length) {
-    const at = (seedOf(context) + (options.another ?? 0)) % pool.length
-    ranked.wildcard = pool[at]
-  }
-  return ranked
+  return presentRanked(sorted, seedOf(context), options.another)
 }

@@ -220,6 +220,48 @@ export function switchAt(
   return remember({ ...p, activePath })
 }
 
+// Puts a chord between a slot and the next one (a passing chord): the next
+// chord and everything after it move along one, under the new chord. Other
+// alternatives at the next slot stay where they were.
+export function insertBetween(
+  p: Progression,
+  index: number,
+  chord: ChordName,
+  options: AddOptions = {},
+): Progression {
+  if (index < 0 || index + 1 >= p.activePath.length) {
+    throw new Error(`no chord after slot ${index} to insert before`)
+  }
+  const own = materialise(p, index + 1)
+  const beforeId = own.activePath[index]
+  const afterId = own.activePath[index + 1]
+  const id = nextId(own)
+  const inserted: ChordNode = {
+    id,
+    chord,
+    parent: beforeId,
+    children: [afterId],
+  }
+  if (options.keyChange) inserted.keyChange = options.keyChange
+  if (options.voicing) inserted.voicing = options.voicing
+  const before = node(own, beforeId)
+  const nodes = {
+    ...own.nodes,
+    [id]: inserted,
+    [beforeId]: {
+      ...before,
+      children: before.children.map((c) => (c === afterId ? id : c)),
+    },
+    [afterId]: { ...node(own, afterId), parent: id },
+  }
+  const activePath = [
+    ...own.activePath.slice(0, index + 1),
+    id,
+    ...own.activePath.slice(index + 1),
+  ]
+  return remember({ ...own, nodes, activePath })
+}
+
 // Changes the chord at a slot, giving it its own copy first if it was
 // shared. The old chord's shape goes with it.
 export function changeAt(
