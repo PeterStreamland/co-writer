@@ -133,14 +133,15 @@ describe('experimental lenses', () => {
     ).toEqual(['C', 'F/C', 'G/C', 'C'])
   })
 
-  it('voices every test progression in every experimental lens', () => {
-    for (const p of progressions) {
-      for (const lens of EXPERIMENTAL_LENSES) {
+  it.each(EXPERIMENTAL_LENSES)(
+    'voices every test progression in the %s lens',
+    (lens) => {
+      for (const p of progressions) {
         const voiced = voiceProgression(lens, p.steps, seededRandom(1))
         expect(voiced).toHaveLength(p.steps.length)
       }
-    }
-  })
+    },
+  )
 })
 
 describe('the Wildcard', () => {

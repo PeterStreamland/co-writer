@@ -47,9 +47,10 @@ describe('fretting exact notes', () => {
 })
 
 describe('experimental lenses on guitar', () => {
-  it('voices every test progression with reachable shapes', () => {
-    for (const p of progressions.slice(0, 8)) {
-      for (const lens of EXPERIMENTAL_LENSES) {
+  it.each(EXPERIMENTAL_LENSES)(
+    'voices the test progressions with reachable shapes in the %s lens',
+    (lens) => {
+      for (const p of progressions.slice(0, 8)) {
         const voiced = voiceProgressionOnGuitar(
           standard,
           lens,
@@ -69,6 +70,6 @@ describe('experimental lenses on guitar', () => {
           }
         }
       }
-    }
-  })
+    },
+  )
 })

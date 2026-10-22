@@ -324,7 +324,20 @@ function poolOf(chord: ChordName, key: Key): Map<number, Note> {
 // tones (the ♭9 over the root, the 4th over a major 3rd, the ♭6 over the
 // 5th: the avoid notes of arrangers' chord scales).
 function clashes(chord: ChordName, pc: number): boolean {
-  return tonesOf(chord).some((t) => pc === (pitchClass(t.note) + 1) % 12)
+  return clashSet(chord).has(pc)
+}
+
+// The pitch classes a semitone above a chord's tones, worked out once per
+// chord.
+const clashSets = new Map<string, Set<number>>()
+function clashSet(chord: ChordName): Set<number> {
+  const id = `${pitchClass(chord.root)} ${chord.quality}`
+  let found = clashSets.get(id)
+  if (!found) {
+    found = new Set(tonesOf(chord).map((t) => (pitchClass(t.note) + 1) % 12))
+    clashSets.set(id, found)
+  }
+  return found
 }
 
 // A bass under upper notes already placed: each octave in the form's range
@@ -508,6 +521,30 @@ function drone(chord: ChordName, form: LensForm, key: Key): Note[][] {
 // root where a name allows (C D E G over C is Cadd9); otherwise the chord
 // named by its lowest note.
 function nameVoicing(chord: ChordName, notes: Note[], key: Key): ChordName {
+  // Many voicings share their notes' spellings and lowest note, and naming
+  // is slow, so names are kept for reuse.
+  const lowest = notes.reduce((a, b) => (pitch(b) < pitch(a) ? b : a))
+  const spell = (n: Note) => `${n.letter}${n.accidental}`
+  const id = [
+    formatNote(key.tonic),
+    key.mode,
+    spell(chord.root),
+    chord.quality,
+    spell(lowest),
+    ...[...new Set(notes.map(spell))].sort(),
+  ].join(' ')
+  const known = voicingNames.get(id)
+  if (known) return known
+  if (voicingNames.size > MAX_KEPT_NAMES) voicingNames.clear()
+  const named = nameFromNotes(chord, notes, key)
+  voicingNames.set(id, named)
+  return named
+}
+
+const voicingNames = new Map<string, ChordName>()
+const MAX_KEPT_NAMES = 5000
+
+function nameFromNotes(chord: ChordName, notes: Note[], key: Key): ChordName {
   const names = chordNames(notes, { key })
   const same = names.find((n) => pitchClass(n.root) === pitchClass(chord.root))
   if (!same || same.omitted?.length) return nameByLowest(chord, notes)
@@ -700,7 +737,7 @@ export function voiceProgression(
 // result is surprising but hangs together. A fresh `random` gives a fresh
 // result every time.
 const WILD_CHANCE = 8 // points of chance added to each voicing's cost
-const WILD_KEEP = 12 // voicings kept from each lens
+const WILD_KEEP = 6 // voicings kept from each lens
 const WILD_TASTE = 0.25 // how much each lens's own liking still counts
 
 export function wildcardVoicings(
