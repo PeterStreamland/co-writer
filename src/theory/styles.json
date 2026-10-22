@@ -27,6 +27,8 @@
         "rock.flat-six": 3,
         "rock.flat-three": 2,
         "rock.power-chord": 1,
+        "rock.plagal": 2,
+        "rock.return-home": 2,
         "pedal.static": 3,
         "pedal.bass": 3,
         "pedal.sus": 4
@@ -58,6 +60,8 @@
         "rock.flat-six": 4,
         "rock.flat-three": 4,
         "rock.power-chord": 5,
+        "rock.plagal": 5,
+        "rock.return-home": 4,
         "pedal.static": 4,
         "pedal.bass": 3,
         "pedal.sus": 4
@@ -89,6 +93,8 @@
         "rock.flat-six": 5,
         "rock.flat-three": 3,
         "rock.power-chord": 5,
+        "rock.plagal": 3,
+        "rock.return-home": 5,
         "pedal.static": 4,
         "pedal.bass": 4,
         "pedal.sus": 2

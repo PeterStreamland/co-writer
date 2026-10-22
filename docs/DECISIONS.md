@@ -571,3 +571,38 @@ Phase 4 task 3 (`src/theory/style.ts`, built-in weights in `src/theory/styles.js
   - Saved edits are read over the built-in weights, so a rule added later still gets a weight.
 - **Section adjustments** (SPEC 3: Chorus favours tonic arrivals, and so on) wait for sections to reach the engine.
 - **Exit criterion not yet ticked:** "Switching profile moves the ranking the expected way" passes against the full candidate list. A new golden fixture, `tests/fixtures/style-rankings.ts`, has ten cases, including metal ranking ♭VI and ♭VII above where pop does. It will be ticked once the ranker (task 4) shows the same on its top eight.
+
+## 2026-10-22 — The next-chord ranker and the Suggest tab
+
+Phase 4 task 4 (`src/theory/ranker.ts`, settings in `src/theory/ranker-data.ts`), with a first Suggest tab and the header's style blend control so David can try it. Choices the plan and SPEC didn't settle:
+
+- **Context effects (SPEC 6.1),** each with its own line in the suggestion's context notes:
+  - **Overuse:** nothing after one earlier use of a chord, then 0.5 off per further use ("you've used C three times").
+  - **Phrase position:** until the beat grid (Phase 6), each chord counts as one bar. Bar 8 favours the key's own tonic chord (+1). Bar 4 favours the tonic or a major V (+0.5).
+  - **No tonic yet:** after three chords with no tonic, the tonic gets +0.5.
+  - A tonic arrival is the key's own chord on the tonic, or a tonic power chord: C or Cmaj7 in C, never C7 or Cm.
+  - Section labels wait for sections.
+- **What's shown:** the best first, at most three from any one category, six to eight in all. Past six, only suggestions scoring at least half the top score are added. A move the style weighs at 0 is never shown. Groups appear in the order of their best suggestion.
+- **The wildcard:**
+  - It comes from the lower-scoring half of the moves not shown, including any the style weighs at 0. So it can come from outside the style (SPEC 6.2).
+  - A seed made from the key, the chords and the style picks it, so the same input gives the same wildcard.
+  - Another steps through the pool and repeats nothing until it wraps round.
+- **New generator rules,** found by the known-progressions test:
+  - **Falling-4th step** (rock): ♭VII to IV, IV to I, away from the tonic, as in I–♭VII–IV.
+  - **Riff-style return to the tonic** (rock): i–♭II–i, i–♭VI–♭VII–i.
+  - Both are weighted in all three styles.
+- **Small scoring changes:**
+  - Secondary dominants now fit by target: V7/V and V7/vi are the most common and V7/iii the rarest. A leading-note chord fits one less than the dominant to the same target.
+  - Power chords on ♭III, ♭VI and ♭VII fit a little better than the other degrees, and ♭II a little worse.
+- **New golden fixture:** `tests/fixtures/known-progressions.ts` has ten well-known progressions (I–V–vi–IV, ii–V–I, I–♭VII–IV, i–♭II–i and others). In each, the real next chord is among those shown for the matching style.
+- **Exit criteria ticked:**
+  - every suggestion carries a category and an explanation
+  - the same input and style give the same list and wildcard
+  - the style-rankings fixture holds on the shown list
+  - the known progressions all pass
+- **Suggest tab (ahead of tasks 5 and 6):**
+  - It lists the suggestions after the current chord, grouped, with each explanation and context note shown inline. The ⓘ panel (task 6) will tidy this.
+  - Tapping a suggestion plays the current chord, then the suggestion, and shows it on the instrument.
+  - - makes it the current chord. A pivot asks "Continue in G major from here?" (SPEC 6.4).
+  - With no strip yet, only the current chord counts as history, so phrase and overuse effects show once the strip (task 5) keeps the whole progression.
+- **Style blend control:** sits in the header. It is remembered in this browser until each section keeps its own.

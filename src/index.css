@@ -1138,3 +1138,126 @@ body:has(.workspace) #app {
   color: var(--accent);
   font-weight: 600;
 }
+
+/* Style blend control in the header (SPEC 6.6). */
+.style-blend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.6rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.style-blend input[type='range'] {
+  width: 7rem;
+}
+
+/* Suggest tab (SPEC 6.2). */
+.suggest h2 {
+  font-size: 1.2rem;
+  margin: 1rem 0 0.2rem;
+}
+
+.suggest > p {
+  margin: 0 0 0.5rem;
+}
+
+.suggest h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin: 1rem 0 0.4rem;
+}
+
+.suggest ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 0.5rem;
+}
+
+.suggestion {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.25rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.4rem 0.5rem;
+  background: var(--card);
+}
+
+.suggestion.previewing {
+  border-color: var(--accent);
+}
+
+.suggestion .preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.6rem;
+  border: none;
+  background: none;
+  color: inherit;
+  padding: 0.2rem 0;
+  text-align: left;
+  cursor: pointer;
+  min-height: 2.25rem;
+}
+
+.suggestion .symbol {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.suggestion .numeral {
+  color: var(--muted);
+}
+
+.suggestion .badge {
+  font-size: 0.75rem;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 0 0.4rem;
+}
+
+.suggestion .accept {
+  align-self: start;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  font-size: 1.2rem;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.suggestion .why,
+.suggestion .context {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.suggestion .context {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.suggest .wildcard .suggestion {
+  border-style: dashed;
+}
+
+.suggest .another {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 0.85rem;
+  padding: 0.15rem 0.6rem;
+}

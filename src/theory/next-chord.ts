@@ -42,8 +42,9 @@ import {
   NEXT_CHORD_RULES,
   PEDAL_INTERVALS,
   PIVOT_DEGREES,
-  POWER_CHORD_INTERVALS,
+  POWER_CHORD_STEPS,
   ROCK_MOVES,
+  SECONDARY_TARGET_FITS,
   START_SCORES,
   type HarmonicFunction,
   type NextChordRule,
@@ -95,6 +96,7 @@ function interval(text: string): Interval {
 }
 
 const PERFECT_5TH = interval('P5')
+const PERFECT_4TH = interval('P4')
 const MAJOR_3RD = interval('M3')
 const MINOR_2ND = interval('m2')
 
@@ -280,6 +282,9 @@ function secondary(ctx: Context): Candidate[] {
   const { key } = ctx
   const candidates: Candidate[] = []
   for (const target of secondaryTargets(key)) {
+    // How common this target is: V7/V and V7/vi more than V7/iii.
+    const degree = Number(degreeLabel(key.tonic, target.root).slice(-1))
+    const fit = SECONDARY_TARGET_FITS[degree]
     const values = {
       target: targetKeyName(target),
       resolution: name(target),
@@ -293,6 +298,7 @@ function secondary(ctx: Context): Candidate[] {
       candidates.push({
         chord: dominant,
         rule: 'secondary.dominant',
+        score: fit,
         values: {
           ...values,
           numeral: asDominant.numeral,
@@ -310,6 +316,7 @@ function secondary(ctx: Context): Candidate[] {
       candidates.push({
         chord: leading,
         rule: 'secondary.leading-note',
+        score: fit === undefined ? undefined : fit - 1,
         values: {
           ...values,
           numeral: asLeading.numeral,
@@ -471,8 +478,9 @@ function pivots(ctx: Context): Candidate[] {
   return candidates
 }
 
-// Rock moves: major chords on ♭VII, ♭VI and ♭III, and power-chord riffs
-// when the previous chord is a power chord.
+// Rock moves: major chords on ♭VII, ♭VI and ♭III, falling-4th steps and
+// returns home, and power-chord riffs when the previous chord is a power
+// chord.
 function rock(ctx: Context): Candidate[] {
   const { key, previous } = ctx
   const tonic = name(tonicChord(key))
@@ -487,12 +495,40 @@ function rock(ctx: Context): Candidate[] {
       values: { numeral: numeral(key, chord), tonicChord: tonic },
     }
   })
+  // Away from the tonic, a root falling a 4th (C to G in D major, D to A
+  // in A major) and a straight return to the tonic are rock staples.
+  if (!sameNote(previous.root, key.tonic)) {
+    const power = previous.quality === '5'
+    const root = transposeDown(previous.root, PERFECT_4TH)
+    const triad = triads(key).find((t) => sameNote(t.root, root))
+    const plagal = {
+      root,
+      quality: power ? '5' : (triad?.quality ?? 'M'),
+    }
+    if (plagal.quality !== 'dim') {
+      candidates.push({
+        chord: plagal,
+        rule: 'rock.plagal',
+        values: { numeral: numeral(key, plagal), previous: name(previous) },
+      })
+    }
+    const home = power ? { root: key.tonic, quality: '5' } : tonicChord(key)
+    candidates.push({
+      chord: home,
+      rule: 'rock.return-home',
+      values: { numeral: numeral(key, home), previous: name(previous) },
+    })
+  }
   if (previous.quality === '5') {
-    for (const step of POWER_CHORD_INTERVALS) {
-      const chord = { root: transpose(key.tonic, interval(step)), quality: '5' }
+    for (const step of POWER_CHORD_STEPS) {
+      const chord = {
+        root: transpose(key.tonic, interval(step.interval)),
+        quality: '5',
+      }
       candidates.push({
         chord,
         rule: 'rock.power-chord',
+        score: step.fit,
         values: { numeral: numeral(key, chord) },
         tags: ['power chord'],
       })
