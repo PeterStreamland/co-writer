@@ -10,33 +10,44 @@ import {
   KEYBOARD_HIGH,
   KEYBOARD_LOW,
   pianoKeys,
+  scrollToHeld,
   type PianoKey,
 } from '../instruments/keyboard'
 import { noteMarker, type Mark } from '../instruments/marks'
 import { TUNINGS, tuningStrings } from '../instruments/tunings'
-import { formatNote, type ChordName, type Key, type Note } from '../theory'
+import {
+  formatNote,
+  midiNumber,
+  type ChordName,
+  type Key,
+  type Note,
+} from '../theory'
 
 export type Instrument = 'keyboard' | 'guitar'
 type Labels = 'names' | 'degrees'
 
 // The instrument view (SPEC 2, 5): keyboard or full-neck fretboard, with the
-// scale highlighted, the root marked and the current chord filled orange.
-// Clicking a highlighted note plays it.
+// scale highlighted, the root marked, the current chord filled orange and
+// notes played on the MIDI keyboard in green. Clicking a highlighted note
+// plays it.
 export function InstrumentView({
   value,
   chord,
+  played,
   instrument,
   onInstrumentChange,
 }: {
   value: Key
   chord: ChordName | undefined
+  played: Note[]
   instrument: Instrument
   onInstrumentChange: (instrument: Instrument) => void
 }) {
   const [labels, setLabels] = useState<Labels>('names')
   const [tuning, setTuning] = useState('standard')
   const [strings, setStrings] = useState<'6' | '7'>('6')
-  const mark = noteMarker(value, chord)
+  const mark = noteMarker(value, chord, played)
+  const held = played.map((n) => midiNumber(n) as number)
   return (
     <section class="instrument">
       <div class="toolbar">
@@ -66,10 +77,14 @@ export function InstrumentView({
                 value={tuning}
                 onChange={(e) => setTuning(e.currentTarget.value)}
               >
-                {TUNINGS.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
+                {[...new Set(TUNINGS.map((t) => t.group))].map((group) => (
+                  <optgroup key={group} label={group}>
+                    {TUNINGS.filter((t) => t.group === group).map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </label>
@@ -86,7 +101,7 @@ export function InstrumentView({
         )}
       </div>
       {instrument === 'keyboard' ? (
-        <Keyboard mark={mark} labels={labels} />
+        <Keyboard mark={mark} labels={labels} held={held} />
       ) : (
         <Fretboard
           strings={tuningStrings(tuning, strings === '7')}
@@ -99,6 +114,12 @@ export function InstrumentView({
         {chord && (
           <>
             <span class="dot chord-tone" /> in the current chord
+          </>
+        )}
+        {played.length > 0 && (
+          <>
+            {' '}
+            <span class="dot held" /> playing
           </>
         )}
       </p>
@@ -136,9 +157,15 @@ function Toggle<T extends string>({
 function markClass(mark: Mark): string {
   return [
     'dot',
-    mark.root ? 'root' : mark.inScale ? 'scale' : 'outside',
+    mark.held
+      ? 'held'
+      : mark.root
+        ? 'root'
+        : mark.inScale
+          ? 'scale'
+          : 'outside',
     // The root stays plain red, even when it is in the current chord.
-    mark.chordTone && !mark.root ? 'chord-tone' : '',
+    mark.chordTone && !mark.root && !mark.held ? 'chord-tone' : '',
   ].join(' ')
 }
 
@@ -159,18 +186,24 @@ function useNarrow(): boolean {
 }
 
 // Four octaves, C2–C6, on a laptop; two on a phone, with octave buttons.
+// Either view scrolls to bring notes played on the MIDI keyboard into sight.
 function Keyboard({
   mark,
   labels,
+  held,
 }: {
   mark: (midi: number) => Mark | undefined
   labels: Labels
+  held: number[]
 }) {
   const narrow = useNarrow()
-  const [low, setLow] = useState(48) // C3
-  const range = narrow
-    ? { low, high: low + 24 }
-    : { low: KEYBOARD_LOW, high: KEYBOARD_HIGH }
+  const span = narrow ? 24 : KEYBOARD_HIGH - KEYBOARD_LOW
+  const [low, setLow] = useState(narrow ? 48 : KEYBOARD_LOW) // C3 or C2
+  useEffect(
+    () => setLow((l) => scrollToHeld(l, span, held)),
+    [held.join(), span],
+  )
+  const range = { low, high: low + span }
   const keys = pianoKeys(range.low, range.high, mark)
   const whites = keys.filter((k) => !k.black)
   const width = 100 / whites.length

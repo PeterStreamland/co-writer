@@ -5,6 +5,7 @@ import {
   chordNotes,
   degreeLabel,
   formatNote,
+  midiNumber,
   noteAtMidi,
   pitchClass,
   scaleNotes,
@@ -20,14 +21,17 @@ export type Mark = {
   root: boolean
   inScale: boolean
   chordTone: boolean
+  held: boolean // being played on the MIDI keyboard, at this exact pitch
 }
 
 // A function from MIDI number to its mark, or undefined for a pitch that is
-// neither in the scale nor in the current chord. A pitch in the scale takes
-// the scale's spelling; a chord tone outside the scale takes the chord's.
+// in neither the scale nor the current chord and isn't being played. A pitch
+// in the scale takes the scale's spelling; a chord tone outside the scale
+// takes the chord's, and a played note outside both its own.
 export function noteMarker(
   key: Key,
   chord?: ChordName,
+  played: Note[] = [],
 ): (midi: number) => Mark | undefined {
   const scale = scaleNotes(key.tonic, key.mode)
   const tones = chord ? chordNotes(chord) : []
@@ -35,11 +39,18 @@ export function noteMarker(
   const rootPitch = pitchClass(key.tonic)
   const scalePitches = new Set(scale.map(pitchClass))
   const tonePitches = new Set(tones.map(pitchClass))
+  const playedAt = new Map(
+    played.map((n) => [
+      midiNumber(n),
+      { letter: n.letter, accidental: n.accidental },
+    ]),
+  )
   return (midi) => {
     const pitch = ((midi % 12) + 12) % 12
     const spelling =
       scale.find((n) => pitchClass(n) === pitch) ??
-      tones.find((n) => pitchClass(n) === pitch)
+      tones.find((n) => pitchClass(n) === pitch) ??
+      playedAt.get(midi)
     if (!spelling) return undefined
     const note = noteAtMidi(spelling, midi) as Note
     return {
@@ -49,6 +60,7 @@ export function noteMarker(
       root: pitch === rootPitch,
       inScale: scalePitches.has(pitch),
       chordTone: tonePitches.has(pitch),
+      held: playedAt.has(midi),
     }
   }
 }
