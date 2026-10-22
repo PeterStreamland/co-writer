@@ -782,3 +782,21 @@ Phase 5 task 1 (`src/workspace/typed-chords.ts`, `src/midi/record.ts`, `src/work
   - A set of notes with no chord name isn't added, and the panel says so.
 - **Undo** covers both, a typed line as one step.
 - **Analysis:** Phase 8 builds key finding on progressions entered this way.
+
+## 2026-10-22 — Voice-leading cost
+
+Phase 5 task 2 (`src/theory/voice-leading.ts`, weights in `src/theory/voice-leading-data.ts`). Choices the plan and SPEC didn't settle:
+
+- **A voicing is one note per voice, lowest voice first,** each with an octave. Pitch numbers come from the spelling, so C♯ to D♭ counts as a held note.
+- **Pairing voices:**
+  - Voicings of the same size pair voice by voice, in the order given. That lets a voice cross the one above it, which the cost can then count.
+  - Voicings of different sizes (a triad into a 7th chord, a five-string shape into a six-string one) have no voices to follow. Their notes pair in pitch order for the least total movement, each note used at least once: C E G into G7 moves C to both G and B. These never count as crossing or overlapping.
+- **What it measures:**
+  - total semitones moved
+  - voices that keep their note
+  - pitch classes the chords share, and how many of them no voice keeps
+  - crossings: pairs of voices out of order in the new chord
+  - overlaps: a voice moving above where the voice above it just was, or below where the voice below it just was. So C E G to F A C in root position has two overlaps.
+- **The cost** adds them up with weights stored as data: 1 per semitone, 2 per shared note let go, 6 per crossing and 3 per overlap. These are defaults; the lenses (tasks 3–4) will weight them their own way.
+- **Average movement** over a progression is the measure for the exit criterion "every lens beats a root-position baseline".
+- **New golden fixture:** `tests/fixtures/voice-leading.ts` has ten hand-worked cases, including G7 to C in four parts, a tenor crossing the alto, a triad into a 7th chord and back, and C♯ held as D♭.
