@@ -2,11 +2,23 @@
 // side, two to four of them, Rock and Classical by default; the progression
 // as the lenses read it; and how a column's voicings play. No theory lives
 // here.
-import { LENSES, type Lens, type LensStep, type Key } from '../theory'
 import {
+  LENSES,
+  keyName,
+  type ChordName,
+  type Key,
+  type Lens,
+  type LensStep,
+  type LensVoicing,
+} from '../theory'
+import {
+  addAllAfter,
+  keyAfter,
   keyAt,
   lengthOf,
   pathNodes,
+  setKeyChangeAt,
+  type AddOptions,
   type Progression,
 } from '../sketch/progression'
 import type { Dur } from '../sketch/time'
@@ -37,6 +49,48 @@ export function lensSteps(
     chord: n.chord,
     length: lengthOf(n),
   }))
+}
+
+// A lens's voicings put into the progression (David's request): as a new
+// branch from the start, leaving the chords as they were one tap away on
+// the first chord's arrows, or added after the last chord. Each chord keeps
+// its length and any key change, and its voicing, so it plays as the lens
+// voiced it. Added on the end after a key change, the last chord leads back
+// to the key the original started in.
+export function addLensVoicings(
+  progression: Progression,
+  sectionKey: Key,
+  voicings: (LensVoicing & { frets?: (number | null)[] })[],
+  instrument: 'guitar' | 'keyboard',
+  where: 'branch' | 'end',
+): { progression: Progression; select: number } {
+  const path = pathNodes(progression)
+  const chords: ChordName[] = voicings.map((v) => v.chord)
+  const options: AddOptions[] = voicings.map((v, i) => {
+    const option: AddOptions = {
+      voicing: { instrument, notes: v.notes },
+      length: path[i].length,
+      keyChange: path[i].keyChange,
+    }
+    if (v.frets && instrument === 'guitar') option.voicing!.frets = v.frets
+    return option
+  })
+  if (where === 'branch') {
+    return {
+      progression: addAllAfter(progression, -1, chords, options),
+      select: chords.length - 1,
+    }
+  }
+  const last = path.length - 1
+  const start = keyAt(progression, 0, sectionKey)
+  const back =
+    keyName(keyAfter(progression, last, sectionKey)) !== keyName(start)
+      ? setKeyChangeAt(progression, last, start)
+      : progression
+  return {
+    progression: addAllAfter(back, last, chords, options),
+    select: last + chords.length,
+  }
 }
 
 function storage(): Storage | undefined {

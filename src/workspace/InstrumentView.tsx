@@ -98,7 +98,7 @@ export function InstrumentView({
   onSettingsChange,
   shapes,
   voicings,
-  showBox = true,
+  addable = true,
 }: {
   value: Key
   chord: ChordName | undefined
@@ -109,9 +109,11 @@ export function InstrumentView({
   onSettingsChange: (settings: GuitarSettings) => void
   shapes: Shapes
   voicings: Voicings
-  // Whether the chord box sits beside the instrument (on a phone) or
-  // elsewhere (beside the side panel on wider screens).
-  showBox?: boolean
+  // Whether the chord box beside the instrument has + to add the shape (on a
+  // phone, where it is the only box). On wider screens the box with + sits
+  // beside the side panel, and this one is a viewer, in step with it
+  // (David's choice).
+  addable?: boolean
 }) {
   const [labels, setLabels] = useState<Labels>('names')
   const { tuning, strings, capo, lastFret } = settings
@@ -215,15 +217,13 @@ export function InstrumentView({
             held={held}
             voiced={voicing?.notes.map((n) => midiNumber(n) as number)}
           />
-          {showBox && (
-            <ChordBox
-              instrument={instrument}
-              guitar={guitar}
-              chord={chord}
-              shapes={shapes}
-              voicings={voicings}
-            />
-          )}
+          <ChordBox
+            instrument={instrument}
+            guitar={guitar}
+            chord={chord}
+            shapes={addable ? shapes : { ...shapes, onAdd: undefined }}
+            voicings={addable ? voicings : { ...voicings, onAdd: undefined }}
+          />
         </div>
       ) : (
         <div class="with-box">
@@ -235,15 +235,13 @@ export function InstrumentView({
             toneColours={toneColours}
             shape={shape?.frets}
           />
-          {showBox && (
-            <ChordBox
-              instrument={instrument}
-              guitar={guitar}
-              chord={chord}
-              shapes={shapes}
-              voicings={voicings}
-            />
-          )}
+          <ChordBox
+            instrument={instrument}
+            guitar={guitar}
+            chord={chord}
+            shapes={addable ? shapes : { ...shapes, onAdd: undefined }}
+            voicings={addable ? voicings : { ...voicings, onAdd: undefined }}
+          />
         </div>
       )}
       <p class="legend muted">
@@ -440,6 +438,9 @@ function Keyboard({
         'key',
         k.black ? 'black' : 'white',
         voiced.includes(k.midi) ? 'in-shape' : '',
+        voiced.length && k.mark?.chordTone && !voiced.includes(k.midi)
+          ? 'off-shape'
+          : '',
       ].join(' ')}
       style={{
         left: `${left}%`,
@@ -536,6 +537,11 @@ function Fretboard({
                 spot.behindCapo ? 'behind-capo' : '',
                 guitar.capo > 0 && spot.fret === guitar.capo ? 'capo' : '',
                 shape?.[spot.string] === spot.fret ? 'in-shape' : '',
+                shape &&
+                spot.mark?.chordTone &&
+                shape[spot.string] !== spot.fret
+                  ? 'off-shape'
+                  : '',
               ].join(' ')}
               disabled={!spot.mark}
               aria-label={

@@ -196,14 +196,21 @@ export function addAfter(
   })
 }
 
-// Adds several chords in turn after a slot, as typed (Phase 5 task 1): the
-// first as addAfter would, each of the rest after the one before.
+// Adds several chords in turn after a slot, as typed (Phase 5 task 1) or
+// taken from a lens: the first as addAfter would, each of the rest after the
+// one before, each with its own options. After -1 the chords make a new
+// branch from the start, leaving the old one as the first slot's
+// alternative.
 export function addAllAfter(
   p: Progression,
   index: number,
   chords: ChordName[],
+  options: AddOptions[] = [],
 ): Progression {
-  return chords.reduce((out, chord, i) => addAfter(out, index + i, chord), p)
+  return chords.reduce(
+    (out, chord, i) => addAfter(out, index + i, chord, options[i]),
+    p,
+  )
 }
 
 // The path on from a node: its last active child, else its first, and so on.
@@ -307,6 +314,21 @@ export function changeAt(
   const changed: ChordNode = { ...node(own, id), chord }
   delete changed.voicing
   return { ...own, nodes: { ...own.nodes, [id]: changed } }
+}
+
+// Sets the key that the chords after a slot are read in, giving the slot its
+// own copy first if it was shared.
+export function setKeyChangeAt(
+  p: Progression,
+  index: number,
+  key: Key,
+): Progression {
+  const own = materialise(p, index)
+  const id = own.activePath[index]
+  return {
+    ...own,
+    nodes: { ...own.nodes, [id]: { ...node(own, id), keyChange: key } },
+  }
 }
 
 // Sets how long the chord at a slot lasts, giving it its own copy first if

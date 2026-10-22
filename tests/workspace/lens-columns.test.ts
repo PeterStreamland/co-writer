@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_LENSES,
+  addLensVoicings,
   lensSteps,
   loadLenses,
   saveLenses,
@@ -9,9 +10,13 @@ import {
 import {
   EMPTY_PROGRESSION,
   addAfter,
+  pathNodes,
   setLengthAt,
+  switchAt,
 } from '../../src/sketch/progression'
 import {
+  chordSymbol,
+  formatNote,
   keyName,
   parseChordSymbol,
   parseNote,
@@ -92,5 +97,90 @@ describe('the progression as lens steps', () => {
       { n: 1, d: 1 },
       { n: 1, d: 2 },
     ])
+  })
+})
+
+describe('putting a lens into the progression', () => {
+  const voiced = (symbol: string, notes: string) => ({
+    chord: chord(symbol),
+    notes: notes.split(' ').map((n) => parseNote(n)!),
+    form: 'test',
+    label: 'test',
+    cost: 0,
+  })
+  const symbols = (p: Parameters<typeof lensSteps>[0]) =>
+    lensSteps(p, C).map((s) => chordSymbol(s.chord, { ascii: true }))
+
+  function start() {
+    let p = addAfter(EMPTY_PROGRESSION, -1, chord('C'))
+    p = addAfter(p, 0, chord('E7'), { keyChange: A_MINOR })
+    p = addAfter(p, 1, chord('Am'))
+    return setLengthAt(p, 2, { n: 1, d: 2 })
+  }
+  const lens = [
+    voiced('Cadd9', 'C3 E3 G3 D4'),
+    voiced('E7b9', 'E3 G#3 D4 F4'),
+    voiced('Amadd9', 'A2 C4 E4 B4'),
+  ]
+
+  it('makes a new branch, keeping the old one, lengths and key changes', () => {
+    const { progression: p, select } = addLensVoicings(
+      start(),
+      C,
+      lens,
+      'keyboard',
+      'branch',
+    )
+    expect(symbols(p)).toEqual(['Cadd9', 'E7b9', 'Amadd9'])
+    expect(select).toBe(2)
+    const nodes = pathNodes(p)
+    expect(nodes[1].keyChange).toEqual(A_MINOR)
+    expect(nodes[2].length).toEqual({ n: 1, d: 2 })
+    expect(nodes[0].voicing?.notes.map((n) => formatNote(n))).toEqual([
+      'C3',
+      'E3',
+      'G3',
+      'D4',
+    ])
+    expect(symbols(switchAt(p, 0, -1))).toEqual(['C', 'E7', 'Am'])
+  })
+
+  it('adds the lens chords after the last, back in the starting key', () => {
+    const { progression: p, select } = addLensVoicings(
+      start(),
+      C,
+      lens,
+      'keyboard',
+      'end',
+    )
+    expect(symbols(p)).toEqual(['C', 'E7', 'Am', 'Cadd9', 'E7b9', 'Amadd9'])
+    expect(select).toBe(5)
+    const steps = lensSteps(p, C)
+    expect(steps.map((s) => keyName(s.key))).toEqual([
+      'C major',
+      'C major',
+      'A minor',
+      'C major',
+      'C major',
+      'A minor',
+    ])
+  })
+
+  it('keeps guitar frets', () => {
+    const shaped = [
+      { ...voiced('C', 'C3 E3 G3 C4 E4'), frets: [null, 3, 2, 0, 1, 0] },
+    ]
+    const { progression: p } = addLensVoicings(
+      addAfter(EMPTY_PROGRESSION, -1, chord('C')),
+      C,
+      shaped,
+      'guitar',
+      'end',
+    )
+    expect(pathNodes(p)[1].voicing).toMatchObject({
+      instrument: 'guitar',
+      frets: [null, 3, 2, 0, 1, 0],
+    })
+    expect(pathNodes(p)[1].keyChange).toBeUndefined()
   })
 })
