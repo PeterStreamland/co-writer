@@ -4,6 +4,7 @@ import {
   KEYBOARD_HIGH,
   KEYBOARD_LOW,
   pianoKeys,
+  scrollToHeld,
 } from '../../src/instruments/keyboard'
 import { noteMarker } from '../../src/instruments/marks'
 import {
@@ -22,6 +23,7 @@ import {
   pickerTonics,
   pitchClass,
   scaleNotes,
+  spellPitches,
   type Key,
 } from '../../src/theory'
 
@@ -190,4 +192,55 @@ describe('every key and scale in every tuning', () => {
       })
     }
   }
+})
+
+describe('notes played on a MIDI keyboard', () => {
+  it('light up at their exact pitch, spelled by the key', () => {
+    const k = key('C', 'major')
+    const played = spellPitches([58, 62, 65], k)
+    const mark = noteMarker(k, undefined, played)
+    const keys = pianoKeys(48, 72, mark).filter((x) => x.mark?.held)
+    expect(keys.map((x) => x.midi)).toEqual([58, 62, 65])
+    expect(keys.map((x) => x.mark!.name)).toEqual(['B♭', 'D', 'F'])
+    // B♭ an octave up isn't played, and isn't in C major, so has no mark.
+    expect(mark(70)).toBeUndefined()
+    // D an octave up is in the scale but isn't being played.
+    expect(mark(74)?.held).toBe(false)
+  })
+
+  it('light up on every fret that sounds the pitch', () => {
+    const k = key('E', 'natural-minor')
+    const mark = noteMarker(k, undefined, spellPitches([55], k))
+    const frets = fretboardGrid(STANDARD_TUNING, 15, mark)
+      .flat()
+      .filter((f) => f.mark?.held)
+    // G3: open G string, fret 5 on D, fret 10 on A, fret 15 on low E.
+    expect(frets.map((f) => [f.string, f.fret])).toEqual([
+      [0, 15],
+      [1, 10],
+      [2, 5],
+      [3, 0],
+    ])
+  })
+})
+
+describe('scrollToHeld', () => {
+  it('stays put when the played notes are in view or none are played', () => {
+    expect(scrollToHeld(48, 24, [])).toBe(48)
+    expect(scrollToHeld(48, 24, [48, 60, 72])).toBe(48)
+  })
+
+  it('moves to the octave of a note below or above the view', () => {
+    expect(scrollToHeld(48, 24, [40])).toBe(36)
+    expect(scrollToHeld(48, 24, [76, 79])).toBe(72)
+  })
+
+  it('keeps the lowest note when a chord is wider than the view', () => {
+    expect(scrollToHeld(48, 24, [36, 67, 88])).toBe(36)
+  })
+
+  it('stops at the ends of an 88-key piano', () => {
+    expect(scrollToHeld(36, 48, [105])).toBe(60)
+    expect(scrollToHeld(48, 24, [21])).toBe(12)
+  })
 })

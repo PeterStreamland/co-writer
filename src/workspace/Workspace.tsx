@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'preact/hooks'
 import { formatNote, type ChordName, type Key } from '../theory'
+import { useMidi } from '../midi/useMidi'
 import { ChordRows } from './ChordRows'
 import { InstrumentView, type Instrument } from './InstrumentView'
+import { MidiPanel } from './MidiPanel'
+import { played } from './played'
 import {
   keyName,
   loadKey,
@@ -17,13 +20,15 @@ import {
 } from './key-picker'
 
 // The single workspace (SPEC 2): the header key picker, the Explore panel's
-// scale view, the instrument view and the chord rows; the rest arrives task
-// by task.
+// scale view, the instrument view with MIDI input, and the chord rows; the
+// rest arrives task by task.
 export function Workspace() {
   const [key, setKey] = useState<Key>(loadKey)
   const [chord, setChord] = useState<ChordName>()
   const [instrument, setInstrument] = useState<Instrument>('keyboard')
   useEffect(() => saveKey(key), [key])
+  const midi = useMidi()
+  const playing = played(key, midi.held)
   return (
     <div class="workspace">
       <header>
@@ -34,9 +39,11 @@ export function Workspace() {
         <InstrumentView
           value={key}
           chord={chord}
+          played={playing.notes}
           instrument={instrument}
           onInstrumentChange={setInstrument}
         />
+        <MidiPanel midi={midi} playing={playing} />
         <ChordRows
           value={key}
           current={chord}
@@ -46,7 +53,6 @@ export function Workspace() {
       </main>
       <footer>
         <a href="#/audit">Phase 1 audit table</a>
-        <a href="#/spike">Library spike</a>
       </footer>
     </div>
   )

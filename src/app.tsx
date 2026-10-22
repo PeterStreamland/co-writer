@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'preact/hooks'
 import { AuditPage } from './audit/AuditPage.tsx'
-import { Spike } from './spike/Spike.tsx'
 import { Workspace } from './workspace/Workspace.tsx'
 
 function useHash() {
@@ -15,7 +14,6 @@ function useHash() {
 
 export function App() {
   const hash = useHash()
-  if (hash === '#/spike') return <Spike />
   if (hash === '#/audit') return <AuditPage />
   return <Workspace />
 }

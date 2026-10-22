@@ -279,3 +279,29 @@ Phase 2 task 5 (`src/instruments/tunings.ts`, golden fixture `tests/fixtures/tun
 - **Exit criterion:** a test walks every key and scale through every tuning, 6- and 7-string, and checks that exactly the scale's pitches are marked and each plays its fret's pitch. That ticks "Changing tuning moves the fretboard highlights correctly".
 
 Why: a 7-string is a different guitar, not another tuning of the same one, so a switch fits better than a fifth preset. The piano was David's ear's choice.
+
+## 2026-10-22 — More tunings, and the 7th string a 4th below
+
+David asked for more popular tunings. The list now has 15, grouped:
+
+- **Standard and lowered:** Standard, E♭ standard, D standard, C standard.
+- **Drop:** Drop D, Double drop D, Drop C♯, Drop C, Drop B.
+- **Open and modal:** DADGAD, Open G, Open D, Open E, Open A, Open C.
+
+Notes are spelled as guitarists name the strings (E♭ standard, not D♯).
+
+**The 7-string switch now adds a string a perfect 4th below the lowest**, replacing the fixed low B decided earlier today. A fixed B would sit on top of Drop B's lowest string and a semitone under Drop C's. A 4th below keeps the guitar's own pattern: Standard still becomes 7-string B standard, E♭ standard gets a low B♭, D standard a low A, and Drop D a low A (A D A D G B E). The tunings fixture's Drop D 7-string entry changed to match. David can ask for a different rule.
+
+## 2026-10-22 — MIDI input
+
+Phase 2 task 6 (`src/midi/`, `spellPitches` in `src/theory/spell.ts`, golden fixture `tests/fixtures/played-notes.ts`). SPEC 5 sets what MIDI does; these choices it didn't settle:
+
+- **Connecting:** a "Connect MIDI keyboard" button, because Chrome asks permission for MIDI. Once allowed, the app connects by itself on later visits. In browsers without Web MIDI (Safari, Firefox on some systems) the panel says to use Chrome or Edge.
+- **Spelling what you play:** MIDI sends only pitch numbers, so the key spells them. Scale notes take the scale's spelling. Other notes take whichever spelling makes the chord read best in the key: a diatonic, borrowed or secondary reading beats a chromatic one, then fewer notes spelled differently from the chord's own spelling, then fewer sharps and flats. So in C major, B♭ D F is B♭ (♭VII, borrowed from C Mixolydian), A♭ C E♭ is A♭ (♭VI), E G♯ B D is E7 (V7/vi) and G♯ B D F is G♯dim7. A lone note outside the scale follows the key signature: C♯ in C major, G♭ in F major.
+- **Naming:** the chord's best name for the key comes first, with its reading ("I6, diatonic in C major"), and every other name underneath with its numeral, as the namer already ranks them (C E G A is C6, then Am7/C). A name that leaves out a note says so ("no 5th").
+- **On the instruments:** notes being played turn green at their exact pitch: one key on the keyboard, every fret that sounds that pitch on the guitar. Green takes priority over the other colours while you hold the note.
+- **Sustain pedal:** with the pedal down, released notes stay held until it comes up, so a chord stays named after you let go (SPEC 13 edge case, tested). Record chords, which commits chords to the progression, is Phase 4's, as the strip arrives then.
+- **Scrolling:** the keyboard view moves an octave at a time to bring notes you play outside it into view: the two-octave phone view, and the four-octave laptop view for notes outside C2–C6.
+- **No sound from the app for MIDI notes:** your keyboard makes its own.
+- **The Phase 0 spike page is gone**, as its own note said it would be once real MIDI input arrived. Its MIDI parser moved into `src/midi/` with sustain-pedal support.
+- **Exit criterion not yet ticked:** "Notes and chords played on your keyboard appear and are named correctly, with no noticeable lag" needs David's real keyboard. In a test browser with a simulated keyboard, the screen updates within two frames (about 30 ms) of the notes arriving.

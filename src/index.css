@@ -11,29 +11,6 @@ body {
   place-items: center;
 }
 
-.spike {
-  max-width: 40rem;
-  padding: 1rem;
-  box-sizing: border-box;
-  width: 100%;
-}
-
-.spike button {
-  font-size: 1.1rem;
-  padding: 0.6rem 1rem;
-}
-
-.spike .held {
-  font-size: 2rem;
-  font-weight: bold;
-  min-height: 2.5rem;
-}
-
-.spike .log {
-  font-family: ui-monospace, monospace;
-  opacity: 0.8;
-}
-
 .audit {
   --line: #8884;
   --accent: #2563eb;
@@ -588,4 +565,31 @@ body:has(.workspace) {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--muted);
+}
+
+.instrument .dot.held,
+.instrument .legend .dot.held {
+  background: #16a34a;
+}
+
+.midi {
+  margin: 0.75rem 0;
+}
+
+.midi p {
+  margin: 0.3rem 0;
+}
+
+.midi button {
+  font: inherit;
+  padding: 0.25rem 0.7rem;
+}
+
+.midi .played-notes {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.midi .played-name {
+  font-size: 1.4rem;
 }
