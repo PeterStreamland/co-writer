@@ -208,6 +208,8 @@ export function Workspace() {
         />
         <footer>
           <a href="#/audit">Phase 1 audit table</a>
+          {' · '}
+          <a href="#/styles">Style weights</a>
         </footer>
       </div>
     </div>

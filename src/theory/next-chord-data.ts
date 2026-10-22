@@ -7,6 +7,8 @@ import type { SuggestionCategory } from './suggestion'
 
 export type NextChordRule = {
   id: string
+  // How the style editor names the rule.
+  label: string
   category: SuggestionCategory
   weight: number
   template: string
@@ -16,18 +18,21 @@ export const NEXT_CHORD_RULES = [
   // Diatonic: chords of the key, scored by harmonic function (FUNCTION_FLOW).
   {
     id: 'diatonic.start',
+    label: 'Starting chords: the key’s own chords, tonic first',
     category: 'diatonic',
     weight: 0,
     template: '{chord} is {numeral}, {role}: a place to start in {keyName}.',
   },
   {
     id: 'diatonic.function',
+    label: 'Diatonic chords, by harmonic function',
     category: 'diatonic',
     weight: 0,
     template: '{chord} is {numeral}, {role}; {flow}.',
   },
   {
     id: 'diatonic.deceptive',
+    label: 'Deceptive cadence: V to vi',
     category: 'diatonic',
     weight: 4,
     template:
@@ -35,6 +40,7 @@ export const NEXT_CHORD_RULES = [
   },
   {
     id: 'diatonic.minor-dominant',
+    label: 'Major V and V7 in a minor key',
     category: 'diatonic',
     weight: 0,
     template:
@@ -42,6 +48,7 @@ export const NEXT_CHORD_RULES = [
   },
   {
     id: 'diatonic.resolve-secondary',
+    label: 'Resolving a secondary chord to its target',
     category: 'diatonic',
     weight: 5,
     template:
@@ -50,6 +57,7 @@ export const NEXT_CHORD_RULES = [
   // Secondary: dominants and leading-note chords of the key's chords.
   {
     id: 'secondary.dominant',
+    label: 'Secondary dominants (V7/vi, V7/V)',
     category: 'secondary',
     weight: 3,
     template:
@@ -57,21 +65,74 @@ export const NEXT_CHORD_RULES = [
   },
   {
     id: 'secondary.leading-note',
+    label: 'Leading-note chords (vii°7/vi)',
     category: 'secondary',
     weight: 2,
     template:
       '{chord} is {numeral}, a leading-note chord: its root {root} is {target}’s leading note, a semitone below {resolution}, and pulls up to it.',
   },
-  // Borrowed: chords from a parallel mode on the same tonic.
+  // Borrowed: chords from a parallel mode on the same tonic, one rule per
+  // source so a style can favour some (metal leans on Phrygian's ♭II).
   {
-    id: 'borrowed.parallel',
+    id: 'borrowed.natural-minor',
+    label: 'Borrowed from the parallel Aeolian (natural minor)',
     category: 'borrowed',
-    weight: 0,
+    weight: 3,
+    template: '{chord} is {description}: it {colour} the key for a moment.',
+  },
+  {
+    id: 'borrowed.major',
+    label: 'Borrowed from the parallel major',
+    category: 'borrowed',
+    weight: 3,
+    template: '{chord} is {description}: it {colour} the key for a moment.',
+  },
+  {
+    id: 'borrowed.mixolydian',
+    label: 'Borrowed from the parallel Mixolydian',
+    category: 'borrowed',
+    weight: 3,
+    template: '{chord} is {description}: it {colour} the key for a moment.',
+  },
+  {
+    id: 'borrowed.dorian',
+    label: 'Borrowed from the parallel Dorian',
+    category: 'borrowed',
+    weight: 2,
+    template: '{chord} is {description}: it {colour} the key for a moment.',
+  },
+  {
+    id: 'borrowed.lydian',
+    label: 'Borrowed from the parallel Lydian',
+    category: 'borrowed',
+    weight: 2,
+    template: '{chord} is {description}: it {colour} the key for a moment.',
+  },
+  {
+    id: 'borrowed.phrygian',
+    label: 'Borrowed from the parallel Phrygian',
+    category: 'borrowed',
+    weight: 2,
+    template: '{chord} is {description}: it {colour} the key for a moment.',
+  },
+  {
+    id: 'borrowed.harmonic-minor',
+    label: 'Borrowed from the parallel harmonic minor',
+    category: 'borrowed',
+    weight: 2,
+    template: '{chord} is {description}: it {colour} the key for a moment.',
+  },
+  {
+    id: 'borrowed.melodic-minor',
+    label: 'Borrowed from the parallel melodic minor',
+    category: 'borrowed',
+    weight: 1,
     template: '{chord} is {description}: it {colour} the key for a moment.',
   },
   // Chromatic: tritone substitutions and chromatic mediants.
   {
     id: 'chromatic.tritone-sub',
+    label: 'Tritone substitutes (♭II7 for V7)',
     category: 'chromatic',
     weight: 2,
     template:
@@ -79,6 +140,7 @@ export const NEXT_CHORD_RULES = [
   },
   {
     id: 'chromatic.mediant',
+    label: 'Chromatic mediants (C to E, C to A♭)',
     category: 'chromatic',
     weight: 2,
     template:
@@ -87,6 +149,7 @@ export const NEXT_CHORD_RULES = [
   // Modulation: a chord both keys share, to pivot into a closely related key.
   {
     id: 'modulation.pivot',
+    label: 'Pivot chords into a closely related key',
     category: 'modulation',
     weight: 2,
     template:
@@ -95,6 +158,7 @@ export const NEXT_CHORD_RULES = [
   // Rock moves.
   {
     id: 'rock.flat-seven',
+    label: 'Rock ♭VII',
     category: 'rock',
     weight: 3,
     template:
@@ -102,6 +166,7 @@ export const NEXT_CHORD_RULES = [
   },
   {
     id: 'rock.flat-six',
+    label: 'Rock ♭VI',
     category: 'rock',
     weight: 3,
     template:
@@ -109,6 +174,7 @@ export const NEXT_CHORD_RULES = [
   },
   {
     id: 'rock.flat-three',
+    label: 'Rock ♭III',
     category: 'rock',
     weight: 2,
     template:
@@ -116,6 +182,7 @@ export const NEXT_CHORD_RULES = [
   },
   {
     id: 'rock.power-chord',
+    label: 'Power-chord riffs',
     category: 'rock',
     weight: 3,
     template:
@@ -124,6 +191,7 @@ export const NEXT_CHORD_RULES = [
   // Pedal and static harmony.
   {
     id: 'pedal.static',
+    label: 'Staying on the same chord',
     category: 'pedal',
     weight: 2,
     template:
@@ -131,6 +199,7 @@ export const NEXT_CHORD_RULES = [
   },
   {
     id: 'pedal.bass',
+    label: 'Pedal point: chords over a held bass note',
     category: 'pedal',
     weight: 2,
     template:
@@ -138,6 +207,7 @@ export const NEXT_CHORD_RULES = [
   },
   {
     id: 'pedal.sus',
+    label: 'Suspensions (sus4, sus2)',
     category: 'pedal',
     weight: 2,
     template:
@@ -229,19 +299,19 @@ export const START_SCORES: Record<string, number> = {
   '♭3': 2,
 }
 
-// Parallel modes chords are borrowed from, with each source's weight. The
-// closest sources (one note changed) score highest. Locrian is left out: its
-// ♭V and ♭iii are too far from the key to be useful.
-export const BORROW_SOURCES: { mode: string; weight: number }[] = [
-  { mode: 'natural-minor', weight: 3 },
-  { mode: 'major', weight: 3 },
-  { mode: 'mixolydian', weight: 3 },
-  { mode: 'dorian', weight: 2 },
-  { mode: 'lydian', weight: 2 },
-  { mode: 'phrygian', weight: 2 },
-  { mode: 'harmonic-minor', weight: 2 },
-  { mode: 'melodic-minor', weight: 1 },
-]
+// Parallel modes chords are borrowed from, closest first, with each one's
+// rule. Locrian is left out: its ♭V and ♭iii are too far from the key to be
+// useful.
+export const BORROW_SOURCES = [
+  { mode: 'natural-minor', rule: 'borrowed.natural-minor' },
+  { mode: 'major', rule: 'borrowed.major' },
+  { mode: 'mixolydian', rule: 'borrowed.mixolydian' },
+  { mode: 'dorian', rule: 'borrowed.dorian' },
+  { mode: 'lydian', rule: 'borrowed.lydian' },
+  { mode: 'phrygian', rule: 'borrowed.phrygian' },
+  { mode: 'harmonic-minor', rule: 'borrowed.harmonic-minor' },
+  { mode: 'melodic-minor', rule: 'borrowed.melodic-minor' },
+] as const
 
 // The rock moves: a major chord on a lowered degree, as an interval down
 // (negative) or up from the tonic.

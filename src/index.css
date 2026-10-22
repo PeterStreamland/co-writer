@@ -1039,3 +1039,102 @@ body:has(.workspace) #app {
     width: auto;
   }
 }
+
+.style-editor {
+  --line: #8884;
+  --accent: #2563eb;
+  --muted: #6b7280;
+  max-width: 56rem;
+  width: 100%;
+  min-width: 0;
+  padding: 1rem;
+  box-sizing: border-box;
+  align-self: start;
+}
+
+.style-editor button {
+  font: inherit;
+}
+
+.style-editor .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.style-editor .note {
+  color: var(--muted);
+}
+
+.style-editor .scroll {
+  overflow-x: auto;
+}
+
+.style-editor table {
+  border-collapse: collapse;
+}
+
+.style-editor th,
+.style-editor td {
+  border-bottom: 1px solid var(--line);
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+}
+
+.style-editor th.group {
+  padding-top: 1rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.style-editor .dots {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.style-editor .dots button {
+  border: none;
+  background: none;
+  color: var(--muted);
+  padding: 0.2rem;
+  min-width: 1.6rem;
+  min-height: 1.6rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.style-editor .dots button.on {
+  color: var(--accent);
+}
+
+.style-editor .edited {
+  display: inline-block;
+  width: 0.8rem;
+  color: var(--accent);
+}
+
+.style-editor .style-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.style-editor .style-tabs button {
+  flex: 1;
+  padding: 0.4rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+}
+
+.style-editor .style-tabs button[aria-selected='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}

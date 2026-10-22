@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks'
 import { AuditPage } from './audit/AuditPage.tsx'
+import { StylesPage } from './workspace/StylesPage.tsx'
 import { Workspace } from './workspace/Workspace.tsx'
 
 function useHash() {
@@ -15,5 +16,6 @@ function useHash() {
 export function App() {
   const hash = useHash()
   if (hash === '#/audit') return <AuditPage />
+  if (hash === '#/styles') return <StylesPage />
   return <Workspace />
 }

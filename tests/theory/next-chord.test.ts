@@ -113,7 +113,7 @@ describe('next-chord explanations', () => {
 
   it('keeps a merged reading under More', () => {
     const s = find(suggest(key('C major'), ['C']), 'Bb')
-    expect(s?.ruleIds).toEqual(['borrowed.parallel', 'rock.flat-seven'])
+    expect(s?.ruleIds).toEqual(['borrowed.mixolydian', 'rock.flat-seven'])
     expect(s?.more).toContain('the rock ♭VII')
   })
 
