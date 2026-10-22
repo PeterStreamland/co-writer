@@ -763,9 +763,15 @@ body:has(.workspace) #app {
   align-items: flex-start;
 }
 
+/* The instrument keeps its own width and the box sits right beside it.
+   The keyboard is as wide as the 15-fret neck, so the two views match. */
 .with-box > :first-child {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
+}
+
+.with-box > .keys {
+  width: 49rem;
 }
 
 .mini-keyboard .white-key {
@@ -785,7 +791,16 @@ body:has(.workspace) #app {
 .chord-boxes {
   flex: none;
   width: 11rem;
+  box-sizing: border-box;
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
   text-align: center;
+}
+
+.chord-boxes.empty p {
+  font-size: 0.85rem;
 }
 
 .chord-boxes h3 {
@@ -941,6 +956,21 @@ body:has(.workspace) #app {
   font-size: 1.4rem;
 }
 
+.midi button.link {
+  border: none;
+  background: none;
+  padding: 0 0.2rem;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.midi .follow {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.9rem;
+}
+
 /* Phone: a tighter header and toolbar, so the instrument fits above the
    sheet. */
 @media (max-width: 40rem) {
@@ -984,6 +1014,10 @@ body:has(.workspace) #app {
   .with-box {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .with-box > .keys {
+    width: auto;
   }
 
   .chord-boxes {

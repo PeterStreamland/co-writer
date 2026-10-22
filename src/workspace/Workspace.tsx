@@ -19,6 +19,7 @@ import {
   type ShapeFilters,
 } from './shape-filters'
 import { MidiPanel } from './MidiPanel'
+import { NO_CHORD, nextLastChord, type LastChord } from './last-chord'
 import { SidePanel } from './SidePanel'
 import { useNarrow } from './useNarrow'
 import { played } from './played'
@@ -92,6 +93,23 @@ export function Workspace() {
   useEffect(preparePiano, [])
   const midi = useMidi()
   const playing = played(key, midi.held)
+  // The chord last played, kept after the keys come up; with Follow my
+  // playing on, each one becomes the current chord.
+  const [last, setLast] = useState<LastChord>(NO_CHORD)
+  const [follow, setFollow] = useState(false)
+  useEffect(
+    () => setLast((l) => nextLastChord(l, playing)),
+    [midi.held.join(), key],
+  )
+  const lastChord = last.names[0]?.chord
+  useEffect(() => {
+    if (follow && lastChord) setChord(lastChord)
+  }, [follow, last.names])
+  // Jump to a played chord's guitar shapes (Phase 3 task 7).
+  const showShapes = (c: ChordName) => {
+    setChord(c)
+    setInstrument('guitar')
+  }
   // On a phone the scale joins the chords in the sheet, so the instrument
   // stays in sight; on wider screens it sits above the instrument.
   const narrow = useNarrow()
@@ -149,7 +167,14 @@ export function Workspace() {
               onAt: (at) => setVoicingId(voicings[at].id),
             }}
           />
-          <MidiPanel midi={midi} playing={playing} />
+          <MidiPanel
+            midi={midi}
+            playing={playing}
+            last={last}
+            follow={follow}
+            onFollowChange={setFollow}
+            onShowShapes={showShapes}
+          />
         </main>
         <SidePanel
           tabs={[{ id: 'explore', label: 'Explore', content: explore }]}

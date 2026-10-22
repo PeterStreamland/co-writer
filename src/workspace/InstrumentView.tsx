@@ -204,13 +204,15 @@ export function InstrumentView({
             held={held}
             voiced={voicing?.notes.map((n) => midiNumber(n) as number)}
           />
-          {chord && voicing && (
+          {chord && voicing ? (
             <KeyboardVoicings
               chord={chord}
               voicings={voicings.list}
               at={voicings.at}
               onAt={voicings.onAt}
             />
+          ) : (
+            <EmptyBox label="Keyboard voicings" what="voicings" />
           )}
         </div>
       ) : (
@@ -223,7 +225,7 @@ export function InstrumentView({
             toneColours={toneColours}
             shape={shape?.frets}
           />
-          {chord && (
+          {chord ? (
             <ChordBoxes
               guitar={guitar}
               chord={chord}
@@ -233,6 +235,8 @@ export function InstrumentView({
               filters={shapes.filters}
               onFiltersChange={shapes.onFiltersChange}
             />
+          ) : (
+            <EmptyBox label="Chord shapes" what="guitar shapes" />
           )}
         </div>
       )}
@@ -262,6 +266,20 @@ export function InstrumentView({
             <span class="dot held" /> playing
           </>
         )}
+      </p>
+    </section>
+  )
+}
+
+// The box beside the instrument before a chord is chosen, so its place is
+// always there (David's layout).
+function EmptyBox({ label, what }: { label: string; what: string }) {
+  return (
+    <section class="chord-boxes empty" aria-label={label}>
+      <h3>{label}</h3>
+      <p class="muted">
+        Click a chord below, or play one on your MIDI keyboard, to see its{' '}
+        {what} here.
       </p>
     </section>
   )
@@ -385,7 +403,7 @@ function Keyboard({
     </button>
   )
   return (
-    <div>
+    <div class="keys">
       {narrow && (
         <div class="octaves">
           <button
