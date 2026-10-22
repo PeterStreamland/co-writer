@@ -359,3 +359,7 @@ Phase 3 task 1 (`src/instruments/guitar.ts`, golden fixture `tests/fixtures/capo
 ## 2026-10-22 — The capo's open notes named beside it (David's choice)
 
 With a capo on, the tuning names left of the nut stay as they are, and the fret just before the capo now names the strings' new open notes (capo 3 on standard: G C F A♯ D G, low string at the bottom). They are spelled by the key, each as a lone note is: the scale's spelling where the note is in the scale, otherwise by the key signature, so capo 1 in F major reads F B♭ E♭ A♭ C F. Golden fixture: `capoNames` in `tests/fixtures/capo.ts`.
+
+## 2026-10-22 — Capo notes on the capo's fret (David's choice)
+
+Replaces where the capo's open notes were shown in the entry above. David found them on the fret behind the capo (fret 1 with the capo on 2) and wanted them on the capo's own fret, which is the new open position. That fret now does both jobs: a note there that is in the scale keeps its usual colour (red root, blue scale note, orange chord tone) with a grey ring to mark it as an open note with the capo; a note outside the scale is named in grey. The frets behind the capo are all greyed out again. Spelling is unchanged.
