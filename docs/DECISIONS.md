@@ -383,19 +383,19 @@ Phase 3 task 3 (`src/instruments/playability-data.ts`, the scoring in `src/instr
 
 - **How it scores:** each shape starts at 100 and loses points for each rule that applies; open strings near the nut add points, so the easiest open chords score just over 100. The rules and their weights are data, so they can be tuned (and later edited in the app) without touching the search:
 
-  | Rule | Points |
-  | --- | --- |
-  | Each finger on the fretboard | −1 |
-  | Each fret of stretch beyond three (a hand covers three without stretching) | −10 |
-  | A barre | −1, on top of its finger |
-  | Each muted string between sounding ones | −12 |
-  | Each muted string below the bass | −1 |
-  | Each muted string above the top note (not for power chords, which damp them on purpose) | −3 |
-  | Each open string, with the hand within four frets of the nut or capo | +2 |
-  | Each open string with the hand further up the neck | −2 |
-  | Each fret the hand sits up the neck, from the nut or the capo | −1 |
-  | Each chord tone left out (the 5th, or an extended chord's 9th or 11th) | −3 |
-  | Each string short of four sounding (three for a power chord) | −3 |
+  | Rule                                                                                    | Points                   |
+  | --------------------------------------------------------------------------------------- | ------------------------ |
+  | Each finger on the fretboard                                                            | −1                       |
+  | Each fret of stretch beyond three (a hand covers three without stretching)              | −10                      |
+  | A barre                                                                                 | −1, on top of its finger |
+  | Each muted string between sounding ones                                                 | −12                      |
+  | Each muted string below the bass                                                        | −1                       |
+  | Each muted string above the top note (not for power chords, which damp them on purpose) | −3                       |
+  | Each open string, with the hand within four frets of the nut or capo                    | +2                       |
+  | Each open string with the hand further up the neck                                      | −2                       |
+  | Each fret the hand sits up the neck, from the nut or the capo                           | −1                       |
+  | Each chord tone left out (the 5th, or an extended chord's 9th or 11th)                  | −3                       |
+  | Each string short of four sounding (three for a power chord)                            | −3                       |
 
 - **Muted strings rank lower (David's choice).** A muted inner string costs the most. A muted string below the bass costs little, because chord books mute low strings to put the root in the bass (x32010).
 - **Triads without their 5th stay, ranked lower (David left this to Claude).** They're real shapes, so they're still found, but they lose points for the missing 5th, so the full triad comes first.
