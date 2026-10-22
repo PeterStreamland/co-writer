@@ -643,6 +643,14 @@ body:has(.workspace) #app {
   background: none;
 }
 
+.fretboard .fret.behind-capo {
+  opacity: 0.35;
+}
+
+.fretboard .fret.capo {
+  border-right: 6px solid #57534e;
+}
+
 .fretboard .fret .dot {
   position: relative;
 }

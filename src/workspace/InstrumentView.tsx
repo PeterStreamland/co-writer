@@ -2,11 +2,16 @@ import { useEffect, useState } from 'preact/hooks'
 import { playChord } from '../audio/player'
 import { useNarrow } from './useNarrow'
 import {
-  DEFAULT_FRETS,
   DOT_FRETS,
   DOUBLE_DOT_FRETS,
   fretboardGrid,
 } from '../instruments/fretboard'
+import {
+  DEFAULT_FRET_RANGE,
+  MAX_CAPO,
+  makeGuitar,
+  type Guitar,
+} from '../instruments/guitar'
 import {
   KEYBOARD_HIGH,
   KEYBOARD_LOW,
@@ -47,6 +52,8 @@ export function InstrumentView({
   const [labels, setLabels] = useState<Labels>('names')
   const [tuning, setTuning] = useState('standard')
   const [strings, setStrings] = useState<'6' | '7'>('6')
+  const [capo, setCapo] = useState(0)
+  const [lastFret, setLastFret] = useState(DEFAULT_FRET_RANGE.high)
   const mark = noteMarker(value, chord, played)
   const held = played.map((n) => midiNumber(n) as number)
   return (
@@ -98,6 +105,32 @@ export function InstrumentView({
               ]}
               onChange={setStrings}
             />
+            <label class="tuning">
+              Capo
+              <select
+                value={capo}
+                onChange={(e) => setCapo(Number(e.currentTarget.value))}
+              >
+                {Array.from({ length: MAX_CAPO + 1 }, (_, fret) => (
+                  <option key={fret} value={fret}>
+                    {fret === 0 ? 'None' : `Fret ${fret}`}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label class="tuning">
+              Frets
+              <select
+                value={lastFret}
+                onChange={(e) => setLastFret(Number(e.currentTarget.value))}
+              >
+                {LAST_FRETS.map((fret) => (
+                  <option key={fret} value={fret}>
+                    0–{fret}
+                  </option>
+                ))}
+              </select>
+            </label>
           </>
         )}
       </div>
@@ -105,7 +138,10 @@ export function InstrumentView({
         <Keyboard mark={mark} labels={labels} held={held} />
       ) : (
         <Fretboard
-          strings={tuningStrings(tuning, strings === '7')}
+          guitar={makeGuitar(tuningStrings(tuning, strings === '7'), {
+            capo,
+            high: lastFret,
+          })}
           mark={mark}
           labels={labels}
         />
@@ -127,6 +163,9 @@ export function InstrumentView({
     </section>
   )
 }
+
+// The last fret shown and searched: 15 by default, up to 24 (SPEC 5).
+const LAST_FRETS = [15, 17, 19, 21, 22, 24]
 
 function Toggle<T extends string>({
   label,
@@ -253,17 +292,19 @@ function Keyboard({
 }
 
 // Horizontal tab view: nut on the left, low string at the bottom (SPEC 5),
-// each string's open note named on the far left.
+// each string's open note named on the far left. Frets behind a capo are
+// greyed out and the capo is drawn as a bar.
 function Fretboard({
-  strings,
+  guitar,
   mark,
   labels,
 }: {
-  strings: Note[]
+  guitar: Guitar
   mark: (midi: number) => Mark | undefined
   labels: Labels
 }) {
-  const grid = fretboardGrid(strings, DEFAULT_FRETS, mark)
+  const strings = guitar.strings
+  const grid = fretboardGrid(guitar, mark)
   const frets = grid[0].map((f) => f.fret)
   const label = (m: Mark) => (labels === 'names' ? m.name : m.degree)
   return (
@@ -282,7 +323,12 @@ function Fretboard({
             <button
               key={`${spot.string}-${spot.fret}`}
               type="button"
-              class={spot.fret === 0 ? 'fret open' : 'fret'}
+              class={[
+                'fret',
+                spot.fret === 0 ? 'open' : '',
+                spot.behindCapo ? 'behind-capo' : '',
+                guitar.capo > 0 && spot.fret === guitar.capo ? 'capo' : '',
+              ].join(' ')}
               disabled={!spot.mark}
               aria-label={
                 spot.mark

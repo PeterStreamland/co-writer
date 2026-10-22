@@ -346,3 +346,12 @@ David confirmed the app works well on his phone, which ticks the last exit crite
 - **Your test (20 minutes in your own keys):** David closed the phase without a separate list of anything missing. Anything he finds later can still come in as a change.
 
 Phase 2 is released as `v0.2-key-explorer`, tagged on `main` once this record is merged.
+
+## 2026-10-22 — The guitar model, with a capo and a fret range
+
+Phase 3 task 1 (`src/instruments/guitar.ts`, golden fixture `tests/fixtures/capo.ts`). One model of the guitar now drives the fretboard view and will drive the fingering search, so the two always agree.
+
+- **What it holds:** the tuning as spelled open strings, lowest first (the string count is how many there are), the capo's fret, and the fret range. Pitches are worked out from the spelled strings, never stored.
+- **Capo:** up to fret 12. Frets are still numbered from the nut (SPEC 5). Frets behind the capo can't be played and are greyed out on the neck; the capo is drawn as a dark bar, and the capo's fret sounds as the open string. The tuning names left of the nut stay the open strings' names; the notes on the neck show what sounds. David can ask for a higher capo limit.
+- **Fret range:** frets 0–15 by default, up to 24 (SPEC 5). The guitar view has a Frets list (0–15, 17, 19, 21, 22 or 24) that sets how far the neck runs. The range can also start up the neck (frets 5–9, say) for the search; the open strings stay available then, and the "open strings on or off" filter (task 4) is what turns them off.
+- **Golden fixture:** what the open strings sound with a capo, including capo on DADGAD, Open G and 7-string Drop D, covering SPEC 13's "capo with alternate tuning" case at the pitch level. Sounding chord names with a capo arrive with the fingering search.
