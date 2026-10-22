@@ -6,6 +6,7 @@ import { ChordRows } from './ChordRows'
 import { InstrumentView, type Instrument } from './InstrumentView'
 import { MidiPanel } from './MidiPanel'
 import { SidePanel } from './SidePanel'
+import { useNarrow } from './useNarrow'
 import { played } from './played'
 import {
   keyName,
@@ -21,9 +22,11 @@ import {
   withTonic,
 } from './key-picker'
 
-// The single workspace (SPEC 2): the key picker in the header, the
-// instrument view with MIDI input as the stage, and the side panel's tools
-// under it, or as a sheet along the bottom on a phone.
+// The single workspace (SPEC 2): the key picker in the header; the stage,
+// with the scale above the instrument view and MIDI input below it (David's
+// choice); and the side panel's tools (Explore holds the chord rows) under
+// it. On a phone the side panel is a sheet along the bottom, holding the
+// scale as well.
 export function Workspace() {
   const [key, setKey] = useState<Key>(loadKey)
   const [chord, setChord] = useState<ChordName>()
@@ -33,9 +36,13 @@ export function Workspace() {
   useEffect(preparePiano, [])
   const midi = useMidi()
   const playing = played(key, midi.held)
+  // On a phone the scale joins the chords in the sheet, so the instrument
+  // stays in sight; on wider screens it sits above the instrument.
+  const narrow = useNarrow()
+  const scale = <ScalePanel value={key} />
   const explore = (
     <>
-      <ScalePanel value={key} />
+      {narrow && scale}
       <ChordRows
         value={key}
         current={chord}
@@ -52,6 +59,7 @@ export function Workspace() {
       </header>
       <div class="layout">
         <main class="stage">
+          {!narrow && scale}
           <InstrumentView
             value={key}
             chord={chord}

@@ -325,3 +325,7 @@ Phase 2 task 7 (`src/workspace/Workspace.tsx`, `SidePanel.tsx`), arranging the s
 ## 2026-10-22 — Side panel under the instrument (David's choice)
 
 After trying the side-by-side layout, David preferred the side panel **under the instrument view at full width**: beside it, the chord rows were too narrow and needed scrolling sideways. On laptops and tablets the page now runs header, instrument view, MIDI panel, then the side panel's tabs (Explore) at full width. On phones (under 40rem) the side panel stays a sheet along the bottom with Hide and Show, as before. This changes SPEC 2's sketch, which put the side panel to the right.
+
+## 2026-10-22 — Scale above the instrument, chords below (David's choice)
+
+On laptops and tablets the scale view (notes, degrees, intervals, step pattern) now sits **above** the instrument view, and the chord rows stay **below** it in the Explore tab, so the page reads scale, instrument, chords. On phones the scale stays in the bottom sheet with the chords, because above the keyboard it would push the instrument behind the sheet.
