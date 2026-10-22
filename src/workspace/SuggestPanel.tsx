@@ -12,36 +12,36 @@ import {
   type StyleWeights,
 } from '../theory'
 
-// The Suggest tab (SPEC 6.2): what could follow the current chord, six to
-// eight grouped by category, then the wildcard with Another. Clicking a
-// suggestion previews it (the current chord, then the suggestion, shown on
-// the instrument); + makes it the current chord, so the suggestions carry on
-// from it. With no chord yet, it offers places to start.
+// The Suggest tab (SPEC 6.2): what could follow the chords so far (the
+// strip up to the selected chord, plus the current chord when it isn't in
+// the strip), six to eight grouped by category, then the wildcard with
+// Another. Clicking a suggestion previews it (the last chord, then the
+// suggestion, shown on the instrument); + adds it to the strip, so the
+// suggestions carry on from it. With no chords yet, it offers places to
+// start.
 export function SuggestPanel({
   keyValue,
-  chord,
+  previous,
   weights,
   preview,
   onPreview,
   onAccept,
 }: {
   keyValue: Key
-  chord: ChordName | undefined
-  weights: StyleWeights
+  previous: ChordName[]
+  weights: StyleWeights | undefined
   preview: NextChordSuggestion | undefined
   onPreview: (s: NextChordSuggestion) => void
   onAccept: (s: NextChordSuggestion) => void
 }) {
   const [another, setAnother] = useState(0)
-  useEffect(() => setAnother(0), [keyValue, chord, weights])
+  const history = previous.map(chordKey).join(' ')
+  useEffect(() => setAnother(0), [keyValue, history, weights])
   const ranked = useMemo(
-    () =>
-      rankNextChords(
-        { key: keyValue, previous: chord ? [chord] : [], weights },
-        { another },
-      ),
-    [keyValue, chord, weights, another],
+    () => rankNextChords({ key: keyValue, previous, weights }, { another }),
+    [keyValue, history, weights, another],
   )
+  const chord = previous.at(-1)
 
   const card = (s: NextChordSuggestion, wildcard = false) => {
     const id = chordKey(s.candidate) + (s.keyChange ? keyName(s.keyChange) : '')
@@ -89,7 +89,7 @@ export function SuggestPanel({
       <h2>{chord ? `After ${chordSymbol(chord)}` : 'Places to start'}</h2>
       <p class="muted">
         {chord
-          ? 'Tap a chord to hear it after the current one; + to use it and carry on from there.'
+          ? 'Tap a chord to hear it after the last one; + to add it to the progression and carry on from there.'
           : 'Pick a chord in Explore, play one, or start from one of these.'}
       </p>
       {ranked.groups.map((group) => (

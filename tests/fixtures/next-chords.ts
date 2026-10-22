@@ -165,9 +165,11 @@ export const nextChordCases: {
         keyChange: 'G major',
       },
       { chord: 'Esus4', category: 'pedal', numeral: 'isus4' },
+      // D7 is the key's own ♭VII7, not a secondary dominant of ♭III
+      // (changed 2026-10-22 with David's go-ahead: it was ruled out before
+      // the engine offered diatonic 7th chords).
+      { chord: 'D7', category: 'diatonic', numeral: '♭VII7' },
     ],
-    // D7 is the key's own ♭VII7, not a secondary dominant of ♭III.
-    absent: ['D7'],
   },
   {
     key: 'Ab minor',

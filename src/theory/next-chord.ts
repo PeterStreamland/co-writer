@@ -33,6 +33,7 @@ import {
   type ChordSuggestion,
 } from './suggestion'
 import {
+  BLUES_STEPS,
   BORROW_SOURCES,
   DEGREE_ADJUSTMENTS,
   DEGREE_FUNCTIONS,
@@ -45,6 +46,8 @@ import {
   POWER_CHORD_STEPS,
   ROCK_MOVES,
   SECONDARY_TARGET_FITS,
+  SEVENTH_OFFSET,
+  TRITONE_SUB_HOME_FIT,
   START_SCORES,
   type HarmonicFunction,
   type NextChordRule,
@@ -195,6 +198,29 @@ function diatonic(key: Key, previous: ChordName | undefined): Candidate[] {
           flow: fillTemplate(flow.text, { previous: name(previous) }),
         },
         tags,
+      })
+    }
+  }
+  if (previous && hasDiatonicChords(key.mode)) {
+    // The key's 7th chords by the same flow, V7 aside (offered above).
+    // Other dominant 7ths are the key's own too: D7 in E minor is ♭VII7.
+    for (const seventh of diatonicChords(key, 'seventh')) {
+      const chord = plain(seventh)
+      if (seventh.degree === 5 && seventh.quality === '7') continue
+      const label = degreeLabel(key.tonic, chord.root)
+      const fn = DEGREE_FUNCTIONS[label]
+      if (!fn) continue
+      const flow = FUNCTION_FLOW[before ?? 'tonic'][fn]
+      candidates.push({
+        chord,
+        rule: 'diatonic.sevenths',
+        score: flow.score + (DEGREE_ADJUSTMENTS[label] ?? 0) - SEVENTH_OFFSET,
+        values: {
+          numeral: numeral(key, chord),
+          role: FUNCTION_ROLES[fn],
+          flow: fillTemplate(flow.text, { previous: name(previous) }),
+        },
+        tags: [fn, 'seventh'],
       })
     }
   }
@@ -386,9 +412,17 @@ function tritoneSubs(ctx: Context): Candidate[] {
       quality: '7',
     })
     const chord = { root: transpose(target.root, MINOR_2ND), quality: '7' }
+    // Heading home fits best (D♭7 to C); others fit as their secondary
+    // dominant would, less half a point.
+    const degree = Number(degreeLabel(key.tonic, target.root).slice(-1))
+    const fit =
+      degree === 1
+        ? TRITONE_SUB_HOME_FIT
+        : (SECONDARY_TARGET_FITS[degree] ?? 2.5) - 0.5
     return {
       chord,
       rule: 'chromatic.tritone-sub',
+      score: fit,
       values: {
         numeral: numeral(key, chord),
         dominant: name({ root: dominantRoot, quality: '7' }),
@@ -479,7 +513,7 @@ function pivots(ctx: Context): Candidate[] {
 }
 
 // Rock moves: major chords on ♭VII, ♭VI and ♭III, falling-4th steps and
-// returns home, and power-chord riffs when the previous chord is a power
+// returns home, the blues I7, IV7 and V7, and power-chord riffs when the previous chord is a power
 // chord.
 function rock(ctx: Context): Candidate[] {
   const { key, previous } = ctx
@@ -517,6 +551,18 @@ function rock(ctx: Context): Candidate[] {
       chord: home,
       rule: 'rock.return-home',
       values: { numeral: numeral(key, home), previous: name(previous) },
+    })
+  }
+  for (const step of BLUES_STEPS) {
+    const chord = {
+      root: transpose(key.tonic, interval(step.interval)),
+      quality: '7',
+    }
+    candidates.push({
+      chord,
+      rule: 'rock.blues-sevenths',
+      values: { numeral: numeral(key, chord), degree: step.degree },
+      tags: ['blues'],
     })
   }
   if (previous.quality === '5') {
