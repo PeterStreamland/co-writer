@@ -667,3 +667,13 @@ Phase 4 task 5 (`src/sketch/progression.ts`, `src/sketch/history.ts`, strip abov
   - The box stays in view as the list scrolls.
   - The instrument view now runs on its own.
 - **Phones:** the box stays beside (under) the instrument, as the side panel is a small sheet along the bottom there.
+
+## 2026-10-22 — Progression chords keep the shape they were added in (bug fix)
+
+David found that a chord added from a chord box played back in root position, whatever inversion or neck position he had picked: the strip kept only the chord's name.
+
+- Each progression chord added from a chord box now keeps its exact shape: the notes with octaves and, on guitar, the frets. This is `voicing` on ChordNode, an addition to SPEC 12.
+- **Play, tapping a chip, and the first chord of a suggestion preview** all play that shape: strummed for guitar, together for keyboard.
+- **Selecting or playing the chord** shows the same shape in the chord box, where the box still offers it with the current filters.
+- **Chords added any other way** (a suggestion, or the strip's + for a chord picked in Explore) have no stored shape. They play as the instrument view would, as before.
+- **Shapes travel and drop as needed:** a shared chord copied for an alternative keeps its shape, and changing a chord drops it.

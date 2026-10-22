@@ -127,7 +127,7 @@ describe('the tree view', () => {
 describe('key changes (SPEC 6.4)', () => {
   it('reads chords after a pivot in the new key', () => {
     let p = build('C', 'F')
-    p = addAfter(p, 1, parse('Am'), G_MAJOR)
+    p = addAfter(p, 1, parse('Am'), { keyChange: G_MAJOR })
     p = addAfter(p, 2, parse('D'))
     expect(keyAt(p, 2, C_MAJOR)).toEqual(C_MAJOR)
     expect(keyAt(p, 3, C_MAJOR)).toEqual(G_MAJOR)
@@ -158,6 +158,27 @@ describe('undo and redo (SPEC 13)', () => {
     expect(h.future).toEqual([])
     expect(record(h, h.present)).toBe(h)
     expect(undo(startHistory(EMPTY_PROGRESSION)).past).toEqual([])
+  })
+})
+
+describe('chosen shapes', () => {
+  const voicing = {
+    instrument: 'keyboard' as const,
+    notes: ['E3', 'G3', 'C4'].map((n) => parseNote(n)!),
+  }
+
+  it('keeps the shape a chord was added in', () => {
+    const p = addAfter(build('F'), 0, parse('C/E'), { voicing })
+    expect(pathNodes(p)[1].voicing).toEqual(voicing)
+  })
+
+  it('copies the shape with a shared chord, and drops it on a change', () => {
+    let p = addAfter(build('F', 'G'), 1, parse('C/E'), { voicing })
+    p = addAfter(p, 0, parse('Dm')) // F Dm C/E, sharing G's C/E
+    p = addAfter(p, 2, parse('Am')) // F Dm C/E Am: Dm gets its own C/E
+    expect(pathNodes(p)[2].voicing).toEqual(voicing)
+    expect(isShared(p, 2)).toBe(false)
+    expect(pathNodes(changeAt(p, 2, parse('C'))).at(2)?.voicing).toBe(undefined)
   })
 })
 

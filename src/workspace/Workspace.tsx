@@ -4,6 +4,7 @@ import {
   chordKey,
   inversions,
   keyName as nameOfKey,
+  midiNumber,
   type ChordName,
   type Key,
   type NextChordSuggestion,
@@ -49,6 +50,8 @@ import {
   pathNodes,
   selectNode,
   switchAt,
+  type ChordNode,
+  type ChordVoicing,
   type Progression,
 } from '../sketch/progression'
 import {
@@ -184,7 +187,15 @@ export function Workspace() {
     () => (shown ? shapesOf(shown) : []),
     [shown, guitar, filters],
   )
-  useEffect(() => setShapeAt(0), [shapes])
+  // A chord from the progression shows in the shape it was added in, when
+  // the chord box offers that shape; otherwise the boxes start at the top.
+  const [wantFrets, setWantFrets] = useState<(number | null)[]>()
+  useEffect(() => {
+    const at = wantFrets
+      ? shapes.findIndex((s) => s.frets.join() === wantFrets.join())
+      : -1
+    setShapeAt(Math.max(0, at))
+  }, [shapes])
   useEffect(() => {
     if (
       chord &&
@@ -246,7 +257,8 @@ export function Workspace() {
       playNow(s.candidate)
       return
     }
-    playNow(last)
+    if (freeChord || selected < 0) playNow(last)
+    else playNode(path[selected])
     setTimeout(() => playNow(s.candidate), PREVIEW_GAP_MS)
   }
   // Using a suggestion adds it after the selected chord (after the current
@@ -261,15 +273,38 @@ export function Workspace() {
     let next = progression
     let at = selected
     if (freeChord) next = addAfter(next, at++, freeChord)
-    next = addAfter(next, at++, s.candidate, keyChange)
+    next = addAfter(next, at++, s.candidate, { keyChange })
     change(next, at)
     setPreview(undefined)
     playNow(s.candidate)
   }
   // Adds a chord after the selected one: the + on the strip, or a chord
   // box's + with its inversion as a slash chord.
-  function addChord(c: ChordName) {
-    change(addAfter(progression, selected, c), selected + 1)
+  function addChord(c: ChordName, voicing?: ChordVoicing) {
+    change(addAfter(progression, selected, c, { voicing }), selected + 1)
+  }
+  // Shows a progression chord in the chord box as it was added: the same
+  // guitar shape or keyboard voicing, where the box offers it.
+  function showNode(n: ChordNode) {
+    setWantFrets(n.voicing?.frets)
+    if (n.voicing?.instrument === 'keyboard') {
+      const midis = n.voicing.notes.map(midiNumber).join()
+      const match = voicingChoices(n.chord, pianoFilters).find(
+        (v) => v.notes.map(midiNumber).join() === midis,
+      )
+      if (match) setVoicingPick({ id: match.id, inversion: match.inversion })
+    }
+  }
+  // Plays a progression chord in the shape it was added in, or as the
+  // instrument view would play it.
+  function playNode(n: ChordNode) {
+    if (!n.voicing) {
+      playNow(n.chord)
+      return
+    }
+    void playChord(n.voicing.notes, {
+      strum: n.voicing.instrument === 'guitar',
+    })
   }
   // Plays the progression from the first chord, one chord at a time.
   useEffect(() => {
@@ -283,7 +318,8 @@ export function Workspace() {
       return
     }
     setPlayingChord(n.chord)
-    playNow(n.chord)
+    showNode(n)
+    playNode(n)
     const timer = setTimeout(
       () =>
         setPlayingAt(playingAt + 1 < path.length ? playingAt + 1 : undefined),
@@ -296,7 +332,8 @@ export function Workspace() {
   function selectSlot(index: number) {
     setSelectedAt(index)
     setChord(path[index].chord)
-    playNow(path[index].chord)
+    showNode(path[index])
+    playNode(path[index])
   }
   const strip = (
     <ProgressionStrip

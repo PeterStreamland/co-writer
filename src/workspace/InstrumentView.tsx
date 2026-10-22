@@ -5,6 +5,7 @@ import { KeyboardVoicings } from './KeyboardVoicings'
 import type { Voicing, VoicingFilters } from './voicing-choices'
 import type { ShapeFilters } from './shape-filters'
 import { useNarrow } from './useNarrow'
+import type { ChordVoicing } from '../sketch/progression'
 import {
   DOT_FRETS,
   DOUBLE_DOT_FRETS,
@@ -67,7 +68,7 @@ export type Shapes = {
   filters: ShapeFilters
   onFiltersChange: (filters: ShapeFilters) => void
   // Adds the shape, inversion and all, to the progression.
-  onAdd?: (chord: ChordName) => void
+  onAdd?: (chord: ChordName, voicing: ChordVoicing) => void
 }
 
 // The current chord's keyboard voicings, and which one is showing.
@@ -78,7 +79,7 @@ export type Voicings = {
   filters: VoicingFilters
   onFiltersChange: (filters: VoicingFilters) => void
   // Adds the voicing, inversion and all, to the progression.
-  onAdd?: (chord: ChordName) => void
+  onAdd?: (chord: ChordName, voicing: ChordVoicing) => void
 }
 
 // The instrument view (SPEC 2, 5): keyboard or full-neck fretboard, with the

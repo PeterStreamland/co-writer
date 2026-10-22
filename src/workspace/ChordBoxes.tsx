@@ -10,6 +10,7 @@ import {
   type Note,
 } from '../theory'
 import { AddButton } from './AddButton'
+import type { ChordVoicing } from '../sketch/progression'
 import { chordWithBass } from './voicing-chord'
 import {
   SPANS,
@@ -39,7 +40,7 @@ export function ChordBoxes({
   onAt: (at: number) => void
   filters: ShapeFilters
   onFiltersChange: (filters: ShapeFilters) => void
-  onAdd?: (chord: ChordName) => void
+  onAdd?: (chord: ChordName, voicing: ChordVoicing) => void
 }) {
   const shape = shapes[at]
   const step = (by: number) => onAt((at + by + shapes.length) % shapes.length)
@@ -50,7 +51,15 @@ export function ChordBoxes({
       <div class="box-head">
         <h3>{shape ? shapeName(guitar, chord, shape) : chordSymbol(chord)}</h3>
         {shape && onAdd && (
-          <AddButton chord={chordWithBass(chord, shape.notes)} onAdd={onAdd} />
+          <AddButton
+            chord={chordWithBass(chord, shape.notes)}
+            voicing={{
+              instrument: 'guitar',
+              notes: shape.notes.filter((n): n is Note => n !== null),
+              frets: shape.frets,
+            }}
+            onAdd={onAdd}
+          />
         )}
       </div>
       {shape ? (
