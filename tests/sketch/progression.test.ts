@@ -256,6 +256,21 @@ describe('passing chords', () => {
   })
 })
 
+describe('replacing a chord', () => {
+  it('swaps the chord and its shape, keeping length and key change', () => {
+    let p = setLengthAt(build('C', 'G', 'Am'), 1, { n: 1, d: 2 })
+    p = changeAt(p, 1, parse('G7'), {
+      instrument: 'keyboard',
+      notes: [parseNote('G3')!, parseNote('B3')!, parseNote('F4')!],
+    })
+    expect(strip(p)).toBe('C G7 Am')
+    expect(pathNodes(p)[1].length).toEqual({ n: 1, d: 2 })
+    expect(pathNodes(p)[1].voicing?.notes).toHaveLength(3)
+    // Without a shape, the old shape goes.
+    expect(pathNodes(changeAt(p, 1, parse('G'))).at(1)?.voicing).toBeUndefined()
+  })
+})
+
 describe('chord lengths', () => {
   it('lasts a bar unless set, and drops the default', () => {
     let p = build('C', 'G')

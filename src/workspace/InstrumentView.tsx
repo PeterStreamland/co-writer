@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks'
 import { playChord } from '../audio/player'
+import type { BoxActions } from './AddButton'
 import { ChordBoxes } from './ChordBoxes'
 import { KeyboardVoicings } from './KeyboardVoicings'
 import type { Voicing, VoicingFilters } from './voicing-choices'
@@ -69,6 +70,8 @@ export type Shapes = {
   onFiltersChange: (filters: ShapeFilters) => void
   // Adds the shape, inversion and all, to the progression.
   onAdd?: (chord: ChordName, voicing: ChordVoicing) => void
+  // Puts the shape in place of the selected chord.
+  replace?: BoxActions['replace']
 }
 
 // The current chord's keyboard voicings, and which one is showing.
@@ -80,6 +83,8 @@ export type Voicings = {
   onFiltersChange: (filters: VoicingFilters) => void
   // Adds the voicing, inversion and all, to the progression.
   onAdd?: (chord: ChordName, voicing: ChordVoicing) => void
+  // Puts the voicing in place of the selected chord.
+  replace?: BoxActions['replace']
 }
 
 // The instrument view (SPEC 2, 5): keyboard or full-neck fretboard, with the
@@ -221,8 +226,8 @@ export function InstrumentView({
             instrument={instrument}
             guitar={guitar}
             chord={chord}
-            shapes={addable ? shapes : { ...shapes, onAdd: undefined }}
-            voicings={addable ? voicings : { ...voicings, onAdd: undefined }}
+            shapes={addable ? shapes : viewOnly(shapes)}
+            voicings={addable ? voicings : viewOnly(voicings)}
           />
         </div>
       ) : (
@@ -239,8 +244,8 @@ export function InstrumentView({
             instrument={instrument}
             guitar={guitar}
             chord={chord}
-            shapes={addable ? shapes : { ...shapes, onAdd: undefined }}
-            voicings={addable ? voicings : { ...voicings, onAdd: undefined }}
+            shapes={addable ? shapes : viewOnly(shapes)}
+            voicings={addable ? voicings : viewOnly(voicings)}
           />
         </div>
       )}
@@ -303,6 +308,7 @@ export function ChordBox({
         filters={voicings.filters}
         onFiltersChange={voicings.onFiltersChange}
         onAdd={voicings.onAdd}
+        replace={voicings.replace}
       />
     ) : (
       <EmptyBox label="Keyboard voicings" what="voicings" />
@@ -318,10 +324,16 @@ export function ChordBox({
       filters={shapes.filters}
       onFiltersChange={shapes.onFiltersChange}
       onAdd={shapes.onAdd}
+      replace={shapes.replace}
     />
   ) : (
     <EmptyBox label="Chord shapes" what="guitar shapes" />
   )
+}
+
+// The viewer beside the instrument: the box without its buttons.
+function viewOnly<T extends BoxActions>(list: T): T {
+  return { ...list, onAdd: undefined, replace: undefined }
 }
 
 // The box before a chord is chosen, so its place is always there (David's

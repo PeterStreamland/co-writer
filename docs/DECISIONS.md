@@ -902,3 +902,11 @@ After trying the Voice tab, David asked for three things.
 - **A chord viewer beside the instrument** on laptops and tablets, with no +. The box with + stays beside the side panel. **The two stay in step** (David asked for Claude's view; Claude recommended it so the fretboard, the viewer and the box never disagree): stepping either one moves both, and the instrument follows. A phone keeps its one box, with +, under the instrument.
   - This partly undoes "the instrument view now runs on its own" from the chord-box entry above: the box with + still lives beside the side panel, and the viewer joins the instrument.
 - **Paler tones off the shape:** on the fretboard and the keyboard, the notes of the shape or voicing on show keep full colour (and their ring). The chord's tones elsewhere stay in their colours, but paler. This works with note names, degrees and chord-tone colours alike.
+
+## 2026-10-22 — Replace on the chord box (David's request)
+
+- The chord box with + (beside the side panel, or under the instrument on a phone) has a second button beside it: **⇄ Replace G**, naming the chord selected in the progression.
+- It puts the chord and shape on show in that chord's place. The chord keeps its length and any key change, and plays in the new shape. Undo brings the old one back.
+- With the selected chord itself on show, Replace just changes its shape: step to another inversion or neck position and tap Replace.
+- A shared chord gets its own copy first, as with any change.
+- The viewer beside the instrument stays without buttons.

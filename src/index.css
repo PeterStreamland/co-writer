@@ -1775,3 +1775,11 @@ body:has(.workspace) #app {
   font-size: 0.85rem;
   padding: 0.15rem 0.6rem;
 }
+
+/* + and Replace side by side above a chord box. */
+.chord-boxes .box-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.3rem;
+}

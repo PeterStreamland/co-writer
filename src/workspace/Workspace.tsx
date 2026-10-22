@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import {
+  chordSymbol,
   formatNote,
   chordKey,
   inversions,
@@ -49,6 +50,7 @@ import {
   EMPTY_PROGRESSION,
   addAfter,
   addAllAfter,
+  changeAt,
   chordsUpTo,
   insertAllBetween,
   insertBetween,
@@ -352,6 +354,13 @@ export function Workspace() {
     }
     change(addAllAfter(progression, selected, chords), selected + chords.length)
   }
+  // A chord box's Replace: the shape on show takes the selected chord's
+  // place, keeping its length and key change (David's request).
+  const replace = selectedChord && {
+    symbol: chordSymbol(selectedChord),
+    onReplace: (c: ChordName, voicing: ChordVoicing) =>
+      change(changeAt(progression, selected, c, voicing), selected),
+  }
   // While + between is on, every way of adding a chord (a suggestion, a
   // chord box's +, the strip's +) puts it between the two chords, keeping
   // the chord after it and everything that follows.
@@ -485,6 +494,7 @@ export function Workspace() {
     filters,
     onFiltersChange: setFilters,
     onAdd: addChord,
+    replace,
   }
   const voicingList = {
     list: voicings,
@@ -493,6 +503,7 @@ export function Workspace() {
     filters: pianoFilters,
     onFiltersChange: setPianoFilters,
     onAdd: addChord,
+    replace,
   }
   const box = (
     <ChordBox
