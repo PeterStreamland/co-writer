@@ -29,7 +29,7 @@ export type ChordBox = {
 export function chordBox(
   guitar: Guitar,
   chord: ChordName,
-  fingering: Fingering,
+  fingering: Pick<Fingering, 'frets' | 'notes'>,
 ): ChordBox {
   const open = guitar.capo
   const fretted = fingering.frets.filter(

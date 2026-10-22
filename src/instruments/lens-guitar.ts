@@ -17,8 +17,12 @@ import { findFingerings } from './fingering'
 import type { Guitar } from './guitar'
 import { GUITAR_LENSES } from './lens-guitar-data'
 
-// A lens voicing on guitar keeps its frets, low string first.
-export type GuitarLensVoicing = LensVoicing & { frets: (number | null)[] }
+// A lens voicing on guitar keeps its frets and each string's note, low
+// string first (null for a muted string), for its chord box.
+export type GuitarLensVoicing = LensVoicing & {
+  frets: (number | null)[]
+  strings: (Note | null)[]
+}
 
 // Every guitar shape a lens offers for a chord in a key, its favourites
 // first.
@@ -55,6 +59,7 @@ export function guitarLensVoicings(
           chord: voiced,
           notes,
           frets: f.frets,
+          strings: f.notes,
           form: shape.id,
           label: shape.label,
           cost: shape.cost + colour.cost + settings.ease * (100 - f.score),
@@ -88,6 +93,7 @@ export function voiceProgressionOnGuitar(
             chord: steps[i].chord,
             notes: f.notes.filter((n): n is Note => n !== null),
             frets: f.frets,
+            strings: f.notes,
             form: 'as written',
             label: 'as written',
             cost: 10 + GUITAR_LENSES[lens].ease * (100 - f.score),

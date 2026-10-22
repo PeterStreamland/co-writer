@@ -871,3 +871,21 @@ Phase 5 task 4. The keyboard side is `src/theory/lens.ts` with settings in `src/
   - every guitar voicing is a shape the fingering search finds, within its span
 
   The theory reviewer confirms them at the gate.
+
+## 2026-10-22 — The Voice tab: lenses side by side
+
+Phase 5 task 5 (`src/workspace/VoicePanel.tsx`, state in `src/workspace/lens-columns.ts`), following SPEC 8. Choices the spec didn't settle:
+
+- **Where:** a new **Voice** tab beside Explore and Suggest. It voices the progression's active path, each chord in its own key after any key change. The chord box beside the panel hides on this tab to give the columns room.
+- **Choosing lenses:** a tick box per lens, with two to four on at once. Classical and Rock are on by default (SPEC 8). The choice is remembered in this browser.
+- **Instrument:** Guitar and Keyboard buttons switch every column at once. The tab opens on whichever instrument the main view shows.
+- **Each column** shows the lens's name, what it is after, and every chord:
+  - its voiced name, with "for C" when the lens changed the chord (Cadd9 for C)
+  - its form (four parts, power chord, rootless…)
+  - on keyboard, its notes; on guitar, a chord box and its frets
+  - any rule it breaks that the lens cares about, as a ⚠ line
+  - at the bottom, the average voice movement
+- **Playback:** each column's ▶ Play plays the whole progression in that lens, at the strip's tempo and chord lengths. Guitar strums and keyboard plays block chords. Tapping a chord plays it alone. One column plays at a time.
+- **Phones:** one lens at a time. Swipe sideways or use ‹ › to change lens; the tick boxes choose which ones to swipe through.
+- **Not yet:** a lens voicing can't be added to the progression; the strip keeps its own shapes. Say if you'd like a + on each column.
+- **Next:** all five Phase 5 tasks are done and all three exit criteria pass, so the Phase 5 gate comes next: the theory reviewer and your play-test.

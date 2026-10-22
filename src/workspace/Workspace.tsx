@@ -39,6 +39,7 @@ import { MidiPanel } from './MidiPanel'
 import { NO_CHORD, nextLastChord, type LastChord } from './last-chord'
 import { SidePanel } from './SidePanel'
 import { SuggestPanel } from './SuggestPanel'
+import { VoicePanel } from './VoicePanel'
 import { StyleBlendControl } from './StyleBlendControl'
 import { loadStyles } from './style-editor'
 import { blendedWeights, loadBlend, saveBlend } from './style-blend'
@@ -460,6 +461,16 @@ export function Workspace() {
       onAccept={acceptSuggestion}
     />
   )
+  const voice = (
+    <VoicePanel
+      progression={progression}
+      sectionKey={key}
+      guitar={guitar}
+      instrument={instrument}
+      bpm={bpm}
+      narrow={narrow}
+    />
+  )
   // The chord box beside the side panel (David's layout); on a phone it
   // stays beside the instrument, as the side panel is a sheet there.
   const shapeList = {
@@ -535,10 +546,11 @@ export function Workspace() {
           {strip}
         </main>
         <SidePanel
-          aside={!narrow && box}
+          aside={!narrow && tab !== 'voice' && box}
           tabs={[
             { id: 'explore', label: 'Explore', content: explore },
             { id: 'suggest', label: 'Suggest', content: suggest },
+            { id: 'voice', label: 'Voice', content: voice },
           ]}
           open={sheetOpen}
           onOpenChange={setSheetOpen}
