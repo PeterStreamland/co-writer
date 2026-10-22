@@ -196,6 +196,16 @@ export function addAfter(
   })
 }
 
+// Adds several chords in turn after a slot, as typed (Phase 5 task 1): the
+// first as addAfter would, each of the rest after the one before.
+export function addAllAfter(
+  p: Progression,
+  index: number,
+  chords: ChordName[],
+): Progression {
+  return chords.reduce((out, chord, i) => addAfter(out, index + i, chord), p)
+}
+
 // The path on from a node: its last active child, else its first, and so on.
 function continuation(p: Progression, id: string): string[] {
   const path: string[] = []
@@ -271,6 +281,18 @@ export function insertBetween(
     ...own.activePath.slice(index + 1),
   ]
   return remember({ ...own, nodes, activePath })
+}
+
+// Puts several chords, in order, between a slot and the next one.
+export function insertAllBetween(
+  p: Progression,
+  index: number,
+  chords: ChordName[],
+): Progression {
+  return chords.reduce(
+    (out, chord, i) => insertBetween(out, index + i, chord),
+    p,
+  )
 }
 
 // Changes the chord at a slot, giving it its own copy first if it was

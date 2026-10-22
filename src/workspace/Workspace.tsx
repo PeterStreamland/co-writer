@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'preact/hooks'
+import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import {
   formatNote,
   chordKey,
@@ -12,6 +12,7 @@ import {
 } from '../theory'
 import { playChord, preparePiano } from '../audio/player'
 import { useMidi } from '../midi/useMidi'
+import { IDLE, nextRecorder } from '../midi/record'
 import { findFingerings } from '../instruments/fingering'
 import { ChordRows } from './ChordRows'
 import { strum } from './ChordBoxes'
@@ -45,7 +46,9 @@ import { ProgressionStrip } from './ProgressionStrip'
 import {
   EMPTY_PROGRESSION,
   addAfter,
+  addAllAfter,
   chordsUpTo,
+  insertAllBetween,
   insertBetween,
   lengthOf,
   setLengthAt,
@@ -68,6 +71,7 @@ import { loadProgression, saveProgression } from '../sketch/storage'
 import { loadBpm, saveBpm, secondsOf } from '../sketch/time'
 import { useNarrow } from './useNarrow'
 import { played } from './played'
+import { recordedChord } from './recorded'
 import {
   keyName,
   loadKey,
@@ -232,6 +236,25 @@ export function Workspace() {
   useEffect(() => {
     if (follow && lastChord) setChord(lastChord)
   }, [follow, last.names])
+  // Record chords (SPEC 5): each chord held for 150 ms is added to the
+  // progression once every key is up, as + would add it, keeping the notes
+  // as played. A chord the app can't name is skipped, with a note saying so.
+  const [recording, setRecording] = useState(false)
+  const recorder = useRef(IDLE)
+  const [unnamed, setUnnamed] = useState(false)
+  useEffect(() => {
+    recorder.current = IDLE
+    setUnnamed(false)
+  }, [recording])
+  useEffect(() => {
+    if (!recording) return
+    const step = nextRecorder(recorder.current, midi.held, performance.now())
+    recorder.current = step.state
+    if (!step.commit) return
+    const heard = recordedChord(suggestKey, step.commit)
+    setUnnamed(!heard)
+    if (heard) addChords([heard.chord], heard.voicing)
+  }, [midi.held.join()])
   // Jump to a played chord's shapes on the other instrument: the guitar's
   // chord boxes from the keyboard (Phase 3 task 7), the keyboard's voicing
   // box from the guitar (David's choice).
@@ -309,6 +332,24 @@ export function Workspace() {
     }
     change(addAfter(progression, selected, c, { voicing }), selected + 1)
   }
+  // Adds chords typed into the strip or recorded on MIDI, in order, after
+  // the selected chord, or between the two while + between is on. The last
+  // one added is selected, so the next carries on from it.
+  function addChords(chords: ChordName[], voicing?: ChordVoicing) {
+    if (chords.length === 1) {
+      addChord(chords[0], voicing)
+      return
+    }
+    if (between !== undefined) {
+      change(
+        insertAllBetween(progression, between, chords),
+        between + chords.length,
+      )
+      setBetweenAt(undefined)
+      return
+    }
+    change(addAllAfter(progression, selected, chords), selected + chords.length)
+  }
   // While + between is on, every way of adding a chord (a suggestion, a
   // chord box's +, the strip's +) puts it between the two chords, keeping
   // the chord after it and everything that follows.
@@ -383,6 +424,7 @@ export function Workspace() {
       onSelect={selectSlot}
       onSwitch={(index, by) => change(switchAt(progression, index, by), index)}
       onAddFree={() => freeChord && addChord(freeChord)}
+      onAddTyped={addChords}
       playingAt={playingAt}
       onPlay={() => setPlayingAt(0)}
       onStop={() => setPlayingAt(undefined)}
@@ -484,6 +526,9 @@ export function Workspace() {
             last={last}
             follow={follow}
             onFollowChange={setFollow}
+            recording={recording}
+            onRecordingChange={setRecording}
+            unnamed={unnamed}
             shapesOn={instrument === 'guitar' ? 'keyboard' : 'guitar'}
             onShowShapes={showShapes}
           />
