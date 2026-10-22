@@ -1,22 +1,20 @@
 import { useState } from 'preact/hooks'
 import { playChord } from '../audio/player'
-import type { Sound } from '../audio/sounds'
 import type { ChordName, Key } from '../theory'
 import { chordRows, currentChord, type ChordButton } from './chord-rows'
 
-// The key's chords, one row per kind. Clicking a chord plays it, on piano or
-// strummed guitar to match the instrument view, and makes it the current
-// chord.
+// The key's chords, one row per kind. Clicking a chord plays it, strummed
+// when the guitar view is showing, and makes it the current chord.
 export function ChordRows({
   value,
   current,
   onSelect,
-  sound,
+  strum,
 }: {
   value: Key
   current: ChordName | undefined
   onSelect: (chord: ChordName) => void
-  sound: Sound
+  strum: boolean
 }) {
   const [showMore, setShowMore] = useState(false)
   const rows = chordRows(value, showMore)
@@ -24,7 +22,7 @@ export function ChordRows({
 
   function choose(chord: ChordName) {
     onSelect(chord)
-    void playChord(currentChord(value, chord).voicing, sound)
+    void playChord(currentChord(value, chord).voicing, { strum })
   }
 
   const cell = (c: ChordButton | undefined, i: number) =>

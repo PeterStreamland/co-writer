@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'preact/hooks'
 import { playChord } from '../audio/player'
-import type { Sound } from '../audio/sounds'
 import {
   DEFAULT_FRETS,
   DOT_FRETS,
@@ -14,15 +13,15 @@ import {
   type PianoKey,
 } from '../instruments/keyboard'
 import { noteMarker, type Mark } from '../instruments/marks'
-import { STANDARD_TUNING } from '../instruments/tunings'
-import type { ChordName, Key } from '../theory'
+import { TUNINGS, tuningStrings } from '../instruments/tunings'
+import { formatNote, type ChordName, type Key, type Note } from '../theory'
 
 export type Instrument = 'keyboard' | 'guitar'
 type Labels = 'names' | 'degrees'
 
 // The instrument view (SPEC 2, 5): keyboard or full-neck fretboard, with the
 // scale highlighted, the root marked and the current chord filled orange.
-// Clicking a highlighted note plays it, on piano or guitar to match the view.
+// Clicking a highlighted note plays it.
 export function InstrumentView({
   value,
   chord,
@@ -35,6 +34,8 @@ export function InstrumentView({
   onInstrumentChange: (instrument: Instrument) => void
 }) {
   const [labels, setLabels] = useState<Labels>('names')
+  const [tuning, setTuning] = useState('standard')
+  const [strings, setStrings] = useState<'6' | '7'>('6')
   const mark = noteMarker(value, chord)
   return (
     <section class="instrument">
@@ -57,11 +58,41 @@ export function InstrumentView({
           ]}
           onChange={setLabels}
         />
+        {instrument === 'guitar' && (
+          <>
+            <label class="tuning">
+              Tuning
+              <select
+                value={tuning}
+                onChange={(e) => setTuning(e.currentTarget.value)}
+              >
+                {TUNINGS.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Toggle
+              label="Strings"
+              value={strings}
+              options={[
+                ['6', '6-string'],
+                ['7', '7-string'],
+              ]}
+              onChange={setStrings}
+            />
+          </>
+        )}
       </div>
       {instrument === 'keyboard' ? (
         <Keyboard mark={mark} labels={labels} />
       ) : (
-        <Fretboard mark={mark} labels={labels} />
+        <Fretboard
+          strings={tuningStrings(tuning, strings === '7')}
+          mark={mark}
+          labels={labels}
+        />
       )}
       <p class="legend muted">
         <span class="dot root" /> root <span class="dot scale" /> in the scale{' '}
@@ -111,8 +142,8 @@ function markClass(mark: Mark): string {
   ].join(' ')
 }
 
-function play(mark: Mark | undefined, sound: Sound) {
-  if (mark) void playChord([mark.note], sound, 1)
+function play(mark: Mark | undefined) {
+  if (mark) void playChord([mark.note], { seconds: 1 })
 }
 
 function useNarrow(): boolean {
@@ -163,7 +194,7 @@ function Keyboard({
       aria-label={
         k.mark ? `${k.mark.name}, degree ${k.mark.degree}` : undefined
       }
-      onClick={() => play(k.mark, 'piano')}
+      onClick={() => play(k.mark)}
     >
       {k.mark && <span class={markClass(k.mark)}>{label(k.mark)}</span>}
     </button>
@@ -199,15 +230,18 @@ function Keyboard({
   )
 }
 
-// Horizontal tab view: nut on the left, low string at the bottom (SPEC 5).
+// Horizontal tab view: nut on the left, low string at the bottom (SPEC 5),
+// each string's open note named on the far left.
 function Fretboard({
+  strings,
   mark,
   labels,
 }: {
+  strings: Note[]
   mark: (midi: number) => Mark | undefined
   labels: Labels
 }) {
-  const grid = fretboardGrid(STANDARD_TUNING, DEFAULT_FRETS, mark)
+  const grid = fretboardGrid(strings, DEFAULT_FRETS, mark)
   const frets = grid[0].map((f) => f.fret)
   const label = (m: Mark) => (labels === 'names' ? m.name : m.degree)
   return (
@@ -215,11 +249,14 @@ function Fretboard({
       <div
         class="fretboard"
         style={{
-          gridTemplateColumns: `2.5rem repeat(${frets.length - 1}, 3rem)`,
+          gridTemplateColumns: `1.75rem 2.5rem repeat(${frets.length - 1}, 3rem)`,
         }}
       >
-        {[...grid].reverse().map((row) =>
-          row.map((spot) => (
+        {[...grid].reverse().flatMap((row) => [
+          <span key={`name-${row[0].string}`} class="string-name">
+            {formatNote(strings[row[0].string]).replace(/\d+$/, '')}
+          </span>,
+          ...row.map((spot) => (
             <button
               key={`${spot.string}-${spot.fret}`}
               type="button"
@@ -230,14 +267,15 @@ function Fretboard({
                   ? `${spot.mark.name} on string ${grid.length - spot.string}, fret ${spot.fret}`
                   : undefined
               }
-              onClick={() => play(spot.mark, 'guitar')}
+              onClick={() => play(spot.mark)}
             >
               {spot.mark && (
                 <span class={markClass(spot.mark)}>{label(spot.mark)}</span>
               )}
             </button>
           )),
-        )}
+        ])}
+        <span />
         {frets.map((fret) => (
           <span key={fret} class="fret-number">
             {fret}

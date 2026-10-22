@@ -6,7 +6,12 @@ import {
   pianoKeys,
 } from '../../src/instruments/keyboard'
 import { noteMarker } from '../../src/instruments/marks'
-import { STANDARD_TUNING } from '../../src/instruments/tunings'
+import {
+  STANDARD_TUNING,
+  TUNINGS,
+  tuningStrings,
+} from '../../src/instruments/tunings'
+import { tuningPitches } from '../fixtures/tunings'
 import {
   allScales,
   enharmonicKey,
@@ -115,5 +120,74 @@ describe('every key and scale on both instruments', () => {
       const shown = new Set(keys.filter((x) => x.mark).map((x) => x.mark!.name))
       expect(shown).toEqual(names)
     })
+  }
+})
+
+describe('tunings', () => {
+  it.each(tuningPitches)(
+    '$id, 7-string $sevenString: $strings',
+    ({ id, sevenString, strings, midi }) => {
+      const open = tuningStrings(id, sevenString)
+      expect(open.map((n) => formatNote(n, { ascii: true })).join(' ')).toBe(
+        strings,
+      )
+      expect(open.map(midiNumber)).toEqual(midi)
+    },
+  )
+
+  it('moves the highlights with the tuning: D major in drop D', () => {
+    const mark = noteMarker(key('D', 'major'))
+    const standard = fretboardGrid(tuningStrings('standard', false), 15, mark)
+    const dropD = fretboardGrid(tuningStrings('drop-d', false), 15, mark)
+    // The low string's open note is now the root, and its root at fret 10
+    // (D on the E string) moves down two frets to 12 (an octave up), then 0.
+    expect(standard[0].filter((f) => f.mark?.root).map((f) => f.fret)).toEqual([
+      10,
+    ])
+    expect(dropD[0].filter((f) => f.mark?.root).map((f) => f.fret)).toEqual([
+      0, 12,
+    ])
+    // The other five strings are unchanged.
+    expect(dropD.slice(1).map((row) => row.map((f) => !!f.mark))).toEqual(
+      standard.slice(1).map((row) => row.map((f) => !!f.mark)),
+    )
+  })
+
+  it('adds a low B string on a 7-string, with B as the 5th of E minor', () => {
+    const grid = fretboardGrid(
+      tuningStrings('standard', true),
+      15,
+      noteMarker(key('E', 'natural-minor')),
+    )
+    expect(grid).toHaveLength(7)
+    expect(grid[0][0].midi).toBe(35)
+    expect(grid[0][0].mark?.degree).toBe('5')
+    expect(grid[0][5].mark?.root).toBe(true)
+  })
+})
+
+// Phase 2 exit criterion: changing tuning moves the fretboard highlights
+// correctly. On every tuning, 6- and 7-string, every key and scale marks
+// exactly its own pitches, each playing the pitch of its fret.
+describe('every key and scale in every tuning', () => {
+  const keys = everyKey()
+  for (const t of TUNINGS) {
+    for (const seven of [false, true]) {
+      it(`${t.name}${seven ? ', 7-string' : ''}`, () => {
+        const strings = tuningStrings(t.id, seven)
+        const wrong: string[] = []
+        for (const k of keys) {
+          const pitches = new Set(scaleNotes(k.tonic, k.mode).map(pitchClass))
+          for (const spot of fretboardGrid(strings, 15, noteMarker(k)).flat()) {
+            const inScale = pitches.has(spot.midi % 12)
+            const plays = spot.mark && midiNumber(spot.mark.note)
+            if (!!spot.mark !== inScale || (spot.mark && plays !== spot.midi)) {
+              wrong.push(`${formatNote(k.tonic)} ${k.mode} at ${spot.midi}`)
+            }
+          }
+        }
+        expect(wrong).toEqual([])
+      })
+    }
   }
 })
