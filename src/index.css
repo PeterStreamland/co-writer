@@ -1559,3 +1559,27 @@ body:has(.workspace) #app {
   border-radius: 8px;
   padding: 0.4rem 0.6rem;
 }
+
+/* + between in the strip, and the way back from passing chords. */
+.strip li.between {
+  justify-content: center;
+}
+
+.strip .chip.passing {
+  min-width: auto;
+  font-size: 0.85rem;
+  border-style: dashed;
+  color: var(--accent);
+  justify-content: center;
+}
+
+.strip .chip.passing.active {
+  border-style: solid;
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.suggest .leave {
+  font-size: 0.85rem;
+  padding: 0.15rem 0.6rem;
+}

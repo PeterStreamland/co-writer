@@ -19,7 +19,9 @@ import { InfoPanel, InfoToggle, useToggle } from './ChordInfo'
 // The progression strip (SPEC 2, 6.5): the active path of the section's
 // progression. Tap a chord to select it (suggestions then follow it); the
 // arrows under a chord switch between its alternatives; + adds the current
-// chord after the selected one. Play plays every chord from the start.
+// chord after the selected one; + between, beside a selected chord with
+// another after it, asks for passing chords (SPEC 6.7). Play plays every
+// chord from the start.
 // Undo and redo cover every change, and the tree button shows every branch.
 export function ProgressionStrip({
   progression,
@@ -38,6 +40,8 @@ export function ProgressionStrip({
   playingAt,
   onPlay,
   onStop,
+  between,
+  onBetween,
 }: {
   progression: Progression
   sectionKey: Key
@@ -55,6 +59,9 @@ export function ProgressionStrip({
   playingAt: number | undefined
   onPlay: () => void
   onStop: () => void
+  // The slot whose gap to the next chord is being filled, if any.
+  between: number | undefined
+  onBetween: (index: number) => void
 }) {
   const [treeOpen, setTreeOpen] = useState(false)
   const path = pathNodes(progression)
@@ -119,7 +126,7 @@ export function ProgressionStrip({
           const options = alternatives(progression, i)
           const at = options.indexOf(n.id)
           const key = keyAt(progression, i, sectionKey)
-          return (
+          return [
             <li
               key={`${i}-${n.id}`}
               class={[
@@ -160,8 +167,21 @@ export function ProgressionStrip({
                   </button>
                 </span>
               )}
-            </li>
-          )
+            </li>,
+            i === selected && i + 1 < path.length && (
+              <li key={`between-${i}`} class="between">
+                <button
+                  type="button"
+                  class={between === i ? 'chip passing active' : 'chip passing'}
+                  aria-pressed={between === i}
+                  title={`Suggest a passing chord between ${chordSymbol(n.chord)} and ${chordSymbol(path[i + 1].chord)}`}
+                  onClick={() => onBetween(i)}
+                >
+                  + between
+                </button>
+              </li>
+            ),
+          ]
         })}
         <li>
           <button

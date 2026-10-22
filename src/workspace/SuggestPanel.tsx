@@ -6,6 +6,7 @@ import {
   chordSymbol,
   keyName,
   rankNextChords,
+  rankPassingChords,
   romanNumeral,
   type ChordName,
   type Key,
@@ -24,6 +25,8 @@ import { InfoPanel, InfoToggle } from './ChordInfo'
 export function SuggestPanel({
   keyValue,
   previous,
+  next,
+  onLeave,
   weights,
   preview,
   onPreview,
@@ -31,6 +34,10 @@ export function SuggestPanel({
 }: {
   keyValue: Key
   previous: ChordName[]
+  // With a next chord, the panel offers passing chords to put between the
+  // last chord and it (SPEC 6.7); onLeave goes back to what comes next.
+  next?: ChordName
+  onLeave?: () => void
   weights: StyleWeights | undefined
   preview: NextChordSuggestion | undefined
   onPreview: (s: NextChordSuggestion) => void
@@ -38,10 +45,17 @@ export function SuggestPanel({
 }) {
   const [another, setAnother] = useState(0)
   const history = previous.map(chordKey).join(' ')
-  useEffect(() => setAnother(0), [keyValue, history, weights])
+  const target = next && chordKey(next)
+  useEffect(() => setAnother(0), [keyValue, history, target, weights])
   const ranked = useMemo(
-    () => rankNextChords({ key: keyValue, previous, weights }, { another }),
-    [keyValue, history, weights, another],
+    () =>
+      next
+        ? rankPassingChords(
+            { key: keyValue, previous, next, weights },
+            { another },
+          )
+        : rankNextChords({ key: keyValue, previous, weights }, { another }),
+    [keyValue, history, target, weights, another],
   )
   const chord = previous.at(-1)
   // The suggestion whose ⓘ panel is open, if any.
@@ -106,12 +120,28 @@ export function SuggestPanel({
 
   return (
     <section class="suggest">
-      <h2>{chord ? `After ${chordSymbol(chord)}` : 'Places to start'}</h2>
-      <p class="muted">
-        {chord
-          ? 'Tap a chord to hear it after the last one; + to add it to the progression and carry on from there.'
-          : 'Pick a chord in Explore, play one, or start from one of these.'}
-      </p>
+      {next && chord ? (
+        <>
+          <h2>
+            Between {chordSymbol(chord)} and {chordSymbol(next)}
+          </h2>
+          <p class="muted">
+            Passing chords: tap one to hear all three; + puts it between them.{' '}
+            <button type="button" class="leave" onClick={onLeave}>
+              Back to what comes next
+            </button>
+          </p>
+        </>
+      ) : (
+        <>
+          <h2>{chord ? `After ${chordSymbol(chord)}` : 'Places to start'}</h2>
+          <p class="muted">
+            {chord
+              ? 'Tap a chord to hear it after the last one; + to add it to the progression and carry on from there.'
+              : 'Pick a chord in Explore, play one, or start from one of these.'}
+          </p>
+        </>
+      )}
       {ranked.groups.map((group) => (
         <div key={group.category} class="group">
           <h3>{CATEGORY_LABELS[group.category]}</h3>
