@@ -76,6 +76,9 @@ import {
 
 // How long after the current chord a previewed suggestion plays.
 const PREVIEW_GAP_MS = 900
+// How long each chord lasts when the progression plays, until the beat grid
+// gives chords their own lengths (Phase 6).
+const CHORD_MS = 1200
 
 // The single workspace (SPEC 2): the key picker in the header; the stage,
 // with the scale above the instrument view and MIDI input below it (David's
@@ -89,7 +92,11 @@ export function Workspace() {
   // current chord until it is used or the current chord changes.
   const [preview, setPreview] = useState<NextChordSuggestion>()
   useEffect(() => setPreview(undefined), [chord, key])
-  const shown = preview?.candidate ?? chord
+  // While the progression plays, the chord sounding shows on the
+  // instrument.
+  const [playingAt, setPlayingAt] = useState<number>()
+  const [playingChord, setPlayingChord] = useState<ChordName>()
+  const shown = playingChord ?? preview?.candidate ?? chord
   // The style weights as edited on the Style weights page, blended by the
   // header's control.
   const styles = useMemo(() => loadStyles(), [])
@@ -258,6 +265,33 @@ export function Workspace() {
     setPreview(undefined)
     playNow(s.candidate)
   }
+  // Adds a chord after the selected one: the + on the strip, or a chord
+  // box's + with its inversion as a slash chord.
+  function addChord(c: ChordName) {
+    change(addAfter(progression, selected, c), selected + 1)
+  }
+  // Plays the progression from the first chord, one chord at a time.
+  useEffect(() => {
+    if (playingAt === undefined) {
+      setPlayingChord(undefined)
+      return
+    }
+    const n = path[playingAt]
+    if (!n) {
+      setPlayingAt(undefined)
+      return
+    }
+    setPlayingChord(n.chord)
+    playNow(n.chord)
+    const timer = setTimeout(
+      () =>
+        setPlayingAt(playingAt + 1 < path.length ? playingAt + 1 : undefined),
+      CHORD_MS,
+    )
+    return () => clearTimeout(timer)
+  }, [playingAt])
+  // Any change to the progression stops playback.
+  useEffect(() => setPlayingAt(undefined), [progression])
   function selectSlot(index: number) {
     setSelectedAt(index)
     setChord(path[index].chord)
@@ -273,10 +307,10 @@ export function Workspace() {
       canRedo={history.future.length > 0}
       onSelect={selectSlot}
       onSwitch={(index, by) => change(switchAt(progression, index, by), index)}
-      onAddFree={() =>
-        freeChord &&
-        change(addAfter(progression, selected, freeChord), selected + 1)
-      }
+      onAddFree={() => freeChord && addChord(freeChord)}
+      playingAt={playingAt}
+      onPlay={() => setPlayingAt(0)}
+      onStop={() => setPlayingAt(undefined)}
       onUndo={() => step(undo(history))}
       onRedo={() => step(redo(history))}
       onClear={() => change(EMPTY_PROGRESSION, -1)}
@@ -316,7 +350,6 @@ export function Workspace() {
       </header>
       <div class="layout">
         <main class="stage">
-          {strip}
           {!narrow && scale}
           <InstrumentView
             value={key}
@@ -332,6 +365,7 @@ export function Workspace() {
               onAt: setShapeAt,
               filters,
               onFiltersChange: setFilters,
+              onAdd: addChord,
             }}
             voicings={{
               list: voicings,
@@ -339,6 +373,7 @@ export function Workspace() {
               onAt: (at) => setVoicingPick(voicings[at]),
               filters: pianoFilters,
               onFiltersChange: setPianoFilters,
+              onAdd: addChord,
             }}
           />
           <MidiPanel
@@ -350,6 +385,7 @@ export function Workspace() {
             shapesOn={instrument === 'guitar' ? 'keyboard' : 'guitar'}
             onShowShapes={showShapes}
           />
+          {strip}
         </main>
         <SidePanel
           tabs={[

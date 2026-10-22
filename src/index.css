@@ -1410,3 +1410,64 @@ body:has(.workspace) #app {
   color: var(--accent);
   font-weight: 600;
 }
+
+/* Lines between the workspace's sections (David's choice): under the
+   header, between the scale, instrument, MIDI and progression, and above
+   the side panel's tabs. CanvasText is black in light mode, white in dark. */
+.workspace {
+  --divider: color-mix(in srgb, CanvasText 55%, transparent);
+}
+
+.workspace .top {
+  border-bottom-color: var(--divider);
+}
+
+.stage > * + * {
+  border-top: 1px solid var(--divider);
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+.stage > .strip {
+  margin-bottom: 0;
+}
+
+@media (min-width: 40rem) {
+  .side {
+    border-top: 1px solid var(--divider);
+    padding-top: 0.25rem;
+  }
+}
+
+/* The progression strip's Play button and the chord sounding. */
+.strip-tools .play {
+  font-weight: 600;
+}
+
+.strip li.playing .chip {
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+  border-color: var(--accent);
+}
+
+/* The + on a chord box adds the shape, inversion and all. */
+.chord-boxes .box-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.3rem;
+}
+
+.chord-boxes .box-head h3 {
+  margin: 0;
+}
+
+.chord-boxes .box-add {
+  min-height: 2rem;
+  padding: 0.15rem 0.6rem;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+}
