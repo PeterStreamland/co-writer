@@ -5,7 +5,12 @@ import { ScaleType as TonalScaleType } from 'tonal'
 import { parseInterval, semitones, transpose, transposeDown } from './interval'
 import type { Interval } from './interval'
 import type { Note } from './note'
-import { CORE_SCALES, type ScaleData, type ScaleFamily } from './scale-data'
+import {
+  COMMON_SCALE_IDS,
+  CORE_SCALES,
+  type ScaleData,
+  type ScaleFamily,
+} from './scale-data'
 
 export type { ScaleFamily } from './scale-data'
 
@@ -110,6 +115,11 @@ export function getScale(name: string): Scale | undefined {
   return BY_NAME.get(nameKey(name))
 }
 
+// The everyday scales a picker shows first, in picker order.
+export function commonScales(): Scale[] {
+  return COMMON_SCALE_IDS.map(requireScale)
+}
+
 function requireScale(name: string): Scale {
   const scale = getScale(name)
   if (!scale) throw new Error(`unknown scale ${name}`)
@@ -150,4 +160,21 @@ export function keySignature(key: Key): number | undefined {
     (sum, note) => sum + note.accidental,
     0,
   )
+}
+
+// Semitones between neighbouring notes, from the tonic up to its octave:
+// major is 2 2 1 2 2 2 1.
+export function scaleSteps(scale: string): number[] {
+  const offsets = requireScale(scale).intervals.map(semitones)
+  return offsets.map((offset, i) => (offsets[i + 1] ?? 12) - offset)
+}
+
+// A step in tones (T) and semitones (S), as British books write them: 1 is S,
+// 2 is T, 3 is T+S, 4 is 2T.
+export function stepLabel(semitones: number): string {
+  const tones = Math.floor(semitones / 2)
+  const parts: string[] = []
+  if (tones > 0) parts.push(tones > 1 ? `${tones}T` : 'T')
+  if (semitones % 2) parts.push('S')
+  return parts.join('+')
 }

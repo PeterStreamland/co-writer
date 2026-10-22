@@ -144,3 +144,35 @@ function simpleDegree(from: Note, to: Note) {
   const offset = mod(difference - baseSemitones(number) + 6, 12) - 6
   return { number, offset }
 }
+
+// Traditional names, by degree number (1–7).
+const DEGREE_NAMES = [
+  'tonic',
+  'supertonic',
+  'mediant',
+  'subdominant',
+  'dominant',
+  'submediant',
+  'seventh',
+]
+
+const ALTERATION_WORDS: Record<number, string> = {
+  [-2]: 'double-flattened',
+  [-1]: 'flattened',
+  1: 'sharpened',
+  2: 'double-sharpened',
+}
+
+// Traditional name of a scale degree, following spelling like degreeLabel.
+// The 3rd and 6th keep their names whether major or minor; a major 7th is the
+// leading note and a minor 7th the subtonic. Any other alteration is named:
+// ♭2 is the flattened supertonic, ♯4 the sharpened subdominant.
+export function degreeName(tonic: Note, note: Note): string {
+  const { number, offset } = simpleDegree(tonic, note)
+  if (number === 7 && offset === 0) return 'leading note'
+  if (number === 7 && offset === -1) return 'subtonic'
+  const name = DEGREE_NAMES[number - 1]
+  if (offset === 0 || ([3, 6].includes(number) && offset === -1)) return name
+  const word = ALTERATION_WORDS[offset] ?? `${offset > 0 ? '+' : ''}${offset}`
+  return `${word} ${name}`
+}
