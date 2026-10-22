@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'preact/hooks'
 import {
   CATEGORY_LABELS,
+  chordInsight,
   chordKey,
   chordSymbol,
   keyName,
@@ -11,6 +12,7 @@ import {
   type NextChordSuggestion,
   type StyleWeights,
 } from '../theory'
+import { InfoPanel, InfoToggle } from './ChordInfo'
 
 // The Suggest tab (SPEC 6.2): what could follow the chords so far (the
 // strip up to the selected chord, plus the current chord when it isn't in
@@ -42,6 +44,8 @@ export function SuggestPanel({
     [keyValue, history, weights, another],
   )
   const chord = previous.at(-1)
+  // The suggestion whose ⓘ panel is open, if any.
+  const [openId, setOpenId] = useState<string>()
 
   const card = (s: NextChordSuggestion, wildcard = false) => {
     const id = chordKey(s.candidate) + (s.keyChange ? keyName(s.keyChange) : '')
@@ -74,12 +78,28 @@ export function SuggestPanel({
         >
           +
         </button>
-        <p class="why">{s.explanation}</p>
-        {s.contextNotes.map((note) => (
-          <p key={note} class="context">
-            {note}
+        <p class="why">
+          {s.explanation}{' '}
+          <InfoToggle
+            open={openId === id}
+            label={symbol}
+            onToggle={() => setOpenId(openId === id ? undefined : id)}
+          />
+        </p>
+        {s.contextNotes.length > 0 && openId !== id && (
+          <p class="context">
+            {s.contextNotes.length === 1
+              ? s.contextNotes[0]
+              : `${s.contextNotes[0]} (and more under ⓘ)`}
           </p>
-        ))}
+        )}
+        {openId === id && (
+          <InfoPanel
+            insight={chordInsight(keyValue, s.candidate, chord)}
+            also={s.more}
+            contextNotes={s.contextNotes}
+          />
+        )}
       </li>
     )
   }

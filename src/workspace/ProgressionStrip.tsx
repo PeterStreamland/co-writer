@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks'
 import {
+  chordInsight,
   chordSymbol,
   keyName,
   romanNumeral,
@@ -13,6 +14,7 @@ import {
   type ChordNode,
   type Progression,
 } from '../sketch/progression'
+import { InfoPanel, InfoToggle, useToggle } from './ChordInfo'
 
 // The progression strip (SPEC 2, 6.5): the active path of the section's
 // progression. Tap a chord to select it (suggestions then follow it); the
@@ -56,6 +58,17 @@ export function ProgressionStrip({
 }) {
   const [treeOpen, setTreeOpen] = useState(false)
   const path = pathNodes(progression)
+  // The selected chord's reading in its key, with an ⓘ panel comparing it
+  // with the chord before (SPEC 6.3: every chord, suggested or not).
+  const [infoOpen, toggleInfo] = useToggle()
+  const selectedNode = selected >= 0 ? path[selected] : undefined
+  const selectedInsight =
+    selectedNode &&
+    chordInsight(
+      keyAt(progression, selected, sectionKey),
+      selectedNode.chord,
+      selected > 0 ? path[selected - 1].chord : undefined,
+    )
   return (
     <section class="strip" aria-label="Progression">
       <div class="strip-bar">
@@ -166,6 +179,22 @@ export function ProgressionStrip({
           </button>
         </li>
       </ol>
+      {selectedNode && (
+        <div class="strip-info">
+          <p>
+            <strong>{chordSymbol(selectedNode.chord)}</strong> ·{' '}
+            {selectedInsight?.reading}{' '}
+            <InfoToggle
+              open={infoOpen}
+              label={chordSymbol(selectedNode.chord)}
+              onToggle={toggleInfo}
+            />
+          </p>
+          {infoOpen && selectedInsight && (
+            <InfoPanel insight={selectedInsight} />
+          )}
+        </div>
+      )}
       {path.length === 0 && (
         <p class="muted">
           Empty so far. Pick a chord in Explore and add it with +, or use a

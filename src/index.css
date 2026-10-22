@@ -1191,6 +1191,7 @@ body:has(.workspace) #app {
 .suggestion {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
+  align-content: start;
   gap: 0.25rem 0.5rem;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1499,4 +1500,62 @@ body:has(.workspace) #app {
     top: 1rem;
     margin-top: 1rem;
   }
+}
+
+/* The ⓘ panel (SPEC 6.2) on suggestions and the strip's selected chord. */
+.info-toggle {
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 1.05rem;
+  line-height: 1;
+  padding: 0.1rem 0.25rem;
+  min-width: 1.75rem;
+  min-height: 1.75rem;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.info-toggle[aria-expanded='true'] {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border-radius: 999px;
+}
+
+.info-panel {
+  grid-column: 1 / -1;
+  border-top: 1px solid var(--line);
+  margin-top: 0.25rem;
+  padding-top: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.info-panel p {
+  margin: 0.15rem 0;
+}
+
+.info-panel h4 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin: 0.5rem 0 0.15rem;
+}
+
+.info-panel .context {
+  color: var(--muted);
+}
+
+.strip-info {
+  margin-top: 0.5rem;
+  max-width: 48rem;
+}
+
+.strip-info > p {
+  margin: 0;
+}
+
+.strip-info .info-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
 }

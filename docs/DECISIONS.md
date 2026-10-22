@@ -677,3 +677,16 @@ David found that a chord added from a chord box played back in root position, wh
 - **Selecting or playing the chord** shows the same shape in the chord box, where the box still offers it with the current filters.
 - **Chords added any other way** (a suggestion, or the strip's + for a chord picked in Explore) have no stored shape. They play as the instrument view would, as before.
 - **Shapes travel and drop as needed:** a shared chord copied for an alternative keeps its shape, and changing a chord drops it.
+
+## 2026-10-22 — The ⓘ panel
+
+Phase 4 task 6 (`src/theory/insight.ts`, `src/workspace/ChordInfo.tsx`). Choices the plan and SPEC didn't settle:
+
+- **On each suggestion card:** the first line is the rule's explanation, as before, followed by ⓘ. One context note shows on the card; the rest are under ⓘ. One panel is open at a time.
+- **The panel holds:**
+  - the chord's reading in the key and its notes ("♭VI, borrowed from C Aeolian · A♭ C E♭")
+  - **More:** how the root moves from the chord before, the short way round ("The root rises a perfect 4th, G to C"); the notes the two share; and how the other notes move, each from the nearest free note of the chord before ("B up a semitone to C, F down a semitone to E"). Any other reading of the same chord follows as "Also: …".
+  - **Why it ranks here:** the context notes.
+  - Corpus examples join More in Phase 9.
+- **Chords in the strip (SPEC 6.3):** the selected chord shows its reading under the strip, with an ⓘ that compares it with the chord before. This applies to every chord, suggested or added by hand.
+- **New golden fixture:** `tests/fixtures/insights.ts` has six hand-written cases, including G7 to C (the leading note rising, the 7th falling) and Em to F (♭II from Phrygian, no shared notes).
