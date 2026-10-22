@@ -3,9 +3,10 @@ import { useState } from 'preact/hooks'
 
 export type Tab = { id: string; label: string; content: ComponentChildren }
 
-// The side panel (SPEC 2): one tab per tool, beside the instrument view on a
-// laptop. On a phone it is a sheet along the bottom of the screen that opens
-// and closes, so the instrument view stays in sight above it. Explore is the
+// The side panel (SPEC 2): one tab per tool, under the instrument view at
+// full width (David's choice). On a phone it is a sheet along the bottom of
+// the screen that opens and closes, so the instrument view stays in sight
+// above it. Explore is the
 // only tab so far; Shapes, Suggest and the rest arrive with their phases.
 export function SidePanel({
   tabs,
