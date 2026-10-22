@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks'
-import { formatNote, type Key } from '../theory'
+import { formatNote, type ChordName, type Key } from '../theory'
+import { ChordRows } from './ChordRows'
 import {
   keyName,
   loadKey,
@@ -14,10 +15,11 @@ import {
   withTonic,
 } from './key-picker'
 
-// The single workspace (SPEC 2). Phase 2 task 1 gives it its header key
-// picker and the Explore panel's scale view; the rest arrives task by task.
+// The single workspace (SPEC 2): the header key picker, and the Explore
+// panel's scale view and chord rows; the rest arrives task by task.
 export function Workspace() {
   const [key, setKey] = useState<Key>(loadKey)
+  const [chord, setChord] = useState<ChordName>()
   useEffect(() => saveKey(key), [key])
   return (
     <div class="workspace">
@@ -26,6 +28,7 @@ export function Workspace() {
       </header>
       <main>
         <ScalePanel value={key} />
+        <ChordRows value={key} current={chord} onSelect={setChord} />
       </main>
       <footer>
         <a href="#/audit">Phase 1 audit table</a>

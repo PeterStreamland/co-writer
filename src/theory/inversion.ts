@@ -104,3 +104,12 @@ export function closeVoicing(chord: ChordName, octave: number): Note[] {
   }
   return voicing
 }
+
+// The voicing a clicked chord plays: close position with the bass between F3
+// and E4, so every chord sits around middle C. C is C4 E4 G4, F is F3 A3 C4,
+// G/B is B3 D4 G4.
+export function playbackVoicing(chord: ChordName): Note[] {
+  const high = closeVoicing(chord, 4)
+  const E4 = 64
+  return (midiNumber(high[0]) as number) > E4 ? closeVoicing(chord, 3) : high
+}

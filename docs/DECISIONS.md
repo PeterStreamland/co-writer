@@ -200,3 +200,15 @@ Phase 2 task 1 (`src/theory/key.ts`, `src/workspace/`, golden fixture `tests/fix
 - **The workspace is now the home page.** The key picker sits in its header and the scale view in what will become the Explore panel (SPEC 2). The last key chosen is remembered in the browser. The audit table and spike stay, linked from the footer.
 
 Why: these give the spellings a guitarist or pianist would reach for while keeping every real key signature one tap away. David can flag any spelling or name when he tries the picker.
+
+## 2026-10-22 — The diatonic chord rows
+
+Phase 2 task 2 (`src/workspace/chord-rows.ts`, `src/audio/`, `playbackVoicing` in `src/theory/inversion.ts`, golden fixture `tests/fixtures/playback.ts`). The plan says "rows of diatonic triads, 7ths and extended chords; click any chord to hear it"; these choices it didn't settle:
+
+- **Rows:** one row per kind of chord, one column per degree, each chord with its numeral. Triads, 7ths, 9ths, 11ths and 13ths show first; sus2, sus4, 7sus4, add9, add11 and 6ths sit behind "More chords" (SPEC 2: common items first). A gap (—) marks a degree where that shape isn't a chord in the key, as in the audit table.
+- **Scales that don't stack in thirds** (pentatonics, blues, whole-tone, diminished, bebop) show every chord in the scale, listed under its degree, as decided for Phase 1 task 4.
+- **Clicking a chord** plays it and makes it the current chord (SPEC 2). A line under the rows shows its numeral reading ("V7, diatonic in C major") and notes. The current chord stays when the key changes, so its numeral is reread in the new key.
+- **What a click plays:** a block chord in close position, with the bass between F3 and E4 so every chord sits around middle C: C is C4 E4 G4, F is F3 A3 C4, G7 is G3 B3 D4 F4. Extended chords stack their 9th, 11th and 13th above.
+- **Sound:** a plain synth for now. Task 4 brings the piano and clean-guitar sounds and the guitar strum (SPEC 5).
+
+Why: this puts every chord of the key one tap away. The voicing keeps chords in the same register, so they can be compared by ear. David can flag anything that sounds or reads wrong.

@@ -13,6 +13,7 @@ import {
   parseChordSymbol,
   parseNote,
   pitchClass,
+  playbackVoicing,
   romanNumeral,
   sameSpelling,
   type ChordName,
@@ -23,6 +24,7 @@ import {
   inversionSymbols,
   voicings,
 } from '../fixtures/inversions'
+import { playbackPitches } from '../fixtures/playback'
 
 function parse(text: string): ChordName {
   const chord = parseChordSymbol(text)
@@ -181,6 +183,24 @@ describe('inversions with Roman numerals', () => {
     for (const inv of inversions(parse('E7#5'))) {
       const pitches = chordNotes(inv.chord).map(pitchClass)
       expect(new Set(pitches).size).toBe(4)
+    }
+  })
+})
+
+describe('playbackVoicing', () => {
+  it.each(Object.entries(playbackPitches))('%s', (symbol, pitches) => {
+    expect(playbackVoicing(parse(symbol)).map(midiNumber)).toEqual(pitches)
+  })
+
+  it('keeps every chord quality between F3 and E4 in the bass', () => {
+    for (const { root, quality } of cases) {
+      const voicing = playbackVoicing({ root, quality })
+      const bass = midiNumber(voicing[0]) as number
+      expect(bass).toBeGreaterThanOrEqual(53)
+      expect(bass).toBeLessThanOrEqual(64)
+      expect(voicing.map(pitchClass).sort()).toEqual(
+        chordNotes({ root, quality }).map(pitchClass).sort(),
+      )
     }
   })
 })
