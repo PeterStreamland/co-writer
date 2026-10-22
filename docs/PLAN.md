@@ -134,6 +134,7 @@ Goal: the first usable screen, covering your first feature request.
 4. Playback through Tone.js with a piano and a clean-guitar sound.
 5. Tuning presets wired in now (standard, drop D, DADGAD, 7-string B standard), ready for Phase 3.
 6. MIDI input from your USB keyboard in Chrome or Edge: notes you play light up on both views, and a held chord is named, with every valid name when it's ambiguous.
+7. Workspace layout pass: arrange the screen as SPEC 2 sketches it, with the header, the instrument view beside a side panel (Explore holds the scale and chord rows), and on a phone the side panel stacked underneath. Layout only; the visual design (colours, type, spacing, themes) waits for the polish work near the end.
 
 - [x] Any key and scale shows correct notes on both instruments, checked automatically against Phase 1
 - [x] Every highlighted note plays the right pitch (tests compare pitch numbers)

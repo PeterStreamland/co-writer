@@ -224,3 +224,11 @@ Phase 2 task 3 (`src/instruments/`, `src/workspace/InstrumentView.tsx`, `noteAtM
 - **Exit criteria:** a test walks every scale on every tonic the picker can reach. On every key from C2 to C6 and every fret 0–15 of standard tuning, it checks that exactly the scale's pitches are marked, spelled as Phase 1 spells the scale. It also checks that the note each mark plays has the MIDI number of the key or fret it sits on. That ticks Phase 2's first two exit criteria.
 
 Why: the colours keep scale, root and chord apart at a glance, on a phone as well. Checking every key and scale ties both views to the Phase 1 core.
+
+## 2026-10-22 — Layout before Phase 4, visual design last (David's choice)
+
+Phase 2 gains a seventh task, after MIDI input and before the gate: a **workspace layout pass** that arranges the screen as SPEC 2 sketches it. The header holds the key picker. The instrument view sits beside a side panel whose Explore tab holds the scale and chord rows, and on a phone the panel stacks underneath. Until then, the pieces stay in one column as they are built.
+
+The **visual design** (colours, type, spacing, the dark and light themes) waits until the features are all working, near the end of the plan.
+
+Why: where things sit shapes how Phase 4's progression strip and suggestion panel get built, so the layout should be in place before them. Restyling the look while features keep changing would be wasted work.
