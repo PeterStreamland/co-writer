@@ -280,9 +280,7 @@ export function Workspace() {
   // pivot asks whether to carry on in its new key (SPEC 6.4).
   function acceptSuggestion(s: NextChordSuggestion) {
     if (between !== undefined) {
-      // A passing chord goes in between the two chords.
-      change(insertBetween(progression, between, s.candidate), between + 1)
-      setBetweenAt(undefined)
+      insertPassing(between, s.candidate)
       setPreview(undefined)
       playNow(s.candidate)
       return
@@ -302,7 +300,18 @@ export function Workspace() {
   // Adds a chord after the selected one: the + on the strip, or a chord
   // box's + with its inversion as a slash chord.
   function addChord(c: ChordName, voicing?: ChordVoicing) {
+    if (between !== undefined) {
+      insertPassing(between, c, voicing)
+      return
+    }
     change(addAfter(progression, selected, c, { voicing }), selected + 1)
+  }
+  // While + between is on, every way of adding a chord (a suggestion, a
+  // chord box's +, the strip's +) puts it between the two chords, keeping
+  // the chord after it and everything that follows.
+  function insertPassing(index: number, c: ChordName, voicing?: ChordVoicing) {
+    change(insertBetween(progression, index, c, { voicing }), index + 1)
+    setBetweenAt(undefined)
   }
   // Shows a progression chord in the chord box as it was added: the same
   // guitar shape or keyboard voicing, where the box offers it.
