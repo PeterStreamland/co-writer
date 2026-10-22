@@ -97,6 +97,7 @@ export function InstrumentView({
   onSettingsChange,
   shapes,
   voicings,
+  showBox = true,
 }: {
   value: Key
   chord: ChordName | undefined
@@ -107,6 +108,9 @@ export function InstrumentView({
   onSettingsChange: (settings: GuitarSettings) => void
   shapes: Shapes
   voicings: Voicings
+  // Whether the chord box sits beside the instrument (on a phone) or
+  // elsewhere (beside the side panel on wider screens).
+  showBox?: boolean
 }) {
   const [labels, setLabels] = useState<Labels>('names')
   const { tuning, strings, capo, lastFret } = settings
@@ -210,18 +214,14 @@ export function InstrumentView({
             held={held}
             voiced={voicing?.notes.map((n) => midiNumber(n) as number)}
           />
-          {chord && voicing ? (
-            <KeyboardVoicings
+          {showBox && (
+            <ChordBox
+              instrument={instrument}
+              guitar={guitar}
               chord={chord}
-              voicings={voicings.list}
-              at={voicings.at}
-              onAt={voicings.onAt}
-              filters={voicings.filters}
-              onFiltersChange={voicings.onFiltersChange}
-              onAdd={voicings.onAdd}
+              shapes={shapes}
+              voicings={voicings}
             />
-          ) : (
-            <EmptyBox label="Keyboard voicings" what="voicings" />
           )}
         </div>
       ) : (
@@ -234,19 +234,14 @@ export function InstrumentView({
             toneColours={toneColours}
             shape={shape?.frets}
           />
-          {chord ? (
-            <ChordBoxes
+          {showBox && (
+            <ChordBox
+              instrument={instrument}
               guitar={guitar}
               chord={chord}
-              shapes={shapes.list}
-              at={shapes.at}
-              onAt={shapes.onAt}
-              filters={shapes.filters}
-              onFiltersChange={shapes.onFiltersChange}
-              onAdd={shapes.onAdd}
+              shapes={shapes}
+              voicings={voicings}
             />
-          ) : (
-            <EmptyBox label="Chord shapes" what="guitar shapes" />
           )}
         </div>
       )}
@@ -281,15 +276,63 @@ export function InstrumentView({
   )
 }
 
-// The box beside the instrument before a chord is chosen, so its place is
-// always there (David's layout).
+// The chord box (David's layout): the current chord's guitar shapes or
+// keyboard voicings, whichever instrument is showing, with + to add the
+// shape on show to the progression. Beside the side panel on wider screens,
+// beside the instrument on a phone.
+export function ChordBox({
+  instrument,
+  guitar,
+  chord,
+  shapes,
+  voicings,
+}: {
+  instrument: Instrument
+  guitar: Guitar
+  chord: ChordName | undefined
+  shapes: Shapes
+  voicings: Voicings
+}) {
+  if (instrument === 'keyboard') {
+    const voicing = chord ? voicings.list[voicings.at] : undefined
+    return chord && voicing ? (
+      <KeyboardVoicings
+        chord={chord}
+        voicings={voicings.list}
+        at={voicings.at}
+        onAt={voicings.onAt}
+        filters={voicings.filters}
+        onFiltersChange={voicings.onFiltersChange}
+        onAdd={voicings.onAdd}
+      />
+    ) : (
+      <EmptyBox label="Keyboard voicings" what="voicings" />
+    )
+  }
+  return chord ? (
+    <ChordBoxes
+      guitar={guitar}
+      chord={chord}
+      shapes={shapes.list}
+      at={shapes.at}
+      onAt={shapes.onAt}
+      filters={shapes.filters}
+      onFiltersChange={shapes.onFiltersChange}
+      onAdd={shapes.onAdd}
+    />
+  ) : (
+    <EmptyBox label="Chord shapes" what="guitar shapes" />
+  )
+}
+
+// The box before a chord is chosen, so its place is always there (David's
+// layout).
 function EmptyBox({ label, what }: { label: string; what: string }) {
   return (
     <section class="chord-boxes empty" aria-label={label}>
       <h3>{label}</h3>
       <p class="muted">
-        Click a chord below, or play one on your MIDI keyboard, to see its{' '}
-        {what} here.
+        Pick a chord, or play one on your MIDI keyboard, to see its {what} here.
       </p>
     </section>
   )

@@ -10,10 +10,13 @@ export type Tab = { id: string; label: string; content: ComponentChildren }
 // their phases.
 export function SidePanel({
   tabs,
+  aside,
   open,
   onOpenChange,
 }: {
   tabs: Tab[]
+  // Shown to the right of every tab's content (the chord box).
+  aside?: ComponentChildren
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
@@ -50,13 +53,16 @@ export function SidePanel({
           {open ? 'Hide ▾' : 'Show ▴'}
         </button>
       </div>
-      <div
-        class="side-content"
-        id="side-content"
-        role="tabpanel"
-        aria-labelledby={`tab-${current.id}`}
-      >
-        {current.content}
+      <div class="side-body">
+        <div
+          class="side-content"
+          id="side-content"
+          role="tabpanel"
+          aria-labelledby={`tab-${current.id}`}
+        >
+          {current.content}
+        </div>
+        {aside && <div class="side-aside">{aside}</div>}
       </div>
     </aside>
   )

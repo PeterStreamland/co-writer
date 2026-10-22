@@ -658,3 +658,12 @@ Phase 4 task 5 (`src/sketch/progression.ts`, `src/sketch/history.ts`, strip abov
 - **+ on the chord boxes:**
   - The guitar's chord box and the keyboard's voicing box each have a + that adds the chord as shaped after the selected chord.
   - The shape's lowest note becomes the bass, so an inversion is added as a slash chord (C/E). The bass is spelled as the chord spells that tone.
+
+## 2026-10-22 — The chord box beside Explore and Suggest (David's choice)
+
+- **Laptops and tablets:** the chord box moves from beside the instrument into the side panel, to the right of Explore's chord table and Suggest's cards. Building a progression and choosing a shape then happen in one place.
+  - The box shows the guitar's shapes or the keyboard's voicings, whichever instrument is showing, with its + to add the shape on show.
+  - Suggest keeps to three cards across to leave room.
+  - The box stays in view as the list scrolls.
+  - The instrument view now runs on its own.
+- **Phones:** the box stays beside (under) the instrument, as the side panel is a small sheet along the bottom there.
