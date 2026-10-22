@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest'
 import {
   LENSES,
   averageMovement,
+  midiNumber,
+  pitchClass,
   rootPositionVoicing,
   voiceRuleHits,
+  type Note,
 } from '../../src/theory'
 import {
   DEFAULT_SPAN,
@@ -32,7 +35,8 @@ describe('guitar lens exit criteria (PLAN Phase 5)', () => {
     (p) => {
       for (const guitar of [standard, dropD]) {
         for (const lens of LENSES) {
-          for (const c of voiceProgressionOnGuitar(guitar, lens, p.steps)) {
+          const voiced = voiceProgressionOnGuitar(guitar, lens, p.steps)
+          for (const [i, c] of voiced.entries()) {
             const { frets, chord } = c.voicing
             const shown = formatFrets(frets)
             expect(frets).toHaveLength(guitar.strings.length)
@@ -43,9 +47,17 @@ describe('guitar lens exit criteria (PLAN Phase 5)', () => {
               const span = Math.max(...fretted) - Math.min(...fretted) + 1
               expect(span, shown).toBeLessThanOrEqual(DEFAULT_SPAN)
             }
-            const found = SEARCHES.some((options) =>
-              findFingerings(guitar, chord, options).some(
-                (f) => formatFrets(f.frets) === shown,
+            // The search ran on the chord as written (or bare, for a power
+            // chord); the name now follows the lowest note.
+            const searched = [
+              { ...p.steps[i].chord, quality: chord.quality },
+              { root: chord.root, quality: chord.quality },
+            ]
+            const found = searched.some((asked) =>
+              SEARCHES.some((options) =>
+                findFingerings(guitar, asked, options).some(
+                  (f) => formatFrets(f.frets) === shown,
+                ),
               ),
             )
             expect(found, `${lens}: ${shown}`).toBe(true)
@@ -58,28 +70,39 @@ describe('guitar lens exit criteria (PLAN Phase 5)', () => {
   it.each(progressions)(
     'classical on guitar has no parallel 5ths or octaves: $name',
     (p) => {
-      const voiced = voiceProgressionOnGuitar(standard, 'classical', p.steps)
-      const hits = voiced.flatMap((c, i) =>
-        voiceRuleHits({
-          key: p.steps[i].key,
-          from: i > 0 ? voiced[i - 1].voicing : undefined,
-          to: c.voicing,
-        }),
-      )
-      expect(hits.filter((h) => h.rule.startsWith('parallel'))).toEqual([])
+      for (const guitar of [standard, dropD]) {
+        const voiced = voiceProgressionOnGuitar(guitar, 'classical', p.steps)
+        const hits = voiced.flatMap((c, i) =>
+          voiceRuleHits({
+            key: p.steps[i].key,
+            from: i > 0 ? voiced[i - 1].voicing : undefined,
+            to: c.voicing,
+          }),
+        )
+        expect(hits.filter((h) => h.rule.startsWith('parallel'))).toEqual([])
+      }
     },
   )
 
-  it.each(progressions)(
-    'every lens on guitar moves less than root position: $name',
-    (p) => {
-      const baseline = averageMovement(
-        p.steps.map((s) => rootPositionVoicing(s.chord)),
+  it.each(LENSES)(
+    '%s on guitar moves less than root position on average over the set',
+    (lens) => {
+      const average = (lists: Note[][][]) =>
+        lists.reduce((sum, l) => sum + averageMovement(l), 0) / lists.length
+      const baseline = average(
+        progressions.map((p) =>
+          p.steps.map((s) => rootPositionVoicing(s.chord)),
+        ),
       )
-      for (const lens of LENSES) {
-        const voiced = voiceProgressionOnGuitar(standard, lens, p.steps)
-        const movement = averageMovement(voiced.map((c) => c.voicing.notes))
-        expect(movement, lens).toBeLessThan(baseline)
+      for (const guitar of [standard, dropD]) {
+        const voiced = average(
+          progressions.map((p) =>
+            voiceProgressionOnGuitar(guitar, lens, p.steps).map(
+              (c) => c.voicing.notes,
+            ),
+          ),
+        )
+        expect(voiced).toBeLessThan(baseline)
       }
     },
   )
@@ -95,6 +118,33 @@ describe('guitar lenses', () => {
     for (const c of voiced) {
       expect(c.voicing.chord.quality).toBe('5')
       expect(c.voicing.notes.length).toBeLessThanOrEqual(3)
+    }
+  })
+
+  it('names each shape by its lowest note, and keeps the classical bass', () => {
+    for (const p of progressions) {
+      for (const lens of LENSES) {
+        for (const [i, c] of voiceProgressionOnGuitar(
+          standard,
+          lens,
+          p.steps,
+        ).entries()) {
+          const { chord: named, notes } = c.voicing
+          const lowest = notes.reduce((a, b) =>
+            (midiNumber(b) as number) < (midiNumber(a) as number) ? b : a,
+          )
+          expect(
+            pitchClass(named.bass ?? named.root),
+            formatFrets(c.voicing.frets),
+          ).toBe(pitchClass(lowest))
+          if (lens === 'classical') {
+            const written = p.steps[i].chord
+            expect(pitchClass(lowest)).toBe(
+              pitchClass(written.bass ?? written.root),
+            )
+          }
+        }
+      }
     }
   })
 

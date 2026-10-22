@@ -5,6 +5,9 @@
 import {
   chooseVoicings,
   lensColours,
+  midiNumber,
+  nameByLowest,
+  pitchClass,
   type ChordName,
   type Key,
   type Lens,
@@ -16,6 +19,9 @@ import {
 import { findFingerings } from './fingering'
 import type { Guitar } from './guitar'
 import { GUITAR_LENSES } from './lens-guitar-data'
+
+// The cost of a shape whose lowest note isn't the bass meant.
+const MOVED_BASS_COST = 3
 
 // A lens voicing on guitar keeps its frets and each string's note, low
 // string first (null for a muted string), for its chord box.
@@ -50,19 +56,37 @@ export function guitarLensVoicings(
       } catch {
         continue // a power chord on a chord with no perfect 5th
       }
+      // The note meant to sound lowest: the root of a power chord, else the
+      // chord's bass as written.
+      const bass = pitchClass(
+        shape.power ? chord.root : (chord.bass ?? chord.root),
+      )
       for (const f of fingerings) {
         const notes = f.notes.filter((n): n is Note => n !== null)
         if (notes.length < shape.notes[0] || notes.length > shape.notes[1]) {
           continue
         }
+        // A lower note on a higher string (an open string under a fretted
+        // one) can put another note at the bottom. Classical keeps the bass
+        // as written; the other lenses may take such a shape, named for
+        // what sounds lowest (C5/G), at a cost.
+        const lowest = notes.reduce((a, b) =>
+          (midiNumber(b) as number) < (midiNumber(a) as number) ? b : a,
+        )
+        const moved = pitchClass(lowest) !== bass
+        if (moved && lens === 'classical') continue
         found.push({
-          chord: voiced,
+          chord: nameByLowest(voiced, notes),
           notes,
           frets: f.frets,
           strings: f.notes,
           form: shape.id,
           label: shape.label,
-          cost: shape.cost + colour.cost + settings.ease * (100 - f.score),
+          cost:
+            shape.cost +
+            colour.cost +
+            settings.ease * (100 - f.score) +
+            (moved ? MOVED_BASS_COST : 0),
         })
       }
     }

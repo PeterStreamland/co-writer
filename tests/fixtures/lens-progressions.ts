@@ -15,4 +15,14 @@ export const lensProgressions: { key: string; chords: string }[] = [
   { key: 'B minor', chords: 'Bm G D A Bm' },
   { key: 'C major', chords: 'C E7 Am F Fm C' },
   { key: 'Eb major', chords: 'Eb Cm Ab Bb7 Eb' },
+  // Added at the Phase 5 gate: leading-note chords, a sus move and V–VI,
+  // where a lens may move more than plain root position on its own; the
+  // movement criterion counts the average over the whole set (David's
+  // choice).
+  { key: 'C major', chords: 'C Bdim/D C/E' },
+  { key: 'A minor', chords: 'Am G#dim7 Am' },
+  { key: 'C major', chords: 'C Csus4 C' },
+  { key: 'A minor', chords: 'Am E F' },
+  { key: 'C major', chords: 'C F#dim7 G' },
+  { key: 'G major', chords: 'G D/F# Em C' },
 ]

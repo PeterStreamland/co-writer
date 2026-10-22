@@ -863,7 +863,7 @@ Phase 5 task 4. The keyboard side is `src/theory/lens.ts` with settings in `src/
   - Open uses ringing four- to six-string shapes.
   - Jazz uses three-string shells and four-string grips, all fretted.
 - **A rule refinement:** a leading note may stay put when the chord it moves to contains it. In G7 to Cmaj7, B stays as the major 7th. Two cases were added to `tests/fixtures/voice-rules.ts`; none changed.
-- **Test progressions** are in `tests/fixtures/lens-progressions.ts`: 13 progressions in eight keys, with inversions, secondary dominants, a borrowed iv and a leading-note chord.
+- **Test progressions** are in `tests/fixtures/lens-progressions.ts`: 13 progressions in eight keys, with inversions, secondary dominants and a borrowed iv. (Corrected at the gate: F♯dim in E minor is ii°, not a leading-note chord; leading-note chords were added then. See the gate entry below.)
   - A progression of power chords only isn't among them: four-part writing can't move power chords without parallels, and power chords are rock's.
 - **All three Phase 5 exit criteria are proven by tests**, on keyboard and on guitar (standard and drop D):
   - no parallel 5ths or octaves in classical
@@ -910,3 +910,43 @@ After trying the Voice tab, David asked for three things.
 - With the selected chord itself on show, Replace just changes its shape: step to another inversion or neck position and tap Replace.
 - A shared chord gets its own copy first, as with any change.
 - The viewer beside the instrument stays without buttons.
+
+## 2026-10-22 — Phase 5 gate: review and fixes
+
+The theory reviewer checked `v0.4-next-chord`..`main`.
+
+- **Confirmed with evidence:**
+  - All three exit criteria pass.
+  - Every hand-worked value in the voice-leading and voice-rule fixtures is right.
+  - No golden fixture was edited, only added to.
+  - Spelling holds throughout: MIDI chords spelled by the key, typed spelling kept, and C𝄪 in D♯ minor and F♭ in A♭ minor through the lenses.
+  - All 3,174 tests passed.
+
+Fixed from its findings, each with a test:
+
+- **Guitar shapes are named by the note that sounds lowest.** A lower note on a higher string (an open string under a fretted one) can sound below the "bass": `x-x-10-0-x-x` is C5/G, not C5.
+  - Rock and the other lenses may still use such a shape, named for what sounds, at a cost.
+  - Classical on guitar keeps the written bass at the bottom, as on keyboard.
+- **Jazz drop-2 inversions are named with their bass** (Em7/G), as is every lens voicing. Rootless voicings stay unnamed for the bass, leaving it to the bass player.
+- **Classical diminished triads double the 3rd** (vii°6 in C: D3 F3 B3 D4), then the root, and hardly ever the diminished 5th.
+- **Secondary leading notes rise too:**
+  - A dominant 7th, or a dominant from outside the key, a 5th above the next chord must raise its 3rd into that chord's root: G♯ to A in E7 to Am, F♯ to G in D to G.
+  - So must a diminished chord a semitone below it.
+  - Diatonic chords a 5th apart (C to F in C) aren't dominants, so E needn't rise to F.
+  - **Not checked:** the augmented 2nd from G♯ falling to F in V–VI in minor. The classical lens raised G♯ to A in every progression tried.
+- **A held 7th is fine only when the next chord contains it.**
+- **Seven new hand-worked cases** in `tests/fixtures/voice-rules.ts`: E7 to Am, D to G, C to F, a 7th held into G, octaves in contrary motion, a unison moving to an octave, and a 7th falling a whole tone.
+- **The movement criterion is an average over the set (David's choice).** The reviewer found short progressions where a lens can't beat root position on its own:
+  - C Csus4 C barely moves in root position.
+  - C Bdim/D C/E keeps its written bass in the lenses but not in the baseline.
+
+  These six were added to the test set: C Bdim/D C/E, Am G♯dim7 Am, C Csus4 C, Am E F, C F♯dim7 G and G D/F♯ Em C. Each lens must move less than root position on average over all 19.
+
+- **Tests now cover:**
+  - the full SATB ranges
+  - drop D for all three guitar checks
+  - every voicing named by its lowest note
+
+**Play-test:** David tried the lenses and they work for him.
+
+The gate closes when this is merged. Phase 5 is released as `v0.5-voicings` on that merge; David adds the tag, as this session can't push tags. Next: the four experimental lenses and the Wildcard lens David asked for, then Phase 6.
