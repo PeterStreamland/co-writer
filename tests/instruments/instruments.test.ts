@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { fretboardGrid } from '../../src/instruments/fretboard'
+import { makeGuitar } from '../../src/instruments/guitar'
 import {
   KEYBOARD_HIGH,
   KEYBOARD_LOW,
@@ -79,7 +80,10 @@ describe('keyboard view', () => {
 
 describe('fretboard view', () => {
   it('tunes six strings to E2 A2 D3 G3 B3 E4, lowest first', () => {
-    const grid = fretboardGrid(STANDARD_TUNING, 15, () => undefined)
+    const grid = fretboardGrid(
+      makeGuitar(STANDARD_TUNING, { high: 15 }),
+      () => undefined,
+    )
     expect(grid.map((row) => row[0].midi)).toEqual([40, 45, 50, 55, 59, 64])
     expect(grid.every((row) => row.length === 16)).toBe(true)
     expect(grid[0][15].midi).toBe(55)
@@ -87,14 +91,28 @@ describe('fretboard view', () => {
 
   it('shows A minor pentatonic on the low E string', () => {
     const grid = fretboardGrid(
-      STANDARD_TUNING,
-      12,
+      makeGuitar(STANDARD_TUNING, { high: 12 }),
       noteMarker(key('A', 'minor-pentatonic')),
     )
     const marked = grid[0].filter((f) => f.mark)
     expect(marked.map((f) => f.fret)).toEqual([0, 3, 5, 8, 10, 12])
     expect(marked.map((f) => f.mark!.name)).toEqual('E G A C D E'.split(' '))
     expect(marked.filter((f) => f.mark!.root).map((f) => f.fret)).toEqual([5])
+  })
+
+  it('marks nothing behind a capo, and the capo fret sounds open', () => {
+    const grid = fretboardGrid(
+      makeGuitar(STANDARD_TUNING, { capo: 2 }),
+      noteMarker(key('A', 'minor-pentatonic')),
+    )
+    expect(grid[0].filter((f) => f.behindCapo).map((f) => f.fret)).toEqual([
+      0, 1,
+    ])
+    expect(grid.flat().some((f) => f.behindCapo && f.mark)).toBe(false)
+    // Low E with capo 2: F♯ at the capo isn't in A minor pentatonic; G at 3 is.
+    expect(grid[0].filter((f) => f.mark).map((f) => f.fret)).toEqual([
+      3, 5, 8, 10, 12, 15,
+    ])
   })
 })
 
@@ -110,7 +128,10 @@ describe('every key and scale on both instruments', () => {
       const pitches = new Set(scale.map(pitchClass))
       const mark = noteMarker(k)
       const keys = pianoKeys(KEYBOARD_LOW, KEYBOARD_HIGH, mark)
-      const frets = fretboardGrid(STANDARD_TUNING, 15, mark).flat()
+      const frets = fretboardGrid(
+        makeGuitar(STANDARD_TUNING, { high: 15 }),
+        mark,
+      ).flat()
       for (const spot of [...keys, ...frets]) {
         const inScale = pitches.has(spot.midi % 12)
         expect(!!spot.mark, `${label} at ${spot.midi}`).toBe(inScale)
@@ -139,8 +160,14 @@ describe('tunings', () => {
 
   it('moves the highlights with the tuning: D major in drop D', () => {
     const mark = noteMarker(key('D', 'major'))
-    const standard = fretboardGrid(tuningStrings('standard', false), 15, mark)
-    const dropD = fretboardGrid(tuningStrings('drop-d', false), 15, mark)
+    const standard = fretboardGrid(
+      makeGuitar(tuningStrings('standard', false)),
+      mark,
+    )
+    const dropD = fretboardGrid(
+      makeGuitar(tuningStrings('drop-d', false)),
+      mark,
+    )
     // The low string's open note is now the root, and its root at fret 10
     // (D on the E string) moves down two frets to 12 (an octave up), then 0.
     expect(standard[0].filter((f) => f.mark?.root).map((f) => f.fret)).toEqual([
@@ -157,8 +184,7 @@ describe('tunings', () => {
 
   it('adds a low B string on a 7-string, with B as the 5th of E minor', () => {
     const grid = fretboardGrid(
-      tuningStrings('standard', true),
-      15,
+      makeGuitar(tuningStrings('standard', true)),
       noteMarker(key('E', 'natural-minor')),
     )
     expect(grid).toHaveLength(7)
@@ -180,7 +206,10 @@ describe('every key and scale in every tuning', () => {
         const wrong: string[] = []
         for (const k of keys) {
           const pitches = new Set(scaleNotes(k.tonic, k.mode).map(pitchClass))
-          for (const spot of fretboardGrid(strings, 15, noteMarker(k)).flat()) {
+          for (const spot of fretboardGrid(
+            makeGuitar(strings, { high: 15 }),
+            noteMarker(k),
+          ).flat()) {
             const inScale = pitches.has(spot.midi % 12)
             const plays = spot.mark && midiNumber(spot.mark.note)
             if (!!spot.mark !== inScale || (spot.mark && plays !== spot.midi)) {
@@ -211,7 +240,7 @@ describe('notes played on a MIDI keyboard', () => {
   it('light up on every fret that sounds the pitch', () => {
     const k = key('E', 'natural-minor')
     const mark = noteMarker(k, undefined, spellPitches([55], k))
-    const frets = fretboardGrid(STANDARD_TUNING, 15, mark)
+    const frets = fretboardGrid(makeGuitar(STANDARD_TUNING, { high: 15 }), mark)
       .flat()
       .filter((f) => f.mark?.held)
     // G3: open G string, fret 5 on D, fret 10 on A, fret 15 on low E.

@@ -150,7 +150,7 @@ Gate passed: every exit criterion is ticked, David closed the phase, and the rel
 
 Goal: cycle any chord through playable guitar shapes and keyboard voicings.
 
-1. Fretboard model: tuning as an array of open-string pitches, plus string count, capo and fret range.
+1. Fretboard model: tuning as an array of open-string pitches, plus string count, capo and fret range. ✅
 2. Fingering search: for each string, every fret that gives a chord tone, or muted; keep shapes with all required tones (5th optional), the right bass note for the inversion, and a span within the limit.
 3. Playability score: span, barre needed, muted inner strings, open strings, neck position.
 4. Filters: inversion, string set, maximum span, open strings on or off, omit the 5th.
