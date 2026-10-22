@@ -763,7 +763,7 @@ Still open: David's play-test. After that the gate closes and Phase 4 is tagged 
 
 ## 2026-10-22 — Phase 4 gate passed
 
-David has play-tested Phase 4 (five progressions in different styles), which was the last open item after the review and fixes above. The gate is closed and the merge of `claude/magical-edison-u6kati` (`0acbe87`) is tagged `v0.4-next-chord`. Phase 5 starts.
+David has play-tested Phase 4 (five progressions in different styles), which was the last open item after the review and fixes above. The gate is closed. Phase 4 is released as `v0.4-next-chord`, on the merge of `claude/magical-edison-u6kati` (`0acbe87`). Phase 5 starts.
 
 ## 2026-10-22 — Typing chords, and Record chords on MIDI
 
