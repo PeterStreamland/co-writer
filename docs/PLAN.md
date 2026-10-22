@@ -177,7 +177,7 @@ These phases build the four judgement features on one shared pattern: generators
 
 Goal: pick a chord, get ranked and explained next-chord options, accept one and go again.
 
-1. A Suggestion object: candidate, score, category tags, rule ids, explanation. Every later engine reuses it.
+1. A Suggestion object: candidate, score, category tags, rule ids, explanation. Every later engine reuses it. ✅
 2. Candidate generators: diatonic function (tonic, predominant, dominant), secondary dominants and leading-note chords, modal interchange, tritone substitution, chromatic mediants, pivot chords for modulation, pedal and static harmony, and rock moves (♭VII, ♭VI, ♭III, power-chord motion).
 3. Style profiles v1 for pop, rock and metal as editable JSON weights, with blending of any two.
 4. A ranker that shows the top six to eight across categories, plus one wildcard slot: a valid but unlikely move.

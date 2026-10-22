@@ -147,9 +147,15 @@ function secondaryTarget(
   // is never a target.
   if (degreeLabel(key.tonic, triad.root) === '♭7') return undefined
   if (triad.quality !== 'M' && triad.quality !== 'm') return undefined
+  // A minor key's dominant is major, borrowed from harmonic minor (B7 in E
+  // minor is V7), so a chord pointing at the 5th degree points at V, not v:
+  // F♯7 in E minor is V7/V. Modes keep their own v (V7/v in E Dorian).
+  const upper =
+    triad.quality === 'M' ||
+    (triad.degree === 5 && scaleId(key.mode) === 'natural-minor')
   return {
     degree: triad.degree,
-    numeral: numeralBody(key.tonic, triad.root, triad.quality === 'M'),
+    numeral: numeralBody(key.tonic, triad.root, upper),
     role,
   }
 }
