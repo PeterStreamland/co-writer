@@ -479,3 +479,11 @@ After trying the published app, David couldn't see the chord boxes, and the keyb
 
 - **Boxes:** they appeared only once a chord was picked. The box beside each instrument now always shows, framed, with a prompt until a chord is clicked or played.
 - **Keyboard size:** the keyboard stretched across the whole page. It is now as wide as the 15-fret neck, with its box right beside it, as the box sits beside the neck.
+
+## 2026-10-22 — Shapes button follows the view, and piano filters (David's choice)
+
+- **Shapes button:** the MIDI panel's button goes to the other instrument. On the keyboard it reads "Guitar shapes ▸" and opens the guitar's chord boxes. On the guitar it reads "Piano shapes ▸" and opens the keyboard's voicing box. The names under "Also" do the same.
+- **Piano filters,** folded under the keyboard's voicing box like the guitar's:
+  - **Inversion:** as chosen, any, or a numbered inversion. With "any", the box steps through each style for each inversion in turn and says which inversion it shows.
+  - **Left hand under the split:** bass alone, root and 5th, or an octave (SPEC 5).
+  - The guitar's other filters (strings, stretch, open strings) have no piano meaning, so there are none for them.

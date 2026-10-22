@@ -12,7 +12,12 @@ import {
   type GuitarSettings,
   type Instrument,
 } from './InstrumentView'
-import { voicingChoices, type VoicingChoice } from './voicing-choices'
+import {
+  DEFAULT_VOICING_FILTERS,
+  voicingChoices,
+  type Voicing,
+  type VoicingFilters,
+} from './voicing-choices'
 import {
   DEFAULT_FILTERS,
   fingeringOptions,
@@ -52,11 +57,21 @@ export function Workspace() {
   const [shapeAt, setShapeAt] = useState(0)
   // The keyboard voicing on show stays the same style from chord to chord,
   // or falls back to close position when a chord can't take it.
-  const [voicingId, setVoicingId] = useState<VoicingChoice>('close')
-  const voicings = useMemo(() => (chord ? voicingChoices(chord) : []), [chord])
+  const [pianoFilters, setPianoFilters] = useState<VoicingFilters>(
+    DEFAULT_VOICING_FILTERS,
+  )
+  const [voicingPick, setVoicingPick] = useState<
+    Pick<Voicing, 'id' | 'inversion'>
+  >({ id: 'close' })
+  const voicings = useMemo(
+    () => (chord ? voicingChoices(chord, pianoFilters) : []),
+    [chord, pianoFilters],
+  )
   const voicingAt = Math.max(
     0,
-    voicings.findIndex((v) => v.id === voicingId),
+    voicings.findIndex(
+      (v) => v.id === voicingPick.id && v.inversion === voicingPick.inversion,
+    ),
   )
   const guitar = useMemo(() => guitarFrom(settings), [settings])
   // The current chord's guitar shapes, easiest first; the chord boxes start
@@ -105,10 +120,12 @@ export function Workspace() {
   useEffect(() => {
     if (follow && lastChord) setChord(lastChord)
   }, [follow, last.names])
-  // Jump to a played chord's guitar shapes (Phase 3 task 7).
+  // Jump to a played chord's shapes on the other instrument: the guitar's
+  // chord boxes from the keyboard (Phase 3 task 7), the keyboard's voicing
+  // box from the guitar (David's choice).
   const showShapes = (c: ChordName) => {
     setChord(c)
-    setInstrument('guitar')
+    setInstrument(instrument === 'guitar' ? 'keyboard' : 'guitar')
   }
   // On a phone the scale joins the chords in the sheet, so the instrument
   // stays in sight; on wider screens it sits above the instrument.
@@ -129,8 +146,13 @@ export function Workspace() {
             return Boolean(top)
           }
           // Play the voicing the keyboard's box will show.
-          const choices = voicingChoices(c)
-          const voicing = choices.find((v) => v.id === voicingId) ?? choices[0]
+          const choices = voicingChoices(c, pianoFilters)
+          const voicing =
+            choices.find(
+              (v) =>
+                v.id === voicingPick.id &&
+                v.inversion === voicingPick.inversion,
+            ) ?? choices[0]
           void playChord(voicing.notes)
           return true
         }}
@@ -164,7 +186,9 @@ export function Workspace() {
             voicings={{
               list: voicings,
               at: voicingAt,
-              onAt: (at) => setVoicingId(voicings[at].id),
+              onAt: (at) => setVoicingPick(voicings[at]),
+              filters: pianoFilters,
+              onFiltersChange: setPianoFilters,
             }}
           />
           <MidiPanel
@@ -173,6 +197,7 @@ export function Workspace() {
             last={last}
             follow={follow}
             onFollowChange={setFollow}
+            shapesOn={instrument === 'guitar' ? 'keyboard' : 'guitar'}
             onShowShapes={showShapes}
           />
         </main>

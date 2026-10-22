@@ -2,7 +2,7 @@ import { useEffect, useState } from 'preact/hooks'
 import { playChord } from '../audio/player'
 import { ChordBoxes } from './ChordBoxes'
 import { KeyboardVoicings } from './KeyboardVoicings'
-import type { Voicing } from './voicing-choices'
+import type { Voicing, VoicingFilters } from './voicing-choices'
 import type { ShapeFilters } from './shape-filters'
 import { useNarrow } from './useNarrow'
 import {
@@ -73,6 +73,8 @@ export type Voicings = {
   list: Voicing[]
   at: number
   onAt: (at: number) => void
+  filters: VoicingFilters
+  onFiltersChange: (filters: VoicingFilters) => void
 }
 
 // The instrument view (SPEC 2, 5): keyboard or full-neck fretboard, with the
@@ -210,6 +212,8 @@ export function InstrumentView({
               voicings={voicings.list}
               at={voicings.at}
               onAt={voicings.onAt}
+              filters={voicings.filters}
+              onFiltersChange={voicings.onFiltersChange}
             />
           ) : (
             <EmptyBox label="Keyboard voicings" what="voicings" />

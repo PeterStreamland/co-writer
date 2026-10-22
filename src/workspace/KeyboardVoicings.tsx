@@ -3,28 +3,41 @@ import { chordTones } from '../instruments/chord-tones'
 import {
   chordSymbol,
   formatNote,
+  inversionName,
   midiNumber,
   pitchClass,
   type ChordName,
   type Note,
 } from '../theory'
-import type { Voicing } from './voicing-choices'
+import { inversionChoices } from './shape-filters'
+import {
+  LEFT_HANDS,
+  type Voicing,
+  type VoicingFilters,
+} from './voicing-choices'
 
 // The voicing box beside the keyboard (David's layout, matching the chord
 // boxes beside the neck): the current chord's voicing on a small keyboard,
 // coloured by chord tone, with ◀ ▶ to step through close, open, drop-2,
-// drop-3, spread and the left/right-hand split. Clicking it plays it.
+// drop-3, spread and the left/right-hand split, and the piano filters below
+// (inversion, and the split's left hand). Clicking it plays it.
 export function KeyboardVoicings({
   chord,
   voicings,
   at,
   onAt,
+  filters,
+  onFiltersChange,
 }: {
   chord: ChordName
   voicings: Voicing[]
   at: number
   onAt: (at: number) => void
+  filters: VoicingFilters
+  onFiltersChange: (filters: VoicingFilters) => void
 }) {
+  const set = (change: Partial<VoicingFilters>) =>
+    onFiltersChange({ ...filters, ...change })
   const voicing = voicings[at]
   const step = (by: number) =>
     onAt((at + by + voicings.length) % voicings.length)
@@ -74,7 +87,47 @@ export function KeyboardVoicings({
         ) : (
           names(voicing.notes)
         )}
+        {voicing.inversion !== undefined && (
+          <>
+            <br />
+            {inversionName(voicing.inversion)}
+          </>
+        )}
       </p>
+      <details class="filters">
+        <summary>Filters</summary>
+        <label>
+          Inversion
+          <select
+            value={String(filters.inversion)}
+            onChange={(e) => {
+              const v = e.currentTarget.value
+              set({ inversion: v === 'chord' || v === 'any' ? v : Number(v) })
+            }}
+          >
+            {inversionChoices(chord).map(([value, label]) => (
+              <option key={value} value={String(value)}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Left hand
+          <select
+            value={filters.left}
+            onChange={(e) =>
+              set({ left: e.currentTarget.value as VoicingFilters['left'] })
+            }
+          >
+            {LEFT_HANDS.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </details>
     </section>
   )
 }
