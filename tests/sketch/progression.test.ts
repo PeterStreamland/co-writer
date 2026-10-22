@@ -185,6 +185,16 @@ describe('passing chords', () => {
     expect(strip(switchAt(p, 1, 1))).toBe('C F G')
   })
 
+  it('keeps every following chord through passing chords within passing chords', () => {
+    let p = insertBetween(build('C', 'G', 'Am'), 0, parse('Dm')) // C Dm G Am
+    p = insertBetween(p, 1, parse('D7')) // between Dm and G
+    expect(strip(p)).toBe('C Dm D7 G Am')
+    p = insertBetween(p, 0, parse('Em')) // between C and Dm
+    expect(strip(p)).toBe('C Em Dm D7 G Am')
+    p = insertBetween(p, 3, parse('Ab7')) // between D7 and G
+    expect(strip(p)).toBe('C Em Dm D7 Ab7 G Am')
+  })
+
   it('needs a chord after the slot', () => {
     expect(() => insertBetween(build('C'), 0, parse('G'))).toThrow()
   })

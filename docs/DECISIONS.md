@@ -709,6 +709,8 @@ Phase 4 task 7 (`src/theory/passing.ts`, settings in `src/theory/passing-data.ts
   - A chord on the first chord's root barely moves (Csus4 between C and F), so its lead counts half, unless it is a dominant 7th (C7, I to I7 to IV).
 - **What the card says:** how the chord leads into the second one ("D7 is the dominant of G, so it pulls straight into it"). Its reading after the first chord moves under ⓘ's More.
 - **Using one** inserts it between the two chords. The second chord and everything after it move along under the new chord, and other alternatives at that slot stay where they were. Undo covers it.
+- **Every + inserts while + between is on (fixed after David's testing):** a suggestion card's +, a chord box's + and the strip's own + all put the chord between the two, keeping the chord after it and everything that follows. Before the fix, a chord box's + added an alternative instead, which dropped the following chords from that branch. Passing chords can go between passing chords too.
+- **Why insertion rather than a branch:** a branch would need a copy of the following chords. SPEC 6.5's shared continuations would then show the second chord twice when switching back (C G G). Undo brings back the version without the passing chord.
 - **The preview** plays all three chords.
 - **New golden fixture:** `tests/fixtures/passing-chords.ts` has eight hand-written cases: the plan's three textbook bridges (V7/V and ii between I and V, V7 between ii and I), secondary dominants, a leading-note diminished 7th in classical, jazz's ii7, and a minor-key case. The exit criterion is ticked.
 - **Next:** all seven Phase 4 tasks and all five exit criteria are done, so the Phase 4 gate comes next.
