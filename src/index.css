@@ -2357,3 +2357,35 @@ button.bar-reset {
 button.remove-note {
   color: var(--tag-chromatic);
 }
+
+/* A tapped chord in a lens column (David's request): other voicings of it
+   and other chords for its place. */
+.lens-swap {
+  margin: 0.3rem 0 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.lens-swap > p {
+  margin: 0.2rem 0;
+  font-size: 0.8rem;
+}
+
+.lens-swap-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.3rem;
+}
+
+.lens-swap-list button {
+  padding: 0.15rem 0.45rem;
+  font-size: 0.8rem;
+  text-align: left;
+}
+
+.lens-form .swapped {
+  color: var(--accent);
+  font-weight: 600;
+}

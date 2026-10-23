@@ -1258,3 +1258,15 @@ David asked whether each lens gives the same voicings every time (it did) and fo
   - Strict rules are kept: anything costing more than twice the chance, such as the Classical lens's parallels (20) and tendency notes (6), stays exactly as the best kept it (tested).
   - Mild likings, such as parallels costing 1 in the Open lens, may be traded for a smoother path.
 - Each take is seeded by the chords, the lens and the take number, so a take plays the same until the progression changes, which starts every lens over at its best. On guitar, takes choose among the lens's guitar shapes.
+
+## 2026-10-23 — Swapping a chord in a Voice lens column (David's request)
+
+David found that clicking a chord in a Voice lens column didn't offer alternatives. Tapping a chord in a column now plays it and opens two lists under it (David's choice: both):
+
+- **Other voicings:** the lens's other ways to voice that chord, up to six, best first. They are ranked by their own cost, how far the voices move from the chord before and into the chord after, and the lens's rules they would break (shown under the hover). The theory is `voicingOptions` in `src/theory/lens-swaps.ts`.
+- **Other chords here:** chords for that place, ranked as the Suggest tab's "In place of" ranks them (`rankInPlace`), each voiced by the lens the same way.
+- **Picking one swaps it into that column only (David's choice),** marked "swapped", with ↺ to go back.
+  - The swap stays put, and the lens voices the other chords around it, so its neighbours may change to stay smooth.
+  - Another keeps swaps in place. A change to the progression clears them.
+  - **⑂ New branch** or **+ Add to end** puts the column, swaps and all, into the progression.
+- On guitar the lists offer the lens's guitar shapes, as frets.

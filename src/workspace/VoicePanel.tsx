@@ -3,23 +3,30 @@ import {
   EXPERIMENTAL_LENSES,
   LENSES,
   LENS_SETTINGS,
+  SWAPS_SHOWN,
   averageMovement,
+  chooseVoicings,
   chordSymbol,
   formatNote,
-  voiceProgression,
+  lensVoicings,
+  rankInPlace,
+  voicingOptions,
   type ChordName,
   type Key,
   type MeterMap,
   type Lens,
   type LensChoice,
+  type LensStep,
   type LensVoicing,
+  type NextChordSuggestion,
+  type Suggestion,
 } from '../theory'
 import { playChord } from '../audio/player'
 import { chordBox } from '../instruments/chord-box'
 import { formatFrets } from '../instruments/fingering'
 import type { Guitar } from '../instruments/guitar'
 import {
-  voiceProgressionOnGuitar,
+  guitarCandidates,
   type GuitarLensVoicing,
 } from '../instruments/lens-guitar'
 import type { Progression } from '../sketch/progression'
@@ -50,6 +57,23 @@ const LENS_BLURBS: Record<Lens, string> = {
 }
 
 type Choice = LensChoice<LensVoicing | GuitarLensVoicing>
+
+// A tapped chord's alternatives: other voicings of it, and other chords for
+// its place, each voiced.
+type Alternatives = {
+  voicings: Suggestion<Choice['voicing']>[]
+  others: {
+    suggestion: NextChordSuggestion
+    voicing: Suggestion<Choice['voicing']>
+  }[]
+}
+
+// A voicing's notes, or its frets on guitar.
+function notesText(v: Choice['voicing'], guitar: Guitar | undefined): string {
+  return guitar && 'frets' in v
+    ? formatFrets(v.frets)
+    : v.notes.map((n) => formatNote(n)).join(' ')
+}
 
 // How far a swipe must go to change lens on a phone, in pixels.
 const SWIPE = 50
@@ -98,32 +122,88 @@ export function VoicePanel({
   // Each lens's take (David's request): 0 is its best; Another adds one,
   // another smooth path by its rules. A new progression starts over.
   const [takes, setTakes] = useState<Partial<Record<Lens, number>>>({})
-  useEffect(() => setTakes({}), [steps])
+  // Chords swapped in a lens's column (David's request), by place: they
+  // stay put while the lens voices the rest around them, until the column
+  // is used or the progression changes.
+  const [swaps, setSwaps] = useState<
+    Partial<Record<Lens, Record<number, Choice['voicing']>>>
+  >({})
+  const [open, setOpen] = useState<{ lens: Lens; at: number }>()
+  useEffect(() => {
+    setTakes({})
+    setSwaps({})
+    setOpen(undefined)
+  }, [steps])
+  // Each chord's voicings in the lens, on the instrument showing.
+  const candidatesFor = (
+    lens: Lens,
+    chords: LensStep[],
+  ): Choice['voicing'][][] =>
+    instrument === 'guitar'
+      ? guitarCandidates(guitar, lens, chords)
+      : chords.map((s) => lensVoicings(lens, s.key, s.chord))
   const voice = (lens: Lens) => {
     const vary = takeRandom(steps, lens, takes[lens] ?? 0)
-    return (
-      instrument === 'guitar'
-        ? voiceProgressionOnGuitar(guitar, lens, steps, Math.random, vary)
-        : voiceProgression(lens, steps, Math.random, vary)
-    ) as Choice[]
+    const own = swaps[lens] ?? {}
+    const candidates = candidatesFor(lens, steps).map((list, i) =>
+      own[i] ? [own[i]] : list,
+    )
+    return chooseVoicings(lens, steps, candidates, vary) as Choice[]
   }
   const settled = useMemo(
     () =>
       shown
         .filter((l) => l !== 'wildcard')
         .map((lens) => ({ lens, choices: voice(lens) })),
-    [steps, instrument, guitar, shown.join(), takes],
+    [steps, instrument, guitar, shown.join(), takes, swaps],
   )
   // The Wildcard rolls fresh whenever the progression or instrument changes,
   // and again on Another (David's choice).
   const [rolls, setRolls] = useState(0)
   const wild = useMemo(
     () => (shown.includes('wildcard') ? voice('wildcard') : []),
-    [steps, instrument, guitar, shown.includes('wildcard'), rolls],
+    [steps, instrument, guitar, shown.includes('wildcard'), rolls, swaps],
   )
   const columns = shown.map(
     (lens) => settled.find((c) => c.lens === lens) ?? { lens, choices: wild },
   )
+  // The chord tapped in a column: the lens's other voicings for it, and
+  // other chords for its place, each voiced by the lens where it stands.
+  const openColumn = open && columns.find((c) => c.lens === open.lens)
+  const alternatives = useMemo(() => {
+    if (!open || !openColumn?.choices[open.at]) return undefined
+    const { lens, at } = open
+    const { choices } = openColumn
+    const here = steps[at]
+    const chords = choices.map((c) => c.voicing.chord)
+    const voicings = voicingOptions(
+      lens,
+      steps,
+      choices,
+      at,
+      candidatesFor(lens, [here])[0],
+    )
+    const others = rankInPlace({
+      key: here.key,
+      previous: chords.slice(0, at),
+      current: chords[at],
+      next: chords[at + 1],
+    })
+      .shown.slice(0, SWAPS_SHOWN)
+      .flatMap((s) => {
+        const step = { key: here.key, chord: s.candidate }
+        const [best] = voicingOptions(
+          lens,
+          steps.map((st, k) => (k === at ? { ...st, ...step } : st)),
+          choices,
+          at,
+          candidatesFor(lens, [step])[0],
+          1,
+        )
+        return best ? [{ suggestion: s, voicing: best }] : []
+      })
+    return { voicings, others }
+  }, [open?.lens, open?.at, openColumn?.choices])
   // The column playing and the chord sounding in it.
   const [playing, setPlaying] = useState<{ lens: Lens; at: number }>()
   useEffect(() => setPlaying(undefined), [settled, wild])
@@ -247,6 +327,25 @@ export function VoicePanel({
             onStop={() => setPlaying(undefined)}
             onHear={(choice) => play(choice)}
             take={lens === 'wildcard' ? undefined : (takes[lens] ?? 0)}
+            openAt={open?.lens === lens ? open.at : undefined}
+            onOpen={(at) =>
+              setOpen(
+                open?.lens === lens && open.at === at
+                  ? undefined
+                  : { lens, at },
+              )
+            }
+            alternatives={open?.lens === lens ? alternatives : undefined}
+            swapped={Object.keys(swaps[lens] ?? {}).map(Number)}
+            onSwap={(at, voicing) => {
+              setSwaps({ ...swaps, [lens]: { ...swaps[lens], [at]: voicing } })
+              play({ voicing, hits: [], movement: 0 })
+            }}
+            onUnswap={(at) => {
+              const own = { ...swaps[lens] }
+              delete own[at]
+              setSwaps({ ...swaps, [lens]: own })
+            }}
             onAnother={
               lens === 'wildcard'
                 ? () => setRolls(rolls + 1)
@@ -277,6 +376,12 @@ function LensColumn({
   onStop,
   onHear,
   take,
+  openAt,
+  onOpen,
+  alternatives,
+  swapped,
+  onSwap,
+  onUnswap,
   onAnother,
   onBest,
   onUse,
@@ -290,6 +395,13 @@ function LensColumn({
   onStop: () => void
   onHear: (choice: Choice) => void
   take?: number // which take of the lens is showing; 0 is its best
+  // The chord tapped, its alternatives, the places swapped, and swapping.
+  openAt: number | undefined
+  onOpen: (at: number) => void
+  alternatives: Alternatives | undefined
+  swapped: number[]
+  onSwap: (at: number, voicing: Choice['voicing']) => void
+  onUnswap: (at: number) => void
   onAnother: () => void // another take, or the Wildcard's roll again
   onBest: () => void // back to the lens's best
   onUse: (where: 'branch' | 'end') => void
@@ -353,8 +465,12 @@ function LensColumn({
               <button
                 type="button"
                 class="lens-chord"
-                title={`Play ${symbol}`}
-                onClick={() => onHear(choice)}
+                aria-expanded={i === openAt}
+                title={`Play ${symbol}, and see what could go in its place`}
+                onClick={() => {
+                  onHear(choice)
+                  onOpen(i)
+                }}
               >
                 <span class="lens-symbol">
                   <strong>{symbol}</strong>
@@ -362,7 +478,12 @@ function LensColumn({
                     <span class="muted"> for {asWritten}</span>
                   )}
                 </span>
-                <span class="muted lens-form">{voicing.label}</span>
+                <span class="muted lens-form">
+                  {voicing.label}
+                  {swapped.includes(i) && (
+                    <span class="swapped"> · swapped</span>
+                  )}
+                </span>
                 {shape && guitar ? (
                   <>
                     <BoxDiagram box={chordBox(guitar, voicing.chord, shape)} />
@@ -380,6 +501,48 @@ function LensColumn({
                     <li key={k}>⚠ {h.explanation}</li>
                   ))}
                 </ul>
+              )}
+              {i === openAt && alternatives && (
+                <div class="lens-swap">
+                  <p class="muted">Other voicings:</p>
+                  <div class="lens-swap-list">
+                    {alternatives.voicings.map((o, k) => (
+                      <button
+                        key={k}
+                        type="button"
+                        title={[o.explanation, ...o.contextNotes].join(' ')}
+                        onClick={() => onSwap(i, o.candidate)}
+                      >
+                        <span class="muted">{o.candidate.label}</span>{' '}
+                        {notesText(o.candidate, guitar)}
+                      </button>
+                    ))}
+                    {alternatives.voicings.length === 0 && (
+                      <span class="muted">
+                        none: the lens has only this one
+                      </span>
+                    )}
+                  </div>
+                  <p class="muted">Other chords here:</p>
+                  <div class="lens-swap-list">
+                    {alternatives.others.map(({ suggestion, voicing: v }) => (
+                      <button
+                        key={chordSymbol(suggestion.candidate)}
+                        type="button"
+                        title={`${suggestion.explanation} ${v.explanation}`}
+                        onClick={() => onSwap(i, v.candidate)}
+                      >
+                        <strong>{chordSymbol(suggestion.candidate)}</strong>{' '}
+                        <span class="muted">{v.candidate.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {swapped.includes(i) && (
+                    <button type="button" onClick={() => onUnswap(i)}>
+                      ↺ As the lens had it
+                    </button>
+                  )}
+                </div>
               )}
             </li>
           )

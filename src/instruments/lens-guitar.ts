@@ -178,11 +178,26 @@ export function voiceProgressionOnGuitar(
   random: () => number = Math.random,
   vary?: () => number,
 ): LensChoice<GuitarLensVoicing>[] {
+  return chooseVoicings(
+    lens,
+    steps,
+    guitarCandidates(guitar, lens, steps, random),
+    vary,
+  )
+}
+
+// Each chord's shapes in the lens; a chord with none falls back to its
+// easiest shapes.
+export function guitarCandidates(
+  guitar: Guitar,
+  lens: Lens,
+  steps: LensStep[],
+  random: () => number = Math.random,
+): GuitarLensVoicing[][] {
   const candidates = steps.map((s) =>
     guitarLensVoicings(guitar, lens, s.key, s.chord, random),
   )
-  // A chord with no shape in the lens falls back to its easiest shapes.
-  const filled = candidates.map((list, i) =>
+  return candidates.map((list, i) =>
     list.length
       ? list
       : findFingerings(guitar, steps[i].chord)
@@ -197,5 +212,4 @@ export function voiceProgressionOnGuitar(
             cost: 10 + 0.1 * (100 - f.score),
           })),
   )
-  return chooseVoicings(lens, steps, filled, vary)
 }
