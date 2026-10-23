@@ -15,6 +15,7 @@ import { secondsOf } from '../sketch/time'
 import type { ArpeggioOnShow } from './ArpeggioPanel'
 import { InfoToggle, useToggle } from './ChordInfo'
 import type { Along, AlongNote } from './along'
+import type { PartRecipe } from '../sketch/parts'
 import {
   TAG_LABELS,
   labelNumber,
@@ -44,6 +45,7 @@ export function LinesPanel({
   alongAt,
   onPlayAlong,
   onStop,
+  onAddRow,
 }: {
   progression: Progression
   sectionKey: Key
@@ -57,6 +59,8 @@ export function LinesPanel({
   alongAt?: AlongNote
   onPlayAlong: (notes: Along) => void
   onStop: () => void
+  // Adds the line as a row under the progression.
+  onAddRow: (recipe: PartRecipe) => void
 }) {
   const [modeId, setModeId] = useState(loadLineMode)
   useEffect(() => saveLineMode(modeId), [modeId])
@@ -230,6 +234,20 @@ export function LinesPanel({
             </button>
           </>
         )}
+        <button
+          type="button"
+          class="add-row"
+          title="Add this line as a row under the progression"
+          onClick={() =>
+            onAddRow({
+              kind: 'line',
+              mode: line.mode.id,
+              roll: line.mode.id === 'wildcard' ? roll : 0,
+            })
+          }
+        >
+          + Add as a row
+        </button>
       </div>
       <ol class="line-chords">
         {steps.map((step, s) => (

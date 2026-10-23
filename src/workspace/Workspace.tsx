@@ -48,6 +48,15 @@ import { VoicePanel } from './VoicePanel'
 import { ArpeggioBox } from './ArpeggioBox'
 import { LinesPanel } from './LinesPanel'
 import type { Along, AlongNote } from './along'
+import { PartRows, type PartView } from './PartRows'
+import { partLabel, partNotes } from './parts-view'
+import {
+  addPart,
+  partsShown,
+  removePart,
+  setPartMuted,
+  type PartRecipe,
+} from '../sketch/parts'
 import {
   ArpeggioPanel,
   type ArpeggioOnShow,
@@ -513,7 +522,16 @@ export function Workspace() {
       onAddFree={() => freeChord && addChord(freeChord)}
       onAddTyped={addChords}
       playingAt={playingAt}
-      onPlay={() => setPlayingAt(0)}
+      onPlay={() => {
+        // The rows that aren't muted play along with the chords.
+        const playing = rows.filter((r) => !r.part.muted)
+        setAlong(
+          playing.length
+            ? { source: rows, notes: playing.flatMap((r) => r.notes) }
+            : undefined,
+        )
+        setPlayingAt(0)
+      }}
       onStop={() => setPlayingAt(undefined)}
       onUndo={() => step(undo(history))}
       onRedo={() => step(redo(history))}
@@ -595,6 +613,19 @@ export function Workspace() {
     }
     return sources
   }, [progression, timing, key, freeChord && chordKey(freeChord), suggestKey])
+  // The rows of lines and arpeggios under the strip (David's request): the
+  // branch's rows, each played over the chords as they are now.
+  const rows = useMemo<PartView[]>(
+    () =>
+      partsShown(progression).map((part) => ({
+        part,
+        label: partLabel(part.recipe),
+        notes: partNotes(part, progression, key, timing, guitar),
+      })),
+    [progression, key, timing, guitar],
+  )
+  const addRow = (recipe: PartRecipe) =>
+    change(addPart(progression, recipe), selected)
   const [arpeggioShow, setArpeggioShow] = useState<ArpeggioOnShow>()
   // The Arpeggio and Lines tabs light their notes on the instrument while
   // open.
@@ -612,6 +643,7 @@ export function Workspace() {
       alongAt={alongAt}
       onPlayAlong={playAlong}
       onStop={() => setPlayingAt(undefined)}
+      onAddRow={addRow}
     />
   )
   const arpeggio = (
@@ -627,6 +659,7 @@ export function Workspace() {
       alongAt={alongAt}
       onPlayAlong={playAlong}
       onStop={() => setPlayingAt(undefined)}
+      onAddRow={addRow}
     />
   )
   // The chord box beside the side panel (David's layout); on a phone it
@@ -705,6 +738,15 @@ export function Workspace() {
             onShowShapes={showShapes}
           />
           {strip}
+          <PartRows
+            rows={rows}
+            path={path}
+            sounding={along?.source === rows ? alongAt : undefined}
+            onMute={(id, muted) =>
+              change(setPartMuted(progression, id, muted), selected)
+            }
+            onRemove={(id) => change(removePart(progression, id), selected)}
+          />
         </main>
         <SidePanel
           aside={

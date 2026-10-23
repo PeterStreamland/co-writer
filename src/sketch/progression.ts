@@ -5,6 +5,7 @@
 // adding or changing a chord after such an alternative first copies the
 // shared chords up to that point, giving it its own continuation.
 // Every function returns a new progression and leaves its input alone.
+import { isPart, type Part } from './parts'
 import {
   layOut,
   type ChordName,
@@ -52,6 +53,8 @@ export type Progression = {
   nodes: Record<string, ChordNode>
   roots: string[]
   activePath: string[]
+  // Rows of lines and arpeggios under the chords (parts.ts).
+  parts?: Part[]
 }
 
 export const EMPTY_PROGRESSION: Progression = {
@@ -395,6 +398,8 @@ export function isProgression(value: unknown): value is Progression {
         Array.isArray(n.children) &&
         n.children.every(known) &&
         (n.parent === undefined || known(n.parent)),
-    )
+    ) &&
+    (p.parts === undefined ||
+      (Array.isArray(p.parts) && p.parts.every((r) => isPart(r, ids))))
   )
 }

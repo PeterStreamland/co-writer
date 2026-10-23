@@ -353,6 +353,15 @@ type Progression = {
   nodes: Record<string, ChordNode>
   roots: string[]
   activePath: string[]
+  parts?: Part[] // rows of lines and arpeggios under the chords (2026-10-23)
+}
+type Part = {
+  id: string
+  anchor: string // shows while this chord node is on the active path
+  recipe:
+    | { kind: 'line'; mode: string; roll: number }
+    | { kind: 'arpeggio'; settings: ArpeggioSettings; from?: number }
+  muted?: boolean
 }
 type MelodyNote = { note: Note; onset?: Dur; length?: Dur }
 type StyleBlend = { a: string; b?: string; mix: number } // mix 0–1, in 0.25 steps
@@ -428,5 +437,6 @@ None of the 13 decisions change. The spec adds:
 7. **Passing chords** between two picked chords, in Phase 4 (added 2026-10-22).
 8. **An Arpeggio tab** for trying arpeggios and extensions without adding them to the progression, in Phase 6 after the beat grid (added 2026-10-22).
 9. **A Wildcard line** among the line modes, built afresh by chance on each roll, in Phase 6 (added 2026-10-23).
+10. **Rows of lines and arpeggios** under the progression strip, added with + from the Lines and Arpeggio tabs, in Phase 6 (added 2026-10-23). Rows keep their recipe and follow the chords; freezing a row's notes for hand editing comes later, with Phase 7's melody editing.
 
 These get dated entries in `docs/DECISIONS.md` in the next Phase 0 session.

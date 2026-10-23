@@ -2194,3 +2194,67 @@ body:has(.workspace) #app {
 .line-note.role-extension {
   --tag: #0d9488;
 }
+
+/* Rows of lines and arpeggios under the strip (David's request). */
+.part-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.part-row {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.3rem 0.5rem;
+}
+
+.part-row.muted-row {
+  opacity: 0.55;
+}
+
+.part-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.part-head button {
+  padding: 0.1rem 0.5rem;
+}
+
+.part-chords {
+  list-style: none;
+  display: flex;
+  gap: 0.6rem;
+  overflow-x: auto;
+  padding: 0.25rem 0 0;
+  margin: 0;
+}
+
+.part-chords li {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  font-size: 0.8rem;
+}
+
+.part-notes {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.part-notes span {
+  padding: 0 0.15rem;
+  border-radius: 3px;
+}
+
+.part-notes .sounding {
+  background: color-mix(in srgb, #f59e0b 35%, transparent);
+}
+
+button.add-row {
+  color: var(--accent);
+  border-style: dashed;
+}

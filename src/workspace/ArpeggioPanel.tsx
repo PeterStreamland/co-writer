@@ -15,6 +15,7 @@ import type { Guitar } from '../instruments/guitar'
 import { secondsOf } from '../sketch/time'
 import type { ArpeggioShow, Instrument } from './InstrumentView'
 import type { Along, AlongNote } from './along'
+import type { PartRecipe } from '../sketch/parts'
 import { roleOf } from '../instruments/chord-tones'
 import {
   ARPEGGIO_CHOICES,
@@ -66,6 +67,7 @@ export function ArpeggioPanel({
   alongAt,
   onPlayAlong,
   onStop,
+  onAddRow,
 }: {
   sources: ArpeggioSource[]
   // The source to begin on (the selected or current chord).
@@ -81,6 +83,8 @@ export function ArpeggioPanel({
   alongAt?: AlongNote
   onPlayAlong: (notes: Along) => void
   onStop: () => void
+  // Adds these arpeggios as a row under the progression.
+  onAddRow: (recipe: PartRecipe) => void
 }) {
   const [settings, setSettings] = useState(loadArpeggio)
   useEffect(() => saveArpeggio(settings), [settings])
@@ -399,6 +403,25 @@ export function ArpeggioPanel({
             {sources.some((s) => s.step !== undefined) && (
               <button type="button" onClick={playWithChords}>
                 ▶ Play with chords
+              </button>
+            )}
+            {sources.some((s) => s.step !== undefined) && (
+              <button
+                type="button"
+                class="add-row"
+                title="Add these arpeggios as a row under the progression"
+                onClick={() =>
+                  onAddRow({
+                    kind: 'arpeggio',
+                    settings,
+                    from:
+                      mode === 'position'
+                        ? plan.positions[positionAt]?.from
+                        : undefined,
+                  })
+                }
+              >
+                + Add as a row
               </button>
             )}
           </>
