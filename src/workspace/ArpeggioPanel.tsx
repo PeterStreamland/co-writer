@@ -3,6 +3,7 @@ import {
   ARPEGGIO_PATTERNS,
   ARPEGGIO_RATES,
   addDur,
+  chordSymbol,
   formatNote,
   type ChordName,
   type Dur,
@@ -14,6 +15,7 @@ import type { Guitar } from '../instruments/guitar'
 import { secondsOf } from '../sketch/time'
 import type { ArpeggioShow, Instrument } from './InstrumentView'
 import type { Along, AlongNote } from './along'
+import { roleOf } from '../instruments/chord-tones'
 import {
   ARPEGGIO_CHOICES,
   OCTAVE_CHOICES,
@@ -39,6 +41,7 @@ export type ArpeggioSource = {
   // arpeggio can play along with the chords.
   step?: number
   start?: Dur
+  bar?: number
 }
 
 // What the instrument view shows: the arpeggio and the chord it's of.
@@ -232,39 +235,8 @@ export function ArpeggioPanel({
   }
   const voice = voiceAt(index)
   const unplayable = mode !== undefined && !voice.spots
-  const sounding = playing?.at === index ? playing.note : undefined
   return (
     <section class="arpeggio" aria-label="Arpeggios">
-      <div class="arpeggio-chord">
-        <button
-          type="button"
-          aria-label="Previous chord"
-          disabled={index === 0}
-          onClick={() => setAt(index - 1)}
-        >
-          ‹
-        </button>
-        <select
-          aria-label="Chord"
-          value={index}
-          onChange={(e) => setAt(Number(e.currentTarget.value))}
-        >
-          {sources.map((s, i) => (
-            <option key={i} value={i}>
-              {s.label}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          aria-label="Next chord"
-          disabled={index + 1 >= sources.length}
-          onClick={() => setAt(index + 1)}
-        >
-          ›
-        </button>
-        <strong class="arpeggio-name">{plan.name}</strong>
-      </div>
       <div class="arpeggio-settings">
         <label>
           Arpeggio
@@ -435,13 +407,60 @@ export function ArpeggioPanel({
           {voice.events.length} notes over {source.lengthText}
         </span>
       </div>
-      <ol class="arpeggio-notes" aria-label="Notes, lowest first">
-        {voice.notes.map((n, i) => (
-          <li key={i} class={i === sounding ? 'sounding' : ''}>
-            <span class="label">{n.label}</span>
-            <span class="muted">{formatNote(n.note)}</span>
-          </li>
-        ))}
+      <p class="arpeggio-heading">
+        <strong class="arpeggio-name">{plan.name}</strong>{' '}
+        <span class="muted">
+          over {chordSymbol(source.chord)}, {voice.notes.length} notes from{' '}
+          {voice.notes[0] ? formatNote(voice.notes[0].note) : '–'} to{' '}
+          {voice.notes.at(-1) ? formatNote(voice.notes.at(-1)!.note) : '–'}
+        </span>
+      </p>
+      <ol class="line-chords arpeggio-chords" aria-label="Chords">
+        {sources.map((s, i) => {
+          const v = voiceAt(i)
+          const shown = playing ? playing.at === i : i === index
+          return (
+            <li
+              key={i}
+              class={i === index || shown ? 'line-chord focus' : 'line-chord'}
+            >
+              <button
+                type="button"
+                class="line-chord-name"
+                aria-pressed={i === index}
+                onClick={() => setAt(i)}
+              >
+                {chordSymbol(s.chord)}
+                <span class="muted">
+                  {s.bar !== undefined
+                    ? ` · bar ${s.bar}`
+                    : ' · not in the progression'}
+                </span>
+              </button>
+              <span class="arpeggio-of muted">{plans[i].name}</span>
+              <span class="line-notes">
+                {v.events.map((e, k) => {
+                  const n = v.notes[e.index]
+                  return (
+                    <span
+                      key={k}
+                      class={[
+                        'line-note',
+                        `role-${roleOf(n.number)}`,
+                        playing?.at === i && playing.note === e.index
+                          ? 'sounding'
+                          : '',
+                      ].join(' ')}
+                    >
+                      <span class="label">{n.label}</span>
+                      <span class="name">{formatNote(n.note)}</span>
+                    </span>
+                  )
+                })}
+              </span>
+            </li>
+          )
+        })}
       </ol>
       {plan.left.length > 0 && (
         <p class="muted">

@@ -576,6 +576,7 @@ export function Workspace() {
       return {
         step: i,
         start: timing[i].start,
+        bar: timing[i].bar,
         chord: n.chord,
         key: keyAt(progression, i, key),
         length,

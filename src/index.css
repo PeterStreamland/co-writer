@@ -2155,3 +2155,42 @@ body:has(.workspace) #app {
 .line-group.wildcard button {
   border-style: dashed;
 }
+
+/* The Arpeggio tab's chord boxes, as the Lines tab's: each chord's notes
+   in the order they play, outlined by tone. */
+.arpeggio-heading {
+  margin: 0 0 0.5rem;
+}
+
+.arpeggio-chords .arpeggio-of {
+  font-size: 0.8rem;
+}
+
+.arpeggio-chords .line-notes {
+  flex-wrap: wrap;
+  max-width: 22rem;
+}
+
+.arpeggio-chords .line-note {
+  cursor: default;
+}
+
+.line-note.role-root {
+  --tag: #dc2626;
+}
+
+.line-note.role-third {
+  --tag: #ea580c;
+}
+
+.line-note.role-fifth {
+  --tag: #2563eb;
+}
+
+.line-note.role-seventh {
+  --tag: #9333ea;
+}
+
+.line-note.role-extension {
+  --tag: #0d9488;
+}

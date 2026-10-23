@@ -1131,3 +1131,5 @@ The Arpeggio tab gains **▶ Play with chords**, as the Lines tab has. It plays 
 - The current chord, when it isn't in the progression, isn't played, since it has no place in the bars.
 
 Both tabs now hand their timed notes to the workspace in one shape (`src/workspace/along.ts`), so anything later that plays along (Phase 7's melodies) can do the same.
+
+**Chord boxes in the Arpeggio tab (David's request, same day).** The chord menu and ‹ › are replaced by a box per chord, as in the Lines tab. Each box shows "C · bar 1", the arpeggio's name, and its notes in the order they play, outlined in the tone colours (root red, 3rd orange, 5th blue, 7th purple, extensions teal). Tap a box to choose that chord. The current chord, when it isn't in the progression, gets a box marked so.
