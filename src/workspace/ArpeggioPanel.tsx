@@ -20,6 +20,7 @@ import {
   planArpeggio,
   saveArpeggio,
   startOctave,
+  voiceOf,
   type ArpeggioPlan,
   type ArpeggioSettings,
 } from './arpeggio-view'
@@ -86,10 +87,22 @@ export function ArpeggioPanel({
   const plan = plans[index] as ArpeggioPlan | undefined
   const [positionAt, setPositionAt] = useState(0)
   useEffect(() => setPositionAt(0), [plan])
-  const spotsOf = (p: ArpeggioPlan, position = 0) =>
-    settings.guitar === 'run'
-      ? p.run
-      : p.positions[Math.min(position, p.positions.length - 1)]
+  const mode = onGuitar ? settings.guitar : undefined
+  // In one position, the other chords play in the position nearest the
+  // selected chord's, so playing through stays in one area of the neck.
+  const here = plan?.positions[positionAt]?.from ?? 0
+  const voiceAt = (i: number) => {
+    const p = plans[i]
+    if (i === index || mode !== 'position') return voiceOf(p, mode, positionAt)
+    const nearest = p.positions.reduce(
+      (best, q, j) =>
+        Math.abs(q.from - here) < Math.abs(p.positions[best].from - here)
+          ? j
+          : best,
+      0,
+    )
+    return voiceOf(p, mode, nearest)
+  }
   // The note sounding while the arpeggio plays: which chord, which note.
   const [playing, setPlaying] = useState<{ at: number; note: number }>()
   const [through, setThrough] = useState<number[]>()
@@ -99,31 +112,31 @@ export function ArpeggioPanel({
       onShow(undefined)
       return
     }
-    const showing = playing && plans[playing.at] ? plans[playing.at] : plan
-    const showAt = playing ? playing.at : index
-    const shownAt = showAt === index ? positionAt : 0
+    const showAt = playing && plans[playing.at] ? playing.at : index
+    const showing = plans[showAt]
+    const voice = voiceAt(showAt)
     onShow({
       chord: sources[showAt].chord,
       name: showing.name,
-      notes: showing.notes.map((n) => ({
+      notes: voice.notes.map((n) => ({
         note: n.note,
         midi: n.midi,
         label: n.label,
         number: n.number,
       })),
-      spots: onGuitar ? spotsOf(showing, shownAt) : undefined,
+      spots: voice.spots,
       sounding: playing?.note,
-      guitar: onGuitar
+      guitar: mode
         ? {
-            mode: settings.guitar,
-            positions: showing.positions,
-            at: Math.min(shownAt, Math.max(0, showing.positions.length - 1)),
+            mode,
+            positions: showing.positions.map((q) => q.spots),
+            at: showing.positions.findIndex((q) => q.spots === voice.spots),
             onAt: setPositionAt,
             onOnePosition: () => change({ guitar: 'position' }),
           }
         : undefined,
     })
-  }, [plan, playing, positionAt, settings.guitar, onGuitar])
+  }, [plan, playing, positionAt, mode])
   useEffect(() => () => onShow(undefined), [])
 
   // Plays the chords at `order` one after another, each arpeggio filling
@@ -136,15 +149,15 @@ export function ArpeggioPanel({
     const timers: ReturnType<typeof setTimeout>[] = []
     let offset = 0
     for (const i of through) {
-      const p = plans[i]
-      for (const e of p.events) {
+      const voice = voiceAt(i)
+      for (const e of voice.events) {
         const ms = (offset + secondsOf(e.onset, bpm, meter)) * 1000
         const seconds = secondsOf(e.length, bpm, meter)
         timers.push(
           setTimeout(() => {
             setAt(i)
             setPlaying({ at: i, note: e.index })
-            void playNote(p.notes[e.index].note, seconds * 1.5)
+            void playNote(voice.notes[e.index].note, seconds * 1.5)
           }, ms),
         )
       }
@@ -170,8 +183,8 @@ export function ArpeggioPanel({
       </section>
     )
   }
-  const spots = onGuitar ? spotsOf(plan, positionAt) : undefined
-  const unplayable = onGuitar && !spots
+  const voice = voiceAt(index)
+  const unplayable = mode !== undefined && !voice.spots
   const sounding = playing?.at === index ? playing.note : undefined
   return (
     <section class="arpeggio" aria-label="Arpeggios">
@@ -245,46 +258,52 @@ export function ArpeggioPanel({
             ))}
           </select>
         </label>
-        <label>
-          From
-          <select
-            value={settings.octave ?? ''}
-            onChange={(e) => {
-              const v = e.currentTarget.value
-              change({ octave: v ? Number(v) : undefined })
-            }}
-          >
-            <option value="">
-              {formatNote({
-                ...source.chord.root,
-                octave: startOctave(
-                  source.chord.root,
-                  { ...settings, octave: undefined },
-                  onGuitar ? guitar : undefined,
-                ),
-              })}{' '}
-              (default)
-            </option>
-            {START_OCTAVES.map((o) => (
-              <option key={o} value={o}>
-                {formatNote({ ...source.chord.root, octave: o })}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Range
-          <select
-            value={settings.octaves}
-            onChange={(e) => change({ octaves: Number(e.currentTarget.value) })}
-          >
-            {OCTAVE_CHOICES.map((o) => (
-              <option key={o} value={o}>
-                {o} {o === 1 ? 'octave' : 'octaves'}
-              </option>
-            ))}
-          </select>
-        </label>
+        {mode !== 'position' && (
+          <>
+            <label>
+              From
+              <select
+                value={settings.octave ?? ''}
+                onChange={(e) => {
+                  const v = e.currentTarget.value
+                  change({ octave: v ? Number(v) : undefined })
+                }}
+              >
+                <option value="">
+                  {formatNote({
+                    ...source.chord.root,
+                    octave: startOctave(
+                      source.chord.root,
+                      { ...settings, octave: undefined },
+                      onGuitar ? guitar : undefined,
+                    ),
+                  })}{' '}
+                  (default)
+                </option>
+                {START_OCTAVES.map((o) => (
+                  <option key={o} value={o}>
+                    {formatNote({ ...source.chord.root, octave: o })}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Range
+              <select
+                value={settings.octaves}
+                onChange={(e) =>
+                  change({ octaves: Number(e.currentTarget.value) })
+                }
+              >
+                {OCTAVE_CHOICES.map((o) => (
+                  <option key={o} value={o}>
+                    {o} {o === 1 ? 'octave' : 'octaves'}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </>
+        )}
         {onGuitar && (
           <div class="toggle" role="group" aria-label="On the neck">
             <button
@@ -302,6 +321,11 @@ export function ArpeggioPanel({
               Across the neck
             </button>
           </div>
+        )}
+        {mode === 'position' && (
+          <span class="muted">
+            Every tone in four frets, low string to high.
+          </span>
         )}
         {onGuitar &&
           settings.guitar === 'position' &&
@@ -356,11 +380,11 @@ export function ArpeggioPanel({
           </>
         )}
         <span class="muted">
-          {plan.events.length} notes over {source.lengthText}
+          {voice.events.length} notes over {source.lengthText}
         </span>
       </div>
       <ol class="arpeggio-notes" aria-label="Notes, lowest first">
-        {plan.notes.map((n, i) => (
+        {voice.notes.map((n, i) => (
           <li key={i} class={i === sounding ? 'sounding' : ''}>
             <span class="label">{n.label}</span>
             <span class="muted">{formatNote(n.note)}</span>

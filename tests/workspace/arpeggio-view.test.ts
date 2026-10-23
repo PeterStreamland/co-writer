@@ -81,7 +81,16 @@ describe('every arpeggio (exit criterion)', () => {
                   pattern: pattern.id,
                   rate: rate.id,
                 }
-                const plan = planArpeggio(c, k, settings, length, guitar)
+                // The guitar's positions don't depend on the pattern, so
+                // they're searched for one pattern; every pattern runs over
+                // the range.
+                const plan = planArpeggio(
+                  c,
+                  k,
+                  settings,
+                  length,
+                  pattern.id === 'up-down' ? guitar : undefined,
+                )
                 const tonePcs = new Set(
                   plan.tones.map((t) => pitchClass(t.note)),
                 )
@@ -91,20 +100,26 @@ describe('every arpeggio (exit criterion)', () => {
                   for (const t of plan.tones)
                     expect(own.has(pitchClass(t.note))).toBe(true)
                 }
-                for (const n of plan.notes) {
+                const voices = [plan, ...plan.positions]
+                for (const n of voices.flatMap((v) => v.notes)) {
                   expect(tonePcs.has(pitchClass(n.note))).toBe(true)
                   expect(n.label).toBe(toneLabel(c.root, n.note, n.number))
                 }
-                // The rhythm fills the length on the rate's grid.
-                expect(durEquals(eventsLength(plan.events), length)).toBe(true)
-                plan.events.forEach((e, i) => {
-                  expect(e.onset).toEqual(dur(rate.note.n * i, rate.note.d))
-                  expect(compareDur(e.length, rate.note)).toBeLessThanOrEqual(0)
-                  expect(plan.notes[e.index]).toBeDefined()
-                })
-                expect(plan.events).toHaveLength(
-                  Math.ceil(ratioOf(length, rate.note)),
-                )
+                // The rhythm fills the length on the rate's grid, in the
+                // range and in every position on the neck.
+                for (const v of voices) {
+                  expect(durEquals(eventsLength(v.events), length)).toBe(true)
+                  v.events.forEach((e, i) => {
+                    expect(e.onset).toEqual(dur(rate.note.n * i, rate.note.d))
+                    expect(compareDur(e.length, rate.note)).toBeLessThanOrEqual(
+                      0,
+                    )
+                    expect(v.notes[e.index]).toBeDefined()
+                  })
+                  expect(v.events).toHaveLength(
+                    Math.ceil(ratioOf(length, rate.note)),
+                  )
+                }
               }
             }
           }
@@ -162,7 +177,11 @@ describe('the arpeggio tab', () => {
       guitar,
     )
     expect(plan.positions.length).toBeGreaterThan(0)
-    expect(plan.positions[0]).toHaveLength(plan.notes.length)
+    for (const p of plan.positions) {
+      expect(p.spots).toHaveLength(p.notes.length)
+      expect(durEquals(eventsLength(p.events), dur(1, 1))).toBe(true)
+    }
+    expect(plan.positions.length).toBeGreaterThanOrEqual(5)
     expect(plan.run).toHaveLength(plan.notes.length)
   })
 

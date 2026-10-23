@@ -1,9 +1,17 @@
-// Arpeggios on the guitar (PLAN Phase 6 task 2): where each note of an
-// arpeggio's range sits on the neck, either in one position (every note
-// within a 4-fret span, open strings in the open position) or as a run
-// across the neck, two or three notes a string, moving up as it climbs.
+// Arpeggios on the guitar (PLAN Phase 6 task 2): the arpeggio in one
+// position (every tone within a 4-fret span, on every string, open strings
+// in the open position), or the notes of its range as a run across the
+// neck, two or three notes a string, moving up as it climbs.
 // The notes come lowest first; a descending pattern plays the same spots
 // back down. Pure: no UI, audio or DOM imports.
+import {
+  mod,
+  noteAtMidi,
+  pitchClass,
+  type ArpeggioNote,
+  type ArpeggioTone,
+  type Note,
+} from '../theory'
 import { BOX_FRETS } from './chord-box'
 import type { ToneRole } from './chord-tones'
 import { DEFAULT_SPAN } from './fingering'
@@ -11,60 +19,55 @@ import { fretMidi, playableFrets, type Guitar } from './guitar'
 
 export type Spot = { string: number; fret: number }
 
-// One position on the neck: the lowest fret of its span, and a spot for
-// every note.
-export type ArpeggioPosition = { from: number; spots: Spot[] }
+// One position on the neck (David's request: every position up the neck,
+// as guitarists learn them): a span of four frets, and every tone of the
+// arpeggio that falls in it on every string, low E to high E, lowest first.
+// So the position needn't start on the root: the C arpeggio in 5th position
+// starts on the low E string's G. A note already played lower down on a
+// lower string isn't repeated on the next.
+export type ArpeggioPosition = {
+  from: number // the span's lowest fret (the capo or nut for open position)
+  spots: Spot[]
+  notes: ArpeggioNote[]
+}
 
-// Every position that plays all the notes, lowest first. In each, the
-// notes climb string by string (never back to a lower string), on the
-// lowest string that can reach them.
 export function arpeggioPositions(
   guitar: Guitar,
-  midis: number[],
+  tones: ArpeggioTone[],
   span = DEFAULT_SPAN,
 ): ArpeggioPosition[] {
-  const positions: ArpeggioPosition[] = []
-  const seen = new Set<string>()
+  const byPitch = new Map(tones.map((t) => [pitchClass(t.note), t]))
+  const found: ArpeggioPosition[] = []
   for (let from = guitar.capo; from + span - 1 <= guitar.frets.high; from++) {
     const inReach = (fret: number) =>
       (fret >= from && fret < from + span) ||
       (fret === guitar.capo && from <= guitar.capo + 1)
-    const spots = place(guitar, midis, inReach)
-    if (!spots) continue
-    const id = spots.map((s) => `${s.string}:${s.fret}`).join()
-    if (seen.has(id)) continue
-    seen.add(id)
-    const fretted = spots.map((s) => s.fret).filter((f) => f > guitar.capo)
-    positions.push({
-      from: fretted.length ? Math.min(...fretted) : guitar.capo,
-      spots,
+    const spots: Spot[] = []
+    const notes: ArpeggioNote[] = []
+    guitar.strings.forEach((_, s) => {
+      for (const fret of playableFrets(guitar, s)) {
+        const midi = fretMidi(guitar, s, fret) as number
+        const tone = byPitch.get(mod(midi, 12))
+        if (!inReach(fret) || !tone) continue
+        if (notes.length && midi <= (notes.at(-1) as ArpeggioNote).midi)
+          continue
+        spots.push({ string: s, fret })
+        notes.push({ ...tone, note: noteAtMidi(tone.note, midi) as Note, midi })
+      }
     })
+    if (notes.length) found.push({ from, spots, notes })
   }
-  return positions
-}
-
-// Spots for the notes, lowest string first, each note on the same string
-// as the one before or a higher one, using only frets in reach.
-function place(
-  guitar: Guitar,
-  midis: number[],
-  inReach: (fret: number) => boolean,
-): Spot[] | undefined {
-  const spots: Spot[] = []
-  const walk = (i: number, lowest: number): boolean => {
-    if (i === midis.length) return true
-    for (let s = lowest; s < guitar.strings.length; s++) {
-      const fret = playableFrets(guitar, s).find(
-        (f) => inReach(f) && fretMidi(guitar, s, f) === midis[i],
-      )
-      if (fret === undefined) continue
-      spots.push({ string: s, fret })
-      if (walk(i + 1, s)) return true
-      spots.pop()
-    }
-    return false
-  }
-  return walk(0, 0) ? spots : undefined
+  // A span whose notes all sit in a neighbouring span adds nothing new.
+  const key = (s: Spot) => `${s.string}:${s.fret}`
+  return found.filter((p, i) => {
+    const mine = p.spots.map(key)
+    return !found.some((q, j) => {
+      if (j === i) return false
+      const theirs = new Set(q.spots.map(key))
+      const covered = mine.every((k) => theirs.has(k))
+      return covered && (q.spots.length > mine.length || j < i)
+    })
+  })
 }
 
 // The run's costs, in points: each fret slid along a string, each fret
