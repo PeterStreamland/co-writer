@@ -63,15 +63,41 @@ export const DEFAULT_ARPEGGIO: ArpeggioSettings = {
 export const OCTAVE_CHOICES = [1, 2, 3]
 export const START_OCTAVES = [1, 2, 3, 4, 5]
 
-// The arpeggio for a chord, as the tab shows and plays it.
-export type ArpeggioPlan = ArpeggioTones & {
-  name: string
+// Notes to play, in time, and on guitar where each sits.
+export type ArpeggioVoice = {
   notes: ArpeggioNote[]
   events: ArpeggioEvent[]
-  // On guitar: each position that plays every note, and the run across the
-  // neck; each a spot per note.
-  positions: Spot[][]
-  run?: Spot[]
+  spots?: Spot[]
+}
+
+// The arpeggio for a chord, as the tab shows and plays it: its range (from
+// the start note, through the octaves) with its rhythm; on guitar, the run
+// of that range across the neck, and every position up the neck, each with
+// its own notes and rhythm.
+export type ArpeggioPlan = ArpeggioTones &
+  ArpeggioVoice & {
+    name: string
+    positions: (ArpeggioVoice & { spots: Spot[]; from: number })[]
+    run?: Spot[]
+  }
+
+// What plays: in one position on guitar, that position's notes; otherwise
+// the range, on guitar as the run across the neck.
+export function voiceOf(
+  plan: ArpeggioPlan,
+  guitar: GuitarMode | undefined,
+  at = 0,
+): ArpeggioVoice {
+  if (guitar === 'position') {
+    return (
+      plan.positions[Math.min(at, plan.positions.length - 1)] ?? {
+        notes: [],
+        events: [],
+      }
+    )
+  }
+  const { notes, events } = plan
+  return { notes, events, spots: guitar === 'run' ? plan.run : undefined }
 }
 
 // The root's starting octave: the setting, or C3-ish on keyboard and the
@@ -138,18 +164,27 @@ export function planArpeggio(
   const rate = (
     ARPEGGIO_RATES.find((r) => r.id === settings.rate) ?? ARPEGGIO_RATES[0]
   ).note
-  const events = arpeggioRhythm(notes.length, pattern, rate, length)
-  const midis = notes.map((n) => n.midi)
+  const rhythm = (count: number) => arpeggioRhythm(count, pattern, rate, length)
   return {
     tones,
     left,
     name,
     notes,
-    events,
+    events: rhythm(notes.length),
     positions: guitar
-      ? arpeggioPositions(guitar, midis).map((p) => p.spots)
+      ? arpeggioPositions(guitar, tones).map((p) => ({
+          from: p.from,
+          notes: p.notes,
+          spots: p.spots,
+          events: rhythm(p.notes.length),
+        }))
       : [],
-    run: guitar ? arpeggioRun(guitar, midis) : undefined,
+    run: guitar
+      ? arpeggioRun(
+          guitar,
+          notes.map((n) => n.midi),
+        )
+      : undefined,
   }
 }
 

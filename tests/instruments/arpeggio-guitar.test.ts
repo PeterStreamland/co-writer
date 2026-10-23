@@ -13,6 +13,7 @@ import {
   arpeggioTones,
   parseChordSymbol,
   parseNote,
+  pitchClass,
   type ArpeggioLevel,
 } from '../../src/theory'
 
@@ -48,27 +49,66 @@ const cases: [string, Guitar, string, string, number, ArpeggioLevel][] = [
   ['B from the low B of a 7-string', seven, 'B', 'B1', 2, 'triad'],
 ]
 
+function tonesOf(chord: string, level: ArpeggioLevel = 'triad') {
+  return arpeggioTones(parseChordSymbol(chord)!, C_MAJOR, level).tones
+}
+
+const guitars: [string, Guitar][] = [
+  ['standard', standard],
+  ['drop D', dropD],
+  ['7-string', seven],
+]
+
 describe('arpeggios in one position', () => {
-  it.each(cases)('%s', (_, guitar, chord, low, octaves, level) => {
-    const notes = midis(chord, low, octaves, level)
-    const positions = arpeggioPositions(guitar, notes)
-    expect(positions.length).toBeGreaterThan(0)
-    for (const p of positions) {
-      expect(sounds(guitar, p.spots)).toEqual(notes)
-      expect(climbs(p.spots)).toBe(true)
-      const fretted = p.spots.map((s) => s.fret).filter((f) => f > 0)
-      if (fretted.length) {
-        expect(
-          Math.max(...fretted) - Math.min(...fretted) + 1,
-        ).toBeLessThanOrEqual(DEFAULT_SPAN)
+  it.each(
+    guitars.flatMap(([name, guitar]) =>
+      (['C', 'G', 'Am', 'E', 'Bdim'] as const).flatMap((chord) =>
+        (['triad', 'seventh', 'ninth'] as const).map(
+          (level) =>
+            [`${chord} ${level} on ${name}`, guitar, chord, level] as const,
+        ),
+      ),
+    ),
+  )(
+    '%s: every position is the tones in four frets, rising',
+    (_, guitar, chord, level) => {
+      const tones = tonesOf(chord, level)
+      const pcs = new Set(tones.map((t) => pitchClass(t.note)))
+      const positions = arpeggioPositions(guitar, tones)
+      expect(positions.length).toBeGreaterThanOrEqual(5)
+      for (const p of positions) {
+        expect(sounds(guitar, p.spots)).toEqual(p.notes.map((n) => n.midi))
+        expect(climbs(p.spots)).toBe(true)
+        p.notes.forEach((n, i) => {
+          expect(pcs.has(pitchClass(n.note))).toBe(true)
+          if (i > 0) expect(n.midi).toBeGreaterThan(p.notes[i - 1].midi)
+        })
+        const fretted = p.spots.map((s) => s.fret).filter((f) => f > 0)
+        if (fretted.length) {
+          expect(
+            Math.max(...fretted) - Math.min(...fretted) + 1,
+          ).toBeLessThanOrEqual(DEFAULT_SPAN)
+        }
       }
-    }
+    },
+  )
+
+  it('finds a position at every stretch of the neck for C', () => {
+    const froms = arpeggioPositions(standard, tonesOf('C')).map((p) => p.from)
+    expect(froms[0]).toBe(0)
+    expect(froms.at(-1)).toBeGreaterThanOrEqual(10)
+    // No two positions are the same notes.
+    const ids = arpeggioPositions(standard, tonesOf('C')).map((p) =>
+      p.spots.map((s) => `${s.string}:${s.fret}`).join(),
+    )
+    expect(new Set(ids).size).toBe(ids.length)
   })
 
-  it('finds C in 8th position, from the low string', () => {
-    const notes = midis('C', 'C3', 2)
-    const spots = arpeggioPositions(standard, notes).find((p) => p.from === 7)
-    expect(spots?.spots.map((s) => `${s.string}:${s.fret}`)).toEqual([
+  it('finds C in 8th position across all six strings', () => {
+    const spots = arpeggioPositions(standard, tonesOf('C')).find(
+      (p) => p.from === 7,
+    )?.spots
+    expect(spots?.map((s) => `${s.string}:${s.fret}`)).toEqual([
       '0:8',
       '1:7',
       '1:10',
@@ -79,14 +119,19 @@ describe('arpeggios in one position', () => {
     ])
   })
 
-  it('uses open strings in the open position', () => {
-    const notes = midis('E', 'E2', 2)
-    const open = arpeggioPositions(standard, notes)[0]
+  it('uses open strings in the open position, without repeating a note', () => {
+    const open = arpeggioPositions(standard, tonesOf('E'))[0]
     expect(open.spots[0]).toEqual({ string: 0, fret: 0 })
+    const midis = open.notes.map((n) => n.midi)
+    expect(new Set(midis).size).toBe(midis.length)
   })
 
-  it('finds nothing when the notes leave the neck', () => {
-    expect(arpeggioPositions(standard, midis('C', 'C1', 1))).toEqual([])
+  it("needn't start on the root: some C positions start on E or G", () => {
+    const firsts = arpeggioPositions(standard, tonesOf('C')).map(
+      (p) => p.notes[0].label,
+    )
+    expect(firsts).toContain('R')
+    expect(firsts.some((l) => l !== 'R')).toBe(true)
   })
 })
 
@@ -120,20 +165,11 @@ describe('arpeggios as a run across the neck', () => {
 })
 
 describe('an arpeggio position as a box', () => {
-  const tones = (chord: string, low: string) =>
-    arpeggioNotes(
-      arpeggioTones(parseChordSymbol(chord)!, C_MAJOR, 'triad').tones,
-      parseNote(low)!,
-      2,
-    )
-
   it('draws C in 8th position from its lowest fret, every note a dot', () => {
-    const notes = tones('C', 'C3')
-    const spots = arpeggioPositions(
-      standard,
-      notes.map((n) => n.midi),
-    ).find((p) => p.from === 7)!.spots
-    const box = positionBox(standard, spots, notes)
+    const p = arpeggioPositions(standard, tonesOf('C')).find(
+      (q) => q.from === 7,
+    )!
+    const box = positionBox(standard, p.spots, p.notes)
     expect([box.first, box.rows, box.top]).toEqual([7, 4, 'none'])
     expect(box.dots.map((d) => `${d.string}:${d.row} ${d.label}`)).toEqual([
       '0:2 R',
@@ -156,12 +192,8 @@ describe('an arpeggio position as a box', () => {
   })
 
   it('draws the nut and open strings in the open position', () => {
-    const notes = tones('E', 'E2')
-    const spots = arpeggioPositions(
-      standard,
-      notes.map((n) => n.midi),
-    )[0].spots
-    const box = positionBox(standard, spots, notes)
+    const p = arpeggioPositions(standard, tonesOf('E'))[0]
+    const box = positionBox(standard, p.spots, p.notes)
     expect(box.top).toBe('nut')
     expect(box.first).toBe(1)
     expect(box.dots[0]).toMatchObject({ string: 0, open: true, label: 'R' })
