@@ -1,57 +1,36 @@
-// Tempo and chord lengths (David's request, ahead of Phase 6's beat grid).
-// Lengths are exact fractions of a whole note, as SPEC 7.1 and 12 store
-// them (a quarter note is 1/4), so the grid can take them over unchanged.
-// Until sections carry a meter, everything is in 4/4: a beat is a quarter
-// note and a chord lasts one bar unless set otherwise.
+// Tempo and the section's time signature (SPEC 7.1). Lengths are exact
+// fractions of a whole note (SPEC 12); the meters, beats and bar layout
+// live in the theory core. Until sketches keep their own sections, the
+// tempo and time signature are remembered in this browser.
+import {
+  COMMON_TIME,
+  METERS,
+  meterLabel,
+  parseMeter,
+  ratioOf,
+  sameMeter,
+  tempoUnit,
+  type Dur,
+  type Meter,
+  type MeterMap,
+} from '../theory'
 
-export type Dur = { n: number; d: number }
-
-export const BEATS_PER_BAR = 4
-export const BEAT: Dur = { n: 1, d: 4 }
-export const DEFAULT_LENGTH: Dur = { n: 1, d: 1 }
+export type { Dur } from '../theory'
 
 export const DEFAULT_BPM = 100
 export const MIN_BPM = 40
 export const MAX_BPM = 240
 
-// The lengths the strip offers, in beats.
-export const LENGTH_CHOICES = [1, 2, 3, 4, 6, 8, 12, 16]
+export const DEFAULT_TIME: MeterMap = { meter: COMMON_TIME, barMeters: {} }
 
-function gcd(a: number, b: number): number {
-  return b === 0 ? a : gcd(b, a % b)
-}
-
-// A length in beats as a whole-note fraction: 2 beats is 1/2, 6 is 3/2.
-export function durOfBeats(beats: number): Dur {
-  const n = beats * BEAT.n
-  const d = BEAT.d
-  const g = gcd(n, d)
-  return { n: n / g, d: d / g }
-}
-
-export function beatsOf(dur: Dur): number {
-  return (dur.n * BEAT.d) / (dur.d * BEAT.n)
-}
-
-// How a length reads: "1 beat", "3 beats", "1 bar", "1½ bars", "2 bars".
-export function lengthLabel(beats: number): string {
-  if (beats % BEATS_PER_BAR === 0 || beats > BEATS_PER_BAR) {
-    const bars = beats / BEATS_PER_BAR
-    const whole = Math.floor(bars)
-    const text =
-      bars === whole
-        ? `${whole}`
-        : bars % 1 === 0.5
-          ? `${whole}½`
-          : String(bars)
-    return `${text} ${bars === 1 ? 'bar' : 'bars'}`
-  }
-  return `${beats} ${beats === 1 ? 'beat' : 'beats'}`
-}
-
-// How long a chord lasts at a tempo, in seconds.
-export function secondsOf(dur: Dur, bpm: number): number {
-  return (beatsOf(dur) * 60) / bpm
+// How long a chord lasts at a tempo, in seconds. The tempo counts the
+// section meter's beat (a dotted crotchet in 6/8).
+export function secondsOf(
+  length: Dur,
+  bpm: number,
+  meter: Meter = COMMON_TIME,
+): number {
+  return (ratioOf(length, tempoUnit(meter)) * 60) / bpm
 }
 
 export function clampBpm(bpm: number): number {
@@ -59,7 +38,37 @@ export function clampBpm(bpm: number): number {
   return Math.min(MAX_BPM, Math.max(MIN_BPM, Math.round(bpm)))
 }
 
+// The note the tempo counts, as the strip shows it: ♩, ♩. or 𝅗𝅥.
+export function tempoNote(meter: Meter): string {
+  const unit = tempoUnit(meter)
+  const plain = { 2: '𝅗𝅥', 4: '♩', 8: '♪' }[unit.d]
+  if (unit.n === 1 && plain) return plain
+  const dotted = { 8: '♩.', 16: '♪.' }[unit.d]
+  return unit.n === 3 && dotted ? dotted : `${unit.n}/${unit.d}`
+}
+
+// The time-signature picker's choices, one per meter and grouping:
+// "4/4", "6/8", "7/8 (2+2+3)", "7/8 (3+2+2)".
+export type MeterOption = { id: string; meter: Meter; label: string }
+
+export function meterId(meter: Meter): string {
+  const { num, den } = meter
+  const label = meterLabel(meter)
+  const grouping = label.match(/\((.*)\)/)?.[1]
+  return grouping ? `${num}/${den}:${grouping}` : `${num}/${den}`
+}
+
+export const METER_OPTIONS: MeterOption[] = METERS.flatMap(
+  ({ num, den, groupings }) =>
+    groupings.map((grouping) => {
+      const meter: Meter =
+        groupings.length > 1 ? { num, den, grouping } : { num, den }
+      return { id: meterId(meter), meter, label: meterLabel(meter) }
+    }),
+)
+
 const STORAGE_KEY = 'co-writer:bpm'
+const TIME_KEY = 'co-writer:time'
 
 function storage(): Storage | undefined {
   try {
@@ -86,4 +95,58 @@ export function saveBpm(bpm: number, store = storage()): void {
   } catch {
     // Storage blocked: the tempo just isn't remembered.
   }
+}
+
+function readMeter(value: unknown): Meter | undefined {
+  if (typeof value !== 'object' || value === null) return undefined
+  const { num, den, grouping } = value as Record<string, unknown>
+  const meter = parseMeter(`${String(num)}/${String(den)}`)
+  if (!meter) return undefined
+  if (Array.isArray(grouping) && grouping.every(Number.isInteger)) {
+    return { ...meter, grouping: grouping as number[] }
+  }
+  return meter
+}
+
+// The time signature and any bar overrides remembered in this browser.
+export function loadTime(store = storage()): MeterMap {
+  try {
+    const saved: unknown = JSON.parse(store?.getItem(TIME_KEY) ?? 'null')
+    if (typeof saved !== 'object' || saved === null) return DEFAULT_TIME
+    const { meter, barMeters } = saved as Record<string, unknown>
+    const section = readMeter(meter)
+    if (!section) return DEFAULT_TIME
+    const bars: Record<number, Meter> = {}
+    if (typeof barMeters === 'object' && barMeters !== null) {
+      for (const [bar, m] of Object.entries(barMeters)) {
+        const read = readMeter(m)
+        if (read && Number(bar) >= 1) bars[Number(bar)] = read
+      }
+    }
+    return { meter: section, barMeters: bars }
+  } catch {
+    // Unreadable or blocked storage: 4/4.
+  }
+  return DEFAULT_TIME
+}
+
+export function saveTime(time: MeterMap, store = storage()): void {
+  try {
+    store?.setItem(TIME_KEY, JSON.stringify(time))
+  } catch {
+    // Storage blocked: the time signature lasts for this visit only.
+  }
+}
+
+// The time with one bar set to its own meter, or back to the section's
+// when undefined or the same.
+export function setBarMeter(
+  time: MeterMap,
+  bar: number,
+  meter: Meter | undefined,
+): MeterMap {
+  const barMeters = { ...time.barMeters }
+  delete barMeters[bar]
+  if (meter && !sameMeter(meter, time.meter)) barMeters[bar] = meter
+  return { ...time, barMeters }
 }

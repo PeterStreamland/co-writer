@@ -1,16 +1,25 @@
 import { useState } from 'preact/hooks'
 import {
+  barLength,
   chordInsight,
   chordSymbol,
+  durEquals,
   keyName,
+  lengthChoices,
+  lengthLabel,
+  meterLabel,
+  meterOfBar,
+  ratioOf,
   romanNumeral,
   type ChordName,
+  type Dur,
   type Key,
+  type MeterMap,
+  type Placement,
 } from '../theory'
 import {
   alternatives,
   keyAt,
-  lengthOf,
   pathNodes,
   type ChordNode,
   type Progression,
@@ -18,14 +27,13 @@ import {
 import { InfoPanel, InfoToggle, useToggle } from './ChordInfo'
 import { readTypedChords } from './typed-chords'
 import {
-  LENGTH_CHOICES,
   MAX_BPM,
+  METER_OPTIONS,
   MIN_BPM,
-  beatsOf,
   clampBpm,
-  durOfBeats,
-  lengthLabel,
-  type Dur,
+  meterId,
+  setBarMeter,
+  tempoNote,
 } from '../sketch/time'
 
 // The progression strip (SPEC 2, 6.5): the active path of the section's
@@ -56,6 +64,9 @@ export function ProgressionStrip({
   onStop,
   bpm,
   onBpmChange,
+  time,
+  timing,
+  onTimeChange,
   onLengthChange,
   between,
   onBetween,
@@ -79,8 +90,12 @@ export function ProgressionStrip({
   onStop: () => void
   bpm: number
   onBpmChange: (bpm: number) => void
-  // Sets the selected chord's length.
-  onLengthChange: (length: Dur) => void
+  // The time signature, any bar overrides, and where each chord falls.
+  time: MeterMap
+  timing: Placement[]
+  onTimeChange: (time: MeterMap) => void
+  // Sets the selected chord's length; undefined is one bar.
+  onLengthChange: (length: Dur | undefined) => void
   // The slot whose gap to the next chord is being filled, if any.
   between: number | undefined
   onBetween: (index: number) => void
@@ -103,7 +118,27 @@ export function ProgressionStrip({
       <div class="strip-bar">
         <h2>Progression</h2>
         <div class="strip-tools">
+          <label class="time-signature">
+            Time
+            <select
+              value={meterId(time.meter)}
+              aria-label="Time signature"
+              onChange={(e) => {
+                const option = METER_OPTIONS.find(
+                  (o) => o.id === e.currentTarget.value,
+                )
+                if (option) onTimeChange({ ...time, meter: option.meter })
+              }}
+            >
+              {METER_OPTIONS.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <label class="tempo">
+            <span aria-hidden="true">{tempoNote(time.meter)} =</span>
             <input
               type="number"
               min={MIN_BPM}
@@ -161,6 +196,7 @@ export function ProgressionStrip({
           const options = alternatives(progression, i)
           const at = options.indexOf(n.id)
           const key = keyAt(progression, i, sectionKey)
+          const placed = timing[i]
           return [
             <li
               key={`${i}-${n.id}`}
@@ -172,19 +208,23 @@ export function ProgressionStrip({
               <button
                 type="button"
                 class="chip"
-                style={{ minWidth: `${2.6 + beatsOf(lengthOf(n)) * 0.4}rem` }}
+                style={{ minWidth: `${2.6 + chipWidth(placed.length)}rem` }}
                 aria-pressed={i === selected}
                 onClick={() => onSelect(i)}
               >
+                <span class="bar-number">
+                  {placed.beat === 1 ? `Bar ${placed.bar}` : '\u00a0'}
+                </span>
                 <span class="symbol">{chordSymbol(n.chord)}</span>
                 <span class="numeral">
                   {romanNumeral(key, n.chord).numeral}
                 </span>
                 {n.length && (
                   <span class="length-label">
-                    {lengthLabel(beatsOf(n.length))}
+                    {lengthLabel(meterOfBar(time, placed.bar), n.length)}
                   </span>
                 )}
+                <BeatDots placed={placed} />
                 {n.keyChange && (
                   <span class="key-change">→ {keyName(n.keyChange)}</span>
                 )}
@@ -261,21 +301,13 @@ export function ProgressionStrip({
               onToggle={toggleInfo}
             />
           </p>
-          <label class="length">
-            Length
-            <select
-              value={beatsOf(lengthOf(selectedNode))}
-              onChange={(e) =>
-                onLengthChange(durOfBeats(Number(e.currentTarget.value)))
-              }
-            >
-              {LENGTH_CHOICES.map((beats) => (
-                <option key={beats} value={beats}>
-                  {lengthLabel(beats)}
-                </option>
-              ))}
-            </select>
-          </label>
+          <ChordTime
+            time={time}
+            placed={timing[selected]}
+            length={selectedNode.length}
+            onLengthChange={onLengthChange}
+            onTimeChange={onTimeChange}
+          />
           {infoOpen && selectedInsight && (
             <InfoPanel insight={selectedInsight} />
           )}
@@ -381,6 +413,106 @@ function Tree({
   return (
     <div class="tree" aria-label="Every branch">
       {branch(progression.roots)}
+    </div>
+  )
+}
+
+// Chips grow with their length: a bar of 4/4 adds 1.6rem.
+function chipWidth(length: Dur): number {
+  return ratioOf(length, { n: 1, d: 1 }) * 1.6
+}
+
+// The beats a chord covers, under its symbol: the downbeat largest, strong
+// beats filled, weak beats hollow, with a bar line where a new bar starts.
+function BeatDots({ placed }: { placed: Placement }) {
+  return (
+    <span
+      class="beat-dots"
+      aria-label={
+        placed.beat
+          ? `Starts on beat ${placed.beat} of bar ${placed.bar}`
+          : `Starts between beats in bar ${placed.bar}`
+      }
+    >
+      {placed.beats.map((b, i) => [
+        b.beat === 1 && i > 0 && <i key={`bar-${b.bar}`} class="bar-line" />,
+        <i key={`${b.bar}-${b.beat}`} class={b.strength} />,
+      ])}
+    </span>
+  )
+}
+
+// The selected chord's place in time: its length, counted in its bar's
+// meter, where it starts, and that bar's own time signature, which can
+// differ from the section's (a bar of 2/4 in a 4/4 verse).
+function ChordTime({
+  time,
+  placed,
+  length,
+  onLengthChange,
+  onTimeChange,
+}: {
+  time: MeterMap
+  placed: Placement
+  length: Dur | undefined
+  onLengthChange: (length: Dur | undefined) => void
+  onTimeChange: (time: MeterMap) => void
+}) {
+  const meter = meterOfBar(time, placed.bar)
+  const bar = time.barMeters?.[placed.bar]
+  // One bar is stored as no length, so it follows the bar's meter.
+  const choices: (Dur | undefined)[] = lengthChoices(meter).map((d) =>
+    durEquals(d, barLength(meter)) ? undefined : d,
+  )
+  if (length && !choices.some((c) => c && durEquals(c, length))) {
+    choices.push(length)
+  }
+  const value = (d: Dur | undefined) => (d ? `${d.n}/${d.d}` : '')
+  return (
+    <div class="chord-time">
+      <label class="length">
+        Length
+        <select
+          value={value(length)}
+          onChange={(e) =>
+            onLengthChange(
+              choices.find((c) => value(c) === e.currentTarget.value),
+            )
+          }
+        >
+          {choices.map((d) => (
+            <option key={value(d)} value={value(d)}>
+              {d ? lengthLabel(meter, d) : '1 bar'}
+            </option>
+          ))}
+        </select>
+      </label>
+      <span class="starts">
+        {placed.beat
+          ? `Starts bar ${placed.bar}, beat ${placed.beat}`
+          : `Starts between beats in bar ${placed.bar}`}
+      </span>
+      <label class="bar-meter">
+        Bar {placed.bar} in
+        <select
+          value={bar ? meterId(bar) : ''}
+          onChange={(e) => {
+            const option = METER_OPTIONS.find(
+              (o) => o.id === e.currentTarget.value,
+            )
+            onTimeChange(setBarMeter(time, placed.bar, option?.meter))
+          }}
+        >
+          <option value="">{meterLabel(time.meter)}, as the section</option>
+          {METER_OPTIONS.filter((o) => o.id !== meterId(time.meter)).map(
+            (o) => (
+              <option key={o.id} value={o.id}>
+                {o.label}
+              </option>
+            ),
+          )}
+        </select>
+      </label>
     </div>
   )
 }

@@ -999,3 +999,29 @@ David asked for an Arpeggio tab beside Voice: a place to try arpeggios and exten
 - **What it does:** pick a chord or step through the progression; choose the arpeggio (triad to 13th, or a lens's colours), a pattern, a rate and a range; hear it at the tempo, each note lit and labelled on the fretboard or keyboard.
 
 SPEC's "Changes to the plan" lists it as item 8.
+
+## 2026-10-22 — The beat grid (Phase 6 task 1)
+
+Phase 6 task 1 is done: time signatures, strong and weak beats, and chord lengths counted in each meter. Durations stay exact fractions of a whole note, so triplets and odd meters never round. The meters live in the theory core (`src/theory/meter.ts`), with the picker's meters as data (`meter-data.ts`). The beat positions are golden in `tests/fixtures/meters.ts`.
+
+- **Meters:** 4/4, 3/4, 2/4, 2/2, 6/8, 9/8, 12/8, 5/4, 5/8 and 7/8. The picker lists each grouping of the odd meters separately, e.g. 7/8 (2+2+3) and 7/8 (3+2+2).
+- **Strong beats** (SPEC 7.1 doesn't settle every meter, so these are my calls; David can change them, as they are data and fixtures):
+  - Beat 1 of each bar is the downbeat, the strongest.
+  - In crotchet and minim meters every crotchet (or minim) is a beat. The start of each group is strong: beat 3 in 4/4 (2+2); none after the downbeat in 3/4 and 2/4; beat 4 in 5/4 (3+2).
+  - In quaver meters each group is one beat, and every one is strong. 6/8 counts two dotted beats (1 and 4, as SPEC says), 9/8 three and 12/8 four. 7/8 (2+2+3) counts three uneven beats, on quavers 1, 3 and 5.
+  - **5/4 defaults to 3+2** (as in Take Five), and 5/8 to 2+3. 7/8 defaults to 2+2+3 (SPEC 7.1).
+- **What the tempo counts:**
+  - the beat: ♩ in 4/4, 𝅗𝅥 in 2/2, ♩. in 6/8, 9/8 and 12/8
+  - in 5/8 and 7/8, where the beats are uneven, the crotchet: 7/8 at ♩ = 120 has quavers at 240
+  - The strip shows the note before the BPM box. The tempo stays between 40 and 240.
+- **Chord lengths:**
+  - The Length picker counts in the meter of the chord's bar: beats up to a bar, then 1, 1½ (where it comes out in whole beats), 2, 3 and 4 bars. In 5/8 and 7/8 it counts quavers ("5 eighths").
+  - A chord with no length set lasts one bar of whatever meter its bar is in, so switching 4/4 to 3/4 shortens it to three beats. A length you pick is kept exactly, so "2 beats" stays a minim in any meter.
+  - Before, picking "1 bar" in 4/4 stored nothing. It still does, but now four beats in 3/4 is stored as four beats, not mistaken for a bar.
+- **A bar can have its own meter** (SPEC 7.1): select a chord, and "Bar N in" sets the meter of the bar it starts in, e.g. a bar of 2/4 in a 4/4 verse. Overrides are kept by bar number, as in a DAW, so inserting a chord earlier moves chords past them, not the overrides.
+- **The strip:**
+  - Each chord shows the bar it starts ("Bar 3") when it starts on a downbeat.
+  - Dots under each chord show the beats it covers: the downbeat large and blue, strong beats filled, weak beats hollow, with a bar line where a new bar starts.
+  - The selected chord says where it starts ("Starts bar 3, beat 2").
+- **Where it's kept:** sections don't exist in the app yet (SPEC 3), so the time signature and bar overrides are remembered in this browser, like the tempo. They move into the section when sections arrive. Changing them isn't undoable yet.
+- **Ready for the next tasks:** the theory core can say what accent any position has (downbeat, strong, weak or off the beat), and lists the beats each chord covers. The Arpeggio tab and line modes will use this for "land on a chord tone at each chord change" and "fit the beats available".

@@ -5,8 +5,15 @@
 // adding or changing a chord after such an alternative first copies the
 // shared chords up to that point, giving it its own continuation.
 // Every function returns a new progression and leaves its input alone.
-import type { ChordName, Key, Note } from '../theory'
-import { DEFAULT_LENGTH, type Dur } from './time'
+import {
+  layOut,
+  type ChordName,
+  type Dur,
+  type Key,
+  type MeterMap,
+  type Note,
+  type Placement,
+} from '../theory'
 
 // The exact shape a chord was added in, from a chord box: its notes with
 // octaves, lowest first, and on guitar its frets (low string first, null
@@ -336,24 +343,26 @@ export function setKeyChangeAt(
 }
 
 // Sets how long the chord at a slot lasts, giving it its own copy first if
-// it was shared. One bar is the default, so it is stored as no length.
+// it was shared. No length means one bar, of whatever meter its bar is in.
 export function setLengthAt(
   p: Progression,
   index: number,
-  length: Dur,
+  length: Dur | undefined,
 ): Progression {
   const own = materialise(p, index)
   const id = own.activePath[index]
   const changed: ChordNode = { ...node(own, id), length }
-  if (length.n === DEFAULT_LENGTH.n && length.d === DEFAULT_LENGTH.d) {
-    delete changed.length
-  }
+  if (!length) delete changed.length
   return { ...own, nodes: { ...own.nodes, [id]: changed } }
 }
 
-// How long the chord on a node lasts.
-export function lengthOf(n: ChordNode): Dur {
-  return n.length ?? DEFAULT_LENGTH
+// Where each chord on the active path falls in the bars, and how long it
+// lasts there (SPEC 7.1).
+export function timingOf(p: Progression, time: MeterMap): Placement[] {
+  return layOut(
+    pathNodes(p).map((n) => n.length),
+    time,
+  )
 }
 
 // Makes the path through a node active (the tree view): its ancestors, the

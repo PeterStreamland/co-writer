@@ -1595,8 +1595,10 @@ body:has(.workspace) #app {
   padding: 0.15rem 0.6rem;
 }
 
-/* Tempo in the strip's toolbar, and the selected chord's length. */
-.strip .tempo {
+/* Tempo and time signature in the strip's toolbar, and the selected
+   chord's place in time. */
+.strip .tempo,
+.strip .time-signature {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -1607,11 +1609,68 @@ body:has(.workspace) #app {
   font: inherit;
 }
 
-.strip-info .length {
+.strip-info .chord-time {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 1rem;
+  margin-top: 0.4rem;
+}
+
+.strip-info .length,
+.strip-info .bar-meter {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  margin-top: 0.4rem;
+}
+
+.strip-info .starts {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* The bar a chord starts, and the beats it covers (SPEC 7.1). */
+.strip .chip .bar-number {
+  font-size: 0.7rem;
+  color: var(--muted);
+  align-self: flex-start;
+}
+
+.strip .chip .beat-dots {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-top: 0.2rem;
+  min-height: 0.6rem;
+}
+
+.strip .chip .beat-dots i {
+  display: block;
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: 50%;
+  border: 1px solid var(--muted);
+}
+
+.strip .chip .beat-dots i.downbeat {
+  width: 0.55rem;
+  height: 0.55rem;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.strip .chip .beat-dots i.strong {
+  width: 0.45rem;
+  height: 0.45rem;
+  background: var(--muted);
+}
+
+.strip .chip .beat-dots i.bar-line {
+  width: 1px;
+  height: 0.7rem;
+  border: none;
+  border-radius: 0;
+  background: var(--muted);
 }
 
 .strip .chip .length-label {

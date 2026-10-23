@@ -9,8 +9,8 @@ import {
   isProgression,
   insertAllBetween,
   insertBetween,
-  lengthOf,
   setLengthAt,
+  timingOf,
   isShared,
   keyAfter,
   keyAt,
@@ -26,6 +26,7 @@ import {
   parseNote,
   type ChordName,
   type Key,
+  type Meter,
 } from '../../src/theory'
 
 function parse(text: string): ChordName {
@@ -36,6 +37,7 @@ function parse(text: string): ChordName {
 
 const C_MAJOR: Key = { tonic: parseNote('C')!, mode: 'major' }
 const G_MAJOR: Key = { tonic: parseNote('G')!, mode: 'major' }
+const FOUR: Meter = { num: 4, den: 4 }
 
 // The strip as text: "C F G".
 function strip(p: Progression): string {
@@ -272,20 +274,34 @@ describe('replacing a chord', () => {
 })
 
 describe('chord lengths', () => {
-  it('lasts a bar unless set, and drops the default', () => {
+  const lengths = (p: Parameters<typeof timingOf>[0], meter = FOUR) =>
+    timingOf(p, { meter }).map((t) => t.length)
+
+  it('lasts a bar unless set, and clears back to a bar', () => {
     let p = build('C', 'G')
-    expect(lengthOf(pathNodes(p)[0])).toEqual({ n: 1, d: 1 })
+    expect(lengths(p)).toEqual([
+      { n: 1, d: 1 },
+      { n: 1, d: 1 },
+    ])
     p = setLengthAt(p, 0, { n: 1, d: 2 })
     expect(pathNodes(p)[0].length).toEqual({ n: 1, d: 2 })
-    p = setLengthAt(p, 0, { n: 1, d: 1 })
+    p = setLengthAt(p, 0, undefined)
     expect(pathNodes(p)[0].length).toBeUndefined()
+  })
+
+  it("keeps four beats in 3/4, where a bar isn't four beats", () => {
+    const p = setLengthAt(build('C', 'G'), 0, { n: 1, d: 1 })
+    expect(lengths(p, { num: 3, den: 4 })).toEqual([
+      { n: 1, d: 1 },
+      { n: 3, d: 4 },
+    ])
   })
 
   it('copies a shared chord before changing its length', () => {
     let p = addAfter(build('C', 'F', 'G'), 0, parse('Am')) // C Am G (shared)
     p = setLengthAt(p, 2, { n: 2, d: 1 })
-    expect(lengthOf(pathNodes(p)[2])).toEqual({ n: 2, d: 1 })
-    expect(lengthOf(pathNodes(switchAt(p, 1, 1))[2])).toEqual({ n: 1, d: 1 })
+    expect(lengths(p)[2]).toEqual({ n: 2, d: 1 })
+    expect(lengths(switchAt(p, 1, 1))[2]).toEqual({ n: 1, d: 1 })
   })
 })
 

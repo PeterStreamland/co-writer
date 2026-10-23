@@ -9,6 +9,7 @@ import {
   voiceProgression,
   type ChordName,
   type Key,
+  type MeterMap,
   type Lens,
   type LensChoice,
   type LensVoicing,
@@ -64,6 +65,7 @@ export function VoicePanel({
   guitar,
   instrument: startInstrument,
   bpm,
+  time,
   narrow,
   onUse,
 }: {
@@ -72,6 +74,7 @@ export function VoicePanel({
   guitar: Guitar
   instrument: Instrument
   bpm: number
+  time: MeterMap
   narrow: boolean
   // Puts a lens's voicings into the progression.
   onUse: (
@@ -85,8 +88,8 @@ export function VoicePanel({
   const [instrument, setInstrument] = useState(startInstrument)
   const [phoneAt, setPhoneAt] = useState(0)
   const steps = useMemo(
-    () => lensSteps(progression, sectionKey),
-    [progression, sectionKey],
+    () => lensSteps(progression, sectionKey, time),
+    [progression, sectionKey, time],
   )
   const shown = narrow
     ? lenses.slice(phoneAt % lenses.length, (phoneAt % lenses.length) + 1)
@@ -123,7 +126,7 @@ export function VoicePanel({
       setPlaying(undefined)
       return
     }
-    const seconds = secondsOf(steps[playing.at].length, bpm)
+    const seconds = secondsOf(steps[playing.at].length, bpm, time.meter)
     play(choice, seconds)
     const timer = setTimeout(() => {
       const next = playing.at + 1
