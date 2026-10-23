@@ -40,17 +40,9 @@ export const ARPEGGIO_CHOICES: { id: string; label: string }[] = [
     .map((s) => ({ id: `lens:${s.id}`, label: `${s.name} colours` })),
 ]
 
-export type GuitarMode = 'position' | 'run'
-
-export type ArpeggioSettings = {
-  choice: string
-  pattern: string
-  rate: string
-  octaves: number
-  // The octave the root starts in; undefined for the instrument's default.
-  octave?: number
-  guitar: GuitarMode
-}
+// The settings are stored in rows too (sketch/parts.ts).
+export type { ArpeggioSettings, GuitarMode } from '../sketch/parts'
+import type { ArpeggioSettings, GuitarMode } from '../sketch/parts'
 
 export const DEFAULT_ARPEGGIO: ArpeggioSettings = {
   choice: 'seventh',

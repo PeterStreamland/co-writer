@@ -6,7 +6,6 @@ import {
   lineSuggestions,
   subDur,
   type Key,
-  type Line,
   type Meter,
   type Placement,
 } from '../theory'
@@ -15,6 +14,8 @@ import type { Progression } from '../sketch/progression'
 import { secondsOf } from '../sketch/time'
 import type { ArpeggioOnShow } from './ArpeggioPanel'
 import { InfoToggle, useToggle } from './ChordInfo'
+import type { Along, AlongNote } from './along'
+import type { PartRecipe } from '../sketch/parts'
 import {
   TAG_LABELS,
   labelNumber,
@@ -40,10 +41,11 @@ export function LinesPanel({
   bpm,
   meter,
   onShow,
-  withChords,
-  withChordsNote,
-  onPlayWithChords,
+  along,
+  alongAt,
+  onPlayAlong,
   onStop,
+  onAddRow,
 }: {
   progression: Progression
   sectionKey: Key
@@ -51,12 +53,14 @@ export function LinesPanel({
   bpm: number
   meter: Meter
   onShow: (show: ArpeggioOnShow | undefined) => void
-  // The line playing with the progression's chords (task 5), if any, and
-  // the note of it sounding; starting and stopping that playback.
-  withChords?: Line
-  withChordsNote?: number
-  onPlayWithChords: (line: Line) => void
+  // Notes playing with the progression's chords (task 5), if any, and the
+  // one sounding; starting and stopping that playback.
+  along?: Along
+  alongAt?: AlongNote
+  onPlayAlong: (notes: Along) => void
   onStop: () => void
+  // Adds the line as a row under the progression.
+  onAddRow: (recipe: PartRecipe) => void
 }) {
   const [modeId, setModeId] = useState(loadLineMode)
   useEffect(() => saveLineMode(modeId), [modeId])
@@ -77,8 +81,8 @@ export function LinesPanel({
   // its index in the line.
   const [alone, setAlone] = useState<number>()
   const [on, setOn] = useState(false)
-  const together = line !== undefined && withChords === line
-  const playing = together ? withChordsNote : alone
+  const together = line !== undefined && along?.source === line
+  const playing = together ? alongAt?.ref : alone
   useEffect(() => {
     setOn(false)
     setPicked(undefined)
@@ -216,7 +220,12 @@ export function LinesPanel({
             <button
               type="button"
               class="play"
-              onClick={() => onPlayWithChords(line)}
+              onClick={() =>
+                onPlayAlong({
+                  source: line,
+                  notes: line.notes.map((n, ref) => ({ ...n, ref })),
+                })
+              }
             >
               ▶ Play with chords
             </button>
@@ -225,6 +234,20 @@ export function LinesPanel({
             </button>
           </>
         )}
+        <button
+          type="button"
+          class="add-row"
+          title="Add this line as a row under the progression"
+          onClick={() =>
+            onAddRow({
+              kind: 'line',
+              mode: line.mode.id,
+              roll: line.mode.id === 'wildcard' ? roll : 0,
+            })
+          }
+        >
+          + Add as a row
+        </button>
       </div>
       <ol class="line-chords">
         {steps.map((step, s) => (

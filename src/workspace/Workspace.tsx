@@ -12,7 +12,6 @@ import {
   subDur,
   type ChordName,
   type Key,
-  type Line,
   type NextChordSuggestion,
   type StyleBlend,
 } from '../theory'
@@ -48,6 +47,16 @@ import { SuggestPanel } from './SuggestPanel'
 import { VoicePanel } from './VoicePanel'
 import { ArpeggioBox } from './ArpeggioBox'
 import { LinesPanel } from './LinesPanel'
+import type { Along, AlongNote } from './along'
+import { PartRows, type PartView } from './PartRows'
+import { partLabel, partNotes } from './parts-view'
+import {
+  addPart,
+  partsShown,
+  removePart,
+  setPartMuted,
+  type PartRecipe,
+} from '../sketch/parts'
 import {
   ArpeggioPanel,
   type ArpeggioOnShow,
@@ -420,17 +429,21 @@ export function Workspace() {
       keep,
     })
   }
-  // A line from the Lines tab playing with the progression (Phase 6 task
-  // 5), and the note of it sounding.
-  const [withLine, setWithLine] = useState<Line>()
-  const [lineNote, setLineNote] = useState<number>()
+  // Notes playing along with the progression (a line, or arpeggios), and
+  // the one sounding.
+  const [along, setAlong] = useState<Along>()
+  const [alongAt, setAlongAt] = useState<AlongNote>()
+  const playAlong = (notes: Along) => {
+    setAlong(notes)
+    setPlayingAt(0)
+  }
   // Plays the progression from the first chord, one chord at a time.
   useEffect(() => {
     if (playingAt === undefined) {
       setPlayingChord(undefined)
       setPulse(undefined)
-      setWithLine(undefined)
-      setLineNote(undefined)
+      setAlong(undefined)
+      setAlongAt(undefined)
       return
     }
     const n = path[playingAt]
@@ -442,15 +455,15 @@ export function Workspace() {
     const seconds = secondsOf(timing[playingAt].length, bpm, time.meter)
     setPlayingChord(n.chord)
     showNode(n)
-    playNode(n, seconds, withLine !== undefined)
-    // A line playing along sounds its notes over this chord.
-    const lineTimers = (withLine?.notes ?? []).flatMap((note, i) =>
+    playNode(n, seconds, along !== undefined)
+    // Notes playing along sound over this chord.
+    const lineTimers = (along?.notes ?? []).flatMap((note) =>
       note.step !== playingAt
         ? []
         : [
             setTimeout(
               () => {
-                setLineNote(i)
+                setAlongAt(note)
                 void playNote(
                   note.note,
                   secondsOf(note.length, bpm, time.meter),
@@ -509,7 +522,16 @@ export function Workspace() {
       onAddFree={() => freeChord && addChord(freeChord)}
       onAddTyped={addChords}
       playingAt={playingAt}
-      onPlay={() => setPlayingAt(0)}
+      onPlay={() => {
+        // The rows that aren't muted play along with the chords.
+        const playing = rows.filter((r) => !r.part.muted)
+        setAlong(
+          playing.length
+            ? { source: rows, notes: playing.flatMap((r) => r.notes) }
+            : undefined,
+        )
+        setPlayingAt(0)
+      }}
       onStop={() => setPlayingAt(undefined)}
       onUndo={() => step(undo(history))}
       onRedo={() => step(redo(history))}
@@ -566,10 +588,13 @@ export function Workspace() {
   // its key and for its length, then the current chord if it isn't one of
   // them, for a bar. What it shows lights the instrument while it is open.
   const arpeggioSources = useMemo<ArpeggioSource[]>(() => {
-    const sources = path.map((n, i) => {
+    const sources: ArpeggioSource[] = path.map((n, i) => {
       const length = n.length ?? timing[i].length
       const lengthText = lengthLabel(meterOfBar(time, timing[i].bar), length)
       return {
+        step: i,
+        start: timing[i].start,
+        bar: timing[i].bar,
         chord: n.chord,
         key: keyAt(progression, i, key),
         length,
@@ -588,6 +613,19 @@ export function Workspace() {
     }
     return sources
   }, [progression, timing, key, freeChord && chordKey(freeChord), suggestKey])
+  // The rows of lines and arpeggios under the strip (David's request): the
+  // branch's rows, each played over the chords as they are now.
+  const rows = useMemo<PartView[]>(
+    () =>
+      partsShown(progression).map((part) => ({
+        part,
+        label: partLabel(part.recipe),
+        notes: partNotes(part, progression, key, timing, guitar),
+      })),
+    [progression, key, timing, guitar],
+  )
+  const addRow = (recipe: PartRecipe) =>
+    change(addPart(progression, recipe), selected)
   const [arpeggioShow, setArpeggioShow] = useState<ArpeggioOnShow>()
   // The Arpeggio and Lines tabs light their notes on the instrument while
   // open.
@@ -601,13 +639,11 @@ export function Workspace() {
       bpm={bpm}
       meter={time.meter}
       onShow={setArpeggioShow}
-      withChords={withLine}
-      withChordsNote={lineNote}
-      onPlayWithChords={(line) => {
-        setWithLine(line)
-        setPlayingAt(0)
-      }}
+      along={along}
+      alongAt={alongAt}
+      onPlayAlong={playAlong}
       onStop={() => setPlayingAt(undefined)}
+      onAddRow={addRow}
     />
   )
   const arpeggio = (
@@ -619,6 +655,11 @@ export function Workspace() {
       bpm={bpm}
       meter={time.meter}
       onShow={setArpeggioShow}
+      along={along}
+      alongAt={alongAt}
+      onPlayAlong={playAlong}
+      onStop={() => setPlayingAt(undefined)}
+      onAddRow={addRow}
     />
   )
   // The chord box beside the side panel (David's layout); on a phone it
@@ -697,6 +738,15 @@ export function Workspace() {
             onShowShapes={showShapes}
           />
           {strip}
+          <PartRows
+            rows={rows}
+            path={path}
+            sounding={along?.source === rows ? alongAt : undefined}
+            onMute={(id, muted) =>
+              change(setPartMuted(progression, id, muted), selected)
+            }
+            onRemove={(id) => change(removePart(progression, id), selected)}
+          />
         </main>
         <SidePanel
           aside={

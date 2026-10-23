@@ -1120,3 +1120,32 @@ Every line mode over the progression is now a Suggestion (`src/theory/line-sugge
 - SPEC's "Changes to the plan" lists it as item 9.
 
 All five Phase 6 tasks and its four exit criteria are now ticked. The phase gate still needs a reviewer check of the criteria, David's play-test, and the `v0.6-lines` tag.
+
+## 2026-10-23 — Arpeggios with the chords (David's request)
+
+The Arpeggio tab gains **▶ Play with chords**, as the Lines tab has. It plays the progression the way the strip's ▶ Play does, with chord shapes, the beat and bar lights and the strip highlight, and each chord's arpeggio over it.
+
+- Each arpeggio uses the tab's current choice, pattern and rate, and fills its chord's length.
+- On guitar in one position, the other chords play in the position nearest the selected one.
+- The chord picker follows the chord playing, and the sounding note glows.
+- The current chord, when it isn't in the progression, isn't played, since it has no place in the bars.
+
+Both tabs now hand their timed notes to the workspace in one shape (`src/workspace/along.ts`), so anything later that plays along (Phase 7's melodies) can do the same.
+
+**Chord boxes in the Arpeggio tab (David's request, same day).** The chord menu and ‹ › are replaced by a box per chord, as in the Lines tab. Each box shows "C · bar 1", the arpeggio's name, and its notes in the order they play, outlined in the tone colours (root red, 3rd orange, 5th blue, 7th purple, extensions teal). Tap a box to choose that chord. The current chord, when it isn't in the progression, gets a box marked so.
+
+## 2026-10-23 — Rows of lines and arpeggios under the progression (David's choice)
+
+David asked for a way to add a line or an arpeggio to the progression without replacing the chords. They now go on rows under the strip.
+
+- **+ Add as a row** on the Lines tab adds the chosen line, with the Wildcard's roll. On the Arpeggio tab it adds the current arpeggio settings, plus, on guitar in one position, the fret the position sits near.
+- **Rows follow the chords (David's choice).** A row stores its recipe, not its notes, so it rewrites itself to fit when a chord, length, key or time signature changes. Freezing a row's notes for hand editing comes later, with Phase 7's melody editing.
+- **Rows are saved with the progression (David's choice),** so saving, undo, redo and branches cover them.
+  - Each row is anchored to the last chord on the active path when it was added. It shows while that chord is on the active path, so switching to another branch shows that branch's rows instead.
+  - Removing a row can be undone.
+- **What each row shows:** its name ("Walking", "Wildcard (roll 3)", "7th arpeggios, up, 8ths, around fret 7"), a 🔈/🔇 mute button, a × to remove it, and a box per chord with the notes it plays there.
+- **The strip's ▶ Play** plays the chords with every row that isn't muted. The note sounding is lit in its row; with several rows playing, the light follows whichever note started last. The Lines and Arpeggio tabs' **Play with chords** still plays just that tab's line or arpeggio with the chords, for auditioning before adding.
+- **The model:**
+  - `Progression.parts` in `src/sketch/parts.ts`, with `addPart`, `removePart`, `setPartMuted` and `partsShown`, checked when a saved progression is read back.
+  - Each recipe turns into notes in `src/workspace/parts-view.ts`.
+  - SPEC 12's data model and its "Changes to the plan" (item 10) are updated.
