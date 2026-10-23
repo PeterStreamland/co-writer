@@ -1266,9 +1266,16 @@ David found that clicking a chord in a Voice lens column didn't offer alternativ
 - **Other voicings:** the lens's other ways to voice that chord, up to six, best first. They are ranked by their own cost, how far the voices move from the chord before and into the chord after, and the lens's rules they would break (shown under the hover). The theory is `voicingOptions` in `src/theory/lens-swaps.ts`.
 - **Other chords here:** chords for that place, ranked as the Suggest tab's "In place of" ranks them (`rankInPlace`), each voiced by the lens the same way.
 - **Picking one swaps it into that column only (David's choice),** marked "swapped", with ↺ to go back.
-  - The swap stays put, and the lens voices the other chords around it, so its neighbours may change to stay smooth.
+  - The swap stays put, and the lens voices the other chords around it, so its neighbours may change to stay smooth. (Changed the same day at David's request: see below.)
   - Another keeps swaps in place. A change to the progression clears them.
   - **⑂ New branch** or **+ Add to end** puts the column, swaps and all, into the progression.
 - On guitar the lists offer the lens's guitar shapes, as frets.
 
 **Keyboard shapes in the Voice tab (David's question, same day).** Lens columns on keyboard showed only note names; only guitar drew its shapes. Each keyboard voicing is now drawn on a small keyboard, the same drawing as the voicing box beside the keyboard. It is cropped to the keys from the lowest note to the highest so it reads at a column's size, with each note coloured by its role. The lens columns also take the instrument's tone colours, so guitar boxes there are now coloured too (their dots had been black).
+
+**Swaps change only their own chord (David's request, same day).** The lens's voicings for the other chords now stay exactly as they were when a chord is swapped. The swap is laid over the column (`withSwaps`), and the rules broken and the movement are worked out again only where the column changed.
+
+- **A third list, "Suggestions due to the neighbour change"** (David's idea), appears under a swapped chord. For the chord before and the chord after, it offers up to two of the lens's voicings that sit better beside the new chord than theirs do now (`neighbourOptions`). Tapping one swaps that neighbour too. Nothing moves unless you choose it.
+- "Other voicings" for a swapped chord now offers voicings of the chord that is there, for example C7 after a swap from Am.
+- **Every chord box in a lens column is one size (David's request):** the same width everywhere, with one height on keyboard and a taller one on guitar for the chord box. Long names and notes are cut short. A rule a voicing breaks shows as ⚠ in its box, with the reasons in the panel below.
+- The swap panel now opens below the column's chords, full width, so it no longer stretches one box.
