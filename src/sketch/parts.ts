@@ -9,6 +9,7 @@
 import {
   LETTERS,
   LINE_DENSITIES,
+  MOST_NOTES,
   type BarNote,
   type LineDensity,
   type LineModeId,
@@ -35,6 +36,9 @@ export type PartRecipe =
       mode: LineModeId
       roll: number
       density?: LineDensity
+      // A bar's own number of notes, and its refreshes (David's request).
+      count?: number
+      seed?: number
       notes?: BarNote[]
     }
   // On guitar in one position, `from` is the fret the position sits near.
@@ -174,6 +178,12 @@ function isRecipe(value: unknown): value is PartRecipe {
       typeof recipe.roll === 'number' &&
       (recipe.density === undefined ||
         LINE_DENSITIES.some((d) => d.id === recipe.density)) &&
+      (recipe.count === undefined ||
+        (Number.isInteger(recipe.count) &&
+          recipe.count >= 1 &&
+          recipe.count <= MOST_NOTES)) &&
+      (recipe.seed === undefined ||
+        (Number.isInteger(recipe.seed) && recipe.seed >= 0)) &&
       (recipe.notes === undefined ||
         (Array.isArray(recipe.notes) &&
           recipe.notes.length > 0 &&

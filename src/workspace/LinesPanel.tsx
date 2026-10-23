@@ -4,6 +4,7 @@ import {
   LINE_DENSITIES,
   LINE_GROUPS,
   addOptions,
+  mostNotes,
   chordSymbol,
   formatNote,
   lineSuggestions,
@@ -27,8 +28,6 @@ import type { Along, AlongNote } from './along'
 import type { PartRecipe } from '../sketch/parts'
 import {
   TAG_LABELS,
-  densityStep,
-  densitySteps,
   editKey,
   editedLine,
   labelNumber,
@@ -39,6 +38,8 @@ import {
   saveLineDensity,
   saveLineMode,
   type BarEdit,
+  type BarSetting,
+  type LineBars,
   type LineEdits,
 } from './lines-view'
 
@@ -73,6 +74,8 @@ export function LinesPanel({
   onAddBar,
   edits,
   onEdits,
+  bars,
+  onBars,
 }: {
   progression: Progression
   sectionKey: Key
@@ -94,6 +97,9 @@ export function LinesPanel({
   // Every line's bars of their own, by editKey, and changing them.
   edits: Record<string, LineEdits>
   onEdits: (edits: Record<string, LineEdits>) => void
+  // Each bar's notes and refreshes, whatever the line, and changing them.
+  bars: LineBars
+  onBars: (bars: LineBars) => void
 }) {
   const [modeId, setModeId] = useState(loadLineMode)
   useEffect(() => saveLineMode(modeId), [modeId])
@@ -126,25 +132,32 @@ export function LinesPanel({
   const key = editKey(modeId, roll)
   const barEdits = useMemo(() => edits[key] ?? {}, [edits, key])
   const dense = useMemo(
-    () => densitySteps(steps, nodes, density, barEdits),
-    [steps, nodes, density, barEdits],
+    () => steps.map((s) => ({ ...s, density })),
+    [steps, density],
   )
   const notes = useMemo(
     () =>
       line
-        ? editedLine(steps, nodes, line.mode.id, roll, density, barEdits)
+        ? editedLine(steps, nodes, line.mode.id, roll, density, bars, barEdits)
         : [],
-    [line, steps, nodes, roll, density, barEdits],
+    [line, steps, nodes, roll, density, bars, barEdits],
   )
   const setBar = (step: number, edit: BarEdit | undefined) => {
     if (!edit?.notes) setPicked(undefined)
     const next = { ...barEdits }
-    if (edit && (edit.density || edit.notes)) next[nodes[step]] = edit
+    if (edit?.notes) next[nodes[step]] = edit
     else delete next[nodes[step]]
     onEdits({ ...edits, [key]: next })
   }
-  const editBar = (step: number, bar: BarNote[]) =>
-    setBar(step, { ...barEdits[nodes[step]], notes: bar })
+  const editBar = (step: number, bar: BarNote[]) => setBar(step, { notes: bar })
+  // A bar's count or refresh; the picked note may move, so it goes.
+  const setSetting = (step: number, setting: BarSetting | undefined) => {
+    setPicked(undefined)
+    const next = { ...bars }
+    if (setting?.count || setting?.roll) next[nodes[step]] = setting
+    else delete next[nodes[step]]
+    onBars(next)
+  }
   const [infoOpen, toggleInfo] = useToggle()
   const [focus, setFocus] = useState(0)
   const [picked, setPicked] = useState<number>()
@@ -233,13 +246,15 @@ export function LinesPanel({
     picked === undefined || !pickedNote
       ? undefined
       : removeNote(notes, picked, dense)
-  const edited = Object.keys(barEdits).length > 0
+  const edited =
+    Object.keys(barEdits).length > 0 || nodes.some((n) => bars[n] !== undefined)
   // A bar's own settings as a recipe, for a row.
   const barRecipe = (s: number) =>
     lineRecipe(
       line.mode.id,
       roll,
-      barEdits[nodes[s]]?.density ?? density,
+      density,
+      bars[nodes[s]],
       barEdits[nodes[s]]?.notes,
     )
   return (
@@ -333,13 +348,30 @@ export function LinesPanel({
               lineRecipe(line.mode.id, roll, density),
               Object.fromEntries(
                 nodes.flatMap((n, s) =>
-                  barEdits[n] ? [[s, barRecipe(s)]] : [],
+                  barEdits[n] || bars[n] ? [[s, barRecipe(s)]] : [],
                 ),
               ),
             )
           }
         >
           + Add as a row
+        </button>
+        <button
+          type="button"
+          title="A new take on every bar, still by the rules"
+          onClick={() => {
+            setPicked(undefined)
+            onBars(
+              Object.fromEntries(
+                nodes.map((n) => [
+                  n,
+                  { ...bars[n], roll: (bars[n]?.roll ?? 0) + 1 },
+                ]),
+              ),
+            )
+          }}
+        >
+          🎲 Refresh every bar
         </button>
         {edited && (
           <button
@@ -348,6 +380,11 @@ export function LinesPanel({
             onClick={() => {
               setPicked(undefined)
               onEdits({ ...edits, [key]: {} })
+              onBars(
+                Object.fromEntries(
+                  Object.entries(bars).filter(([n]) => !nodes.includes(n)),
+                ),
+              )
             }}
           >
             ↺ Undo all edits
@@ -378,9 +415,9 @@ export function LinesPanel({
       <ol class="line-chords">
         {steps.map((step, s) => {
           const own = barEdits[nodes[s]]
+          const setting = bars[nodes[s]]
           const count = notes.filter((n) => n.step === s).length
-          const fewer = densityStep(step, count, -1)
-          const more = densityStep(step, count, 1)
+          const most = mostNotes(step.placed)
           const label = `${chordSymbol(step.chord)} in bar ${step.placed.bar}`
           const first = notes.find((n) => n.step === s)
           const offChord =
@@ -412,9 +449,9 @@ export function LinesPanel({
                         ? 'Take notes out by tapping one, or ↺ to give the bar back to the line'
                         : 'Fewer notes in this bar'
                     }
-                    disabled={!fewer || own?.notes !== undefined}
+                    disabled={count <= 1 || own?.notes !== undefined}
                     onClick={() =>
-                      fewer && setBar(s, { ...own, density: fewer })
+                      setSetting(s, { ...setting, count: count - 1 })
                     }
                   >
                     −
@@ -428,21 +465,42 @@ export function LinesPanel({
                         ? 'Add notes by tapping one, or ↺ to give the bar back to the line'
                         : 'More notes in this bar'
                     }
-                    disabled={!more || own?.notes !== undefined}
-                    onClick={() => more && setBar(s, { ...own, density: more })}
+                    disabled={count >= most || own?.notes !== undefined}
+                    onClick={() =>
+                      setSetting(s, { ...setting, count: count + 1 })
+                    }
                   >
                     +
                   </button>
                 </span>
-                {own && (
+                <button
+                  type="button"
+                  class="bar-refresh"
+                  aria-label={`Refresh ${label}`}
+                  title={
+                    own?.notes
+                      ? '↺ first: this bar is edited by hand'
+                      : 'A new take on this bar, still by the rules'
+                  }
+                  disabled={own?.notes !== undefined}
+                  onClick={() =>
+                    setSetting(s, {
+                      count,
+                      roll: (setting?.roll ?? 0) + 1,
+                    })
+                  }
+                >
+                  🎲
+                </button>
+                {(own || setting) && (
                   <button
                     type="button"
                     class="bar-reset"
                     aria-label={`Give ${label} back to the line`}
                     title="Give this bar back to the line"
                     onClick={() => {
-                      setPicked(undefined)
                       setBar(s, undefined)
+                      setSetting(s, undefined)
                     }}
                   >
                     ↺

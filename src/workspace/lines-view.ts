@@ -5,10 +5,11 @@
 import {
   LINE_DENSITIES,
   LINE_MODES,
+  fillBar,
   lineFor,
   lineSeed,
+  rangeOf,
   seededRandom,
-  slotsOf,
   withBars,
   type BarNote,
   type Key,
@@ -56,12 +57,19 @@ export function labelNumber(label: string, chordTone: boolean): number {
   return Number(/\d+$/.exec(label)?.[0] ?? 99)
 }
 
-// What a bar of the Lines tab has of its own (David's request): how many
-// notes, and notes edited by hand, which it keeps when its chord changes.
-export type BarEdit = { density?: LineDensity; notes?: BarNote[] }
+// A bar's notes edited by hand in the Lines tab (David's request), which it
+// keeps when its chord changes. Each line keeps its own.
+export type BarEdit = { notes?: BarNote[] }
 
-// A line's bars of their own, by chord node id.
+// A line's bars edited by hand, by chord node id.
 export type LineEdits = Record<string, BarEdit>
+
+// What a bar plays whatever the line (David's request: changing the line
+// keeps it): how many notes, and how many times it has been refreshed.
+export type BarSetting = { count?: number; roll?: number }
+
+// The bars' settings, by chord node id.
+export type LineBars = Record<string, BarSetting>
 
 // Each line's edits are kept apart, so trying another mode and coming
 // back finds them as they were: by mode, and the Wildcard's roll.
@@ -69,53 +77,65 @@ export function editKey(mode: LineModeId, roll: number): string {
   return `${mode} ${mode === 'wildcard' ? roll : 0}`
 }
 
-// The chords with how many notes each plays: the bar's own, else the
-// line's.
-export function densitySteps(
+// The chance for a refreshed bar: from the chords, the line's roll, the
+// bar's refreshes and where it is, so the same refresh plays the same.
+function barRandom(
   steps: LineStep[],
-  nodes: string[],
-  density: LineDensity | undefined,
-  edits: LineEdits,
-): LineStep[] {
-  return steps.map((s, i) => ({
-    ...s,
-    density: edits[nodes[i]]?.density ?? density,
-  }))
+  roll: number,
+  barRoll: number,
+  index: number,
+): () => number {
+  return seededRandom(
+    lineSeed(steps) + 7919 * roll + 104729 * barRoll + 31 * index,
+  )
 }
 
-// The line as the tab plays it: the mode (at the Wildcard's roll), each bar
-// with its own number of notes, and bars edited by hand in place.
+// A bar with its own number of notes or refreshed, filled from the mode's
+// line; none when it has neither.
+export function filledBar(
+  line: LineNote[],
+  steps: LineStep[],
+  index: number,
+  mode: LineModeId,
+  roll: number,
+  setting: BarSetting | undefined,
+): BarNote[] | undefined {
+  if (!setting?.count && !setting?.roll) return undefined
+  const lineMode = LINE_MODES.find((m) => m.id === mode)
+  if (!lineMode) return undefined
+  const count = setting.count ?? line.filter((n) => n.step === index).length
+  return fillBar(
+    line,
+    steps,
+    index,
+    mode,
+    rangeOf(lineMode),
+    count,
+    setting.roll ? barRandom(steps, roll, setting.roll, index) : undefined,
+  )
+}
+
+// The line as the tab plays it: the mode (at the Wildcard's roll) with the
+// line's notes a bar, each bar with its own count or refresh, and bars
+// edited by hand in place.
 export function editedLine(
   steps: LineStep[],
   nodes: string[],
   mode: LineModeId,
   roll: number,
   density: LineDensity | undefined,
+  bars: LineBars,
   edits: LineEdits,
 ): LineNote[] {
-  const dense = densitySteps(steps, nodes, density, edits)
-  const line = lineFor(mode, dense, seededRandom(lineSeed(steps) + roll))
-  const bars: Record<number, BarNote[]> = {}
+  const dense = steps.map((s) => ({ ...s, density }))
+  const line = lineFor(mode, dense, seededRandom(lineSeed(steps) + roll)).notes
+  const own: Record<number, BarNote[]> = {}
   nodes.forEach((n, i) => {
-    const notes = edits[n]?.notes
-    if (notes) bars[i] = notes
+    const notes =
+      edits[n]?.notes ?? filledBar(line, dense, i, mode, roll, bars[n])
+    if (notes) own[i] = notes
   })
-  return withBars(line.notes, dense, bars)
-}
-
-// The level for a bar with fewer (-1) or more (+1) notes than it has: the
-// level whose slots come nearest the count on that side, or none.
-export function densityStep(
-  step: LineStep,
-  count: number,
-  dir: -1 | 1,
-): LineDensity | undefined {
-  const levels = LINE_DENSITIES.map((d) => ({
-    id: d.id,
-    count: slotsOf(step.placed, d.id).length,
-  })).filter((l) => (dir > 0 ? l.count > count : l.count < count))
-  const pick = dir > 0 ? levels[0] : levels.at(-1)
-  return pick?.id
+  return withBars(line, dense, own)
 }
 
 // A line recipe for a row or one of its bars, leaving out what isn't set.
@@ -123,6 +143,7 @@ export function lineRecipe(
   mode: LineModeId,
   roll: number,
   density?: LineDensity,
+  bar?: BarSetting,
   notes?: BarNote[],
 ): PartRecipe {
   return {
@@ -130,6 +151,8 @@ export function lineRecipe(
     mode,
     roll: mode === 'wildcard' ? roll : 0,
     ...(density ? { density } : {}),
+    ...(bar?.count ? { count: bar.count } : {}),
+    ...(bar?.roll ? { seed: bar.roll } : {}),
     ...(notes ? { notes } : {}),
   }
 }

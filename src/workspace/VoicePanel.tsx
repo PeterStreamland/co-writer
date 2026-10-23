@@ -30,6 +30,7 @@ import {
   MAX_LENSES,
   lensSteps,
   loadLenses,
+  takeRandom,
   saveLenses,
   toggleLens,
 } from './lens-columns'
@@ -94,16 +95,24 @@ export function VoicePanel({
   const shown = narrow
     ? lenses.slice(phoneAt % lenses.length, (phoneAt % lenses.length) + 1)
     : lenses
-  const voice = (lens: Lens) =>
-    (instrument === 'guitar'
-      ? voiceProgressionOnGuitar(guitar, lens, steps)
-      : voiceProgression(lens, steps)) as Choice[]
+  // Each lens's take (David's request): 0 is its best; Another adds one,
+  // another smooth path by its rules. A new progression starts over.
+  const [takes, setTakes] = useState<Partial<Record<Lens, number>>>({})
+  useEffect(() => setTakes({}), [steps])
+  const voice = (lens: Lens) => {
+    const vary = takeRandom(steps, lens, takes[lens] ?? 0)
+    return (
+      instrument === 'guitar'
+        ? voiceProgressionOnGuitar(guitar, lens, steps, Math.random, vary)
+        : voiceProgression(lens, steps, Math.random, vary)
+    ) as Choice[]
+  }
   const settled = useMemo(
     () =>
       shown
         .filter((l) => l !== 'wildcard')
         .map((lens) => ({ lens, choices: voice(lens) })),
-    [steps, instrument, guitar, shown.join()],
+    [steps, instrument, guitar, shown.join(), takes],
   )
   // The Wildcard rolls fresh whenever the progression or instrument changes,
   // and again on Another (David's choice).
@@ -237,9 +246,13 @@ export function VoicePanel({
             onPlay={() => setPlaying({ lens, at: 0 })}
             onStop={() => setPlaying(undefined)}
             onHear={(choice) => play(choice)}
+            take={lens === 'wildcard' ? undefined : (takes[lens] ?? 0)}
             onAnother={
-              lens === 'wildcard' ? () => setRolls(rolls + 1) : undefined
+              lens === 'wildcard'
+                ? () => setRolls(rolls + 1)
+                : () => setTakes({ ...takes, [lens]: (takes[lens] ?? 0) + 1 })
             }
+            onBest={() => setTakes({ ...takes, [lens]: 0 })}
             onUse={(where) =>
               onUse(
                 choices.map((c) => c.voicing),
@@ -263,7 +276,9 @@ function LensColumn({
   onPlay,
   onStop,
   onHear,
+  take,
   onAnother,
+  onBest,
   onUse,
 }: {
   lens: Lens
@@ -274,7 +289,9 @@ function LensColumn({
   onPlay: () => void
   onStop: () => void
   onHear: (choice: Choice) => void
-  onAnother?: () => void // the Wildcard's roll again
+  take?: number // which take of the lens is showing; 0 is its best
+  onAnother: () => void // another take, or the Wildcard's roll again
+  onBest: () => void // back to the lens's best
   onUse: (where: 'branch' | 'end') => void
 }) {
   const movement = averageMovement(choices.map((c) => c.voicing.notes))
@@ -282,9 +299,20 @@ function LensColumn({
     <section class="lens-column" aria-label={LENS_SETTINGS[lens].name}>
       <header>
         <h3>{LENS_SETTINGS[lens].name}</h3>
-        {onAnother && (
-          <button type="button" onClick={onAnother}>
-            🎲 Another
+        <button
+          type="button"
+          title="Another smooth path by this lens’s rules"
+          onClick={onAnother}
+        >
+          🎲 Another
+        </button>
+        {take !== undefined && take > 0 && (
+          <button
+            type="button"
+            title="Back to this lens’s best"
+            onClick={onBest}
+          >
+            ↺ Best
           </button>
         )}
         {playingAt === undefined ? (

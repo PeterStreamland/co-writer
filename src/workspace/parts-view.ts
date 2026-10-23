@@ -26,7 +26,7 @@ import { partKind, recipeAt, type Part, type PartRecipe } from '../sketch/parts'
 import { keyAt, pathNodes, type Progression } from '../sketch/progression'
 import type { AlongNote } from './along'
 import { ARPEGGIO_CHOICES, planArpeggio, voiceOf } from './arpeggio-view'
-import { lineSteps } from './lines-view'
+import { filledBar, lineSteps } from './lines-view'
 
 // How a recipe reads: "Walking", "Wildcard (roll 3)", "7th arpeggios, up,
 // 8ths".
@@ -38,7 +38,13 @@ export function recipeLabel(recipe: PartRecipe): string {
       recipe.mode === 'wildcard' && recipe.roll > 0
         ? `${label} (roll ${recipe.roll + 1})`
         : label,
-      ...(density && !recipe.notes ? [density.label.toLowerCase()] : []),
+      ...(density && !recipe.notes && !recipe.count
+        ? [density.label.toLowerCase()]
+        : []),
+      ...(recipe.count && !recipe.notes
+        ? [recipe.count === 1 ? 'one note' : `${recipe.count} notes`]
+        : []),
+      ...(recipe.seed && !recipe.notes ? ['refreshed'] : []),
       ...(recipe.notes ? ['edited'] : []),
     ].join(', ')
   }
@@ -159,7 +165,14 @@ function rowLine(
   )
   const bars: Record<number, BarNote[]> = {}
   recipes.forEach((r, i) => {
-    if (r?.notes) bars[i] = r.notes
+    const own =
+      r &&
+      (r.notes ??
+        filledBar(lineNotes(r.mode, r.roll), steps, i, r.mode, r.roll, {
+          count: r.count,
+          roll: r.seed,
+        }))
+    if (own) bars[i] = own
   })
   const silent = new Set(recipes.flatMap((r, i) => (r ? [] : [i])))
   return withBars(played, steps, bars).filter((note) => !silent.has(note.step))

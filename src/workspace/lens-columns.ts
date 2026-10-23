@@ -5,7 +5,9 @@
 // here.
 import {
   ALL_LENSES,
+  chordKey,
   keyName,
+  seededRandom,
   type ChordName,
   type Key,
   type Lens,
@@ -52,6 +54,23 @@ export function lensSteps(
     chord: n.chord,
     length: timing[i].length,
   }))
+}
+
+// The chance for a lens's take (David's request: Another on every lens):
+// from the chords, the lens and the take, so the same take plays the same;
+// none for take 0, the lens's best.
+export function takeRandom(
+  steps: LensStep[],
+  lens: Lens,
+  take: number,
+): (() => number) | undefined {
+  if (take === 0) return undefined
+  const text = `${lens} ${take} ${steps.map((s) => chordKey(s.chord)).join(' ')}`
+  let hash = 2166136261
+  for (let i = 0; i < text.length; i++) {
+    hash = Math.imul(hash ^ text.charCodeAt(i), 16777619)
+  }
+  return seededRandom(hash >>> 0)
 }
 
 // A lens's voicings put into the progression (David's request): as a new

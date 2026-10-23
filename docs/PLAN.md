@@ -184,6 +184,7 @@ Goal: pick a chord, get ranked and explained next-chord options, accept one and 
 5. A progression strip: accept to get the next round, undo, or branch to try an alternative. ✅
 6. An ⓘ panel per suggestion from the rule's template, for example: "E7 is V7/vi, the dominant of A minor, pulling towards Am; its G# is A minor's leading note." ✅
 7. Passing chords: pick two neighbouring chords in the strip and ask for chords to put between them, ranked by how well they leave the first chord and lead into the second, with the same categories, ⓘ and preview (added 2026-10-22, David's idea). ✅
+8. Chords for a chord's place: tap a chord in the strip for chords that could stand there, after the one before and leading into the one after; + makes it an alternative there (added 2026-10-23, David's request). ✅
 
 - [x] Every suggestion carries a category and an explanation
 - [x] The same input and profile always give the same ranking (tested)
@@ -202,6 +203,7 @@ Goal: give a progression, get voicings that move well, in several style lenses s
 3. Rule checks as weighted penalties per lens: parallel 5ths and octaves, leading-note and 7th resolution, spacing, low-register muddiness, and thirds under high gain. ✅
 4. Lenses: classical (smooth, strict), rock (power chords, open strings, parallels fine), open/ambient (spread, sus, add9) and jazz (drop-2, rootless, shells). ✅
 5. Two to four lenses shown side by side on guitar and keyboard, each with playback. ✅
+6. Another take on every lens: another smooth path that keeps the lens's strict rules, back to its best with ↺ (added 2026-10-23, David's request). ✅
 
 - [x] The classical lens produces no parallel 5ths or octaves across the test progressions
 - [x] Every lens beats a root-position baseline on average voice movement
@@ -218,7 +220,7 @@ Goal: lines within and between chords, chosen by mode.
 3. Line modes: inner-voice lines (from Phase 5); bass lines (root, root–5th, approach notes, walking, pedal); passing and approach notes between chords (scale steps, chromatic, enclosures). ✅
 4. Each line is a Suggestion, tagged chord tone, passing, neighbour or approach, with ⓘ. ✅
 5. Chords and lines play back together. ✅ A Wildcard line joins the line modes (added 2026-10-23, David's idea).
-6. Editing lines (added 2026-10-23, David's request): how many notes a bar, for the whole line and bar by bar; tap a note for notes to play in its place, ranked like chord suggestions; add passing, approach and other notes after it, or take it out. An edited bar keeps its notes when its chord changes. ✅
+6. Editing lines (added 2026-10-23, David's request): how many notes a bar, for the whole line and bar by bar (1 to 16, kept when the line changes, each bar refreshable for a new take by the rules); tap a note for notes to play in its place, ranked like chord suggestions; add passing, approach and other notes after it, or take it out. An edited bar keeps its notes when its chord changes. ✅
 
 - [x] Lines land on a chord tone at each chord change unless tagged otherwise
 - [x] Every note outside the scale is tagged and explained

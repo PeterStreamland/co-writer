@@ -1216,3 +1216,45 @@ David asked for ways to vary how many notes a bar a line plays, to see other not
   - A bar's **+ Row** (it was a bare +, renamed so it isn't confused with the new note +) adds the bar with its notes a bar and any edits.
   - Rows name it: "Walking, twice a beat", "Walking, edited". SPEC 12's data model is updated.
 - **Limits:** a line that leads into an edited bar still aims for the chord's tone, not the edited first note. Editing notes in a row itself, rather than in the Lines tab, waits for Phase 7's frozen rows.
+
+## 2026-10-23 — Bars of any length, and refreshing them (David's request)
+
+After play-testing line editing, David asked for any number of notes from 1 to 16 in a bar; for a bar's number to stay put when the line changes; for fewer repeated notes when a bar has more notes than its line; and for a refresh on each bar. The theory is in `src/theory/line-fill.ts`, with each mode's likings and the chance a refresh adds as data in `line-fill-data.ts`.
+
+- **1 to 16 notes a bar.** − and + now step one note at a time, up to 16, or fewer in a shorter chord (12 in a bar of 3/4, 4 in a one-beat chord).
+  - Where the notes fall: the chord's start, then the strongest places in the bar (beats by strength, then half-beats, then semiquavers). Later places win a tie, so extra notes lead into the next chord: 3 notes in 4/4 fall on 1, 3 and 4, and 5 notes add the "and" of 4. In 6/8 a beat splits in three.
+- **A bar's count is the same whatever the line (David's request).** Counts and refreshes belong to the bar, so trying Walking then Scale steps keeps 8 notes in bar 2. Notes edited by hand still belong to each line, as before.
+- **Fewer repeats.** A bar with more notes than its line keeps the line's own notes where they fall. Between them it adds notes the line likes, each scored as data:
+  - another chord tone, a scale step or semitone toward the next note, a neighbour, an approach into the next chord, or the note again;
+  - each line type weighs these its own way: Roots and Pedal like repeats; Walking likes chord tones, steps and approaches; lines between chords like passing notes; Chromatic likes semitones;
+  - moving further costs more, a note repeated twice costs more, and going straight back to the note before last costs a little, so long bars don't drum or rock between two notes;
+  - a strong beat always takes a chord tone (a pedal may hold), and after a note outside the chord the line moves on rather than stepping further off;
+  - the line type's approach into the next chord stays the bar's last note, unless that would put it on a strong beat.
+- **Refresh (David's choice: best first, refresh varies; notes and rhythm both change).**
+  - The first result is the rules' top pick, the same every time. 🎲 on a bar gives a new take: chance joins the scores for where the notes fall and which notes play. The bar keeps its count, its first note and every rule above.
+  - Each refresh is seeded by the chords, the bar and how many times it has been refreshed, so a row plays exactly what the tab showed.
+  - **🎲 Refresh every bar** refreshes them all. ↺ on a bar clears its count, refreshes and edits; "Undo all edits" clears every bar.
+- **Rows** store a bar's count and refresh (`count`, `seed` on a line recipe) and name them: "Walking, 6 notes, refreshed".
+- **Answering David's question:** before this, every line mode and every Voice lens gave exactly the same result for the same chords and settings. Only the Wildcards used chance. Refresh brings rule-following chance to every line. Voice lenses get the same next, as an Another on each lens.
+
+## 2026-10-23 — Chords for a chord's place (David's request)
+
+David asked for alternatives when he clicks a chord in the progression. Clicking a chord in the strip now opens **In place of Am** in the Suggest tab (David's choice of where, and of making a branch):
+
+- **What it offers:** chords that could follow the chord before and lead into the chord after, ranked as passing chords are (Phase 4 task 7), each with its explanation and ⓘ. The last chord's place offers what could follow the chords before it; the first chord's place offers starting chords that lead into the second.
+  - The chord already there is never offered, and neither is a change of key.
+  - The Wildcard and Another work as usual.
+  - The theory is `rankInPlace` in `src/theory/passing.ts`. Both rankers gained a `keep` option for this.
+- **Tap** plays the chord before, the suggestion, then the chord after.
+- **+ makes it an alternative at that slot.** The chords after it stay as they were, and the old chord is one ‹ › away. The place stays open, so several can be tried in turn.
+- **"What comes after Am"** goes back to the next-chord suggestions after the selected chord, which is what clicking a chord showed before. Adding a chord any other way moves on, as before.
+
+## 2026-10-23 — Another take on every Voice lens (David's request)
+
+David asked whether each lens gives the same voicings every time (it did) and for other paths that still follow the rules. Every lens column now has **🎲 Another** (David's choice: one per lens), and **↺ Best** goes back to the lens's own best.
+
+- **The first take is the lens's best,** as before (David's choice: best first, Another varies).
+- **Another take:** each voicing's own cost gains up to 3 points of seeded chance before the search (`LENS_VARIATION` in `src/theory/lens.ts`). The search still weighs voice leading and every rule the lens's way.
+  - Strict rules are kept: anything costing more than twice the chance, such as the Classical lens's parallels (20) and tendency notes (6), stays exactly as the best kept it (tested).
+  - Mild likings, such as parallels costing 1 in the Open lens, may be traded for a smoother path.
+- Each take is seeded by the chords, the lens and the take number, so a take plays the same until the progression changes, which starts every lens over at its best. On guitar, takes choose among the lens's guitar shapes.

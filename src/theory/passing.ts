@@ -23,7 +23,13 @@ import {
   type NextChordSuggestion,
 } from './next-chord'
 import { PASSING, PASSING_LEADS } from './passing-data'
-import { presentRanked, seedOf, type RankedChords } from './ranker'
+import {
+  presentRanked,
+  rankNextChords,
+  seedOf,
+  type RankOptions,
+  type RankedChords,
+} from './ranker'
 import type { Key } from './scale'
 import { chordKey, fillTemplate, sortSuggestions } from './suggestion'
 
@@ -124,7 +130,7 @@ function leadInto(
 // next one: six to eight across categories, and a wildcard.
 export function rankPassingChords(
   context: PassingContext,
-  options: { another?: number } = {},
+  options: RankOptions = {},
 ): RankedChords {
   const { key, next } = context
   const first = context.previous.at(-1)
@@ -154,7 +160,27 @@ export function rankPassingChords(
           .join(' '),
       }
     })
-  const sorted = sortSuggestions(scored, chordKey) as NextChordSuggestion[]
+  const sorted = sortSuggestions(
+    scored.filter(options.keep ?? (() => true)),
+    chordKey,
+  ) as NextChordSuggestion[]
   const seed = seedOf({ ...context, previous: [...context.previous, next] })
   return presentRanked(sorted, seed, options.another)
+}
+
+// Chords for a chord's place in the progression (David's request,
+// 2026-10-23): what could stand there after the chords before it, leading
+// into the one after as a passing chord does, or for the last chord, what
+// could follow the chords before it. The chord already there isn't
+// offered, nor is a change of key.
+export function rankInPlace(
+  context: NextChordContext & { current: ChordName; next?: ChordName },
+  options: { another?: number } = {},
+): RankedChords {
+  const { current, next, ...rest } = context
+  const keep = (s: NextChordSuggestion) =>
+    !s.keyChange && chordKey(s.candidate) !== chordKey(current)
+  return next
+    ? rankPassingChords({ ...rest, next }, { ...options, keep })
+    : rankNextChords(rest, { ...options, keep })
 }

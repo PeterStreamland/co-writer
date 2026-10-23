@@ -656,10 +656,15 @@ export function lensVoicings(
 // cost, the voice-leading cost from the one before and the rules broken,
 // weighted the lens's way. Ties go to the voicing offered first, so the
 // same input always gives the same voicings.
+// Another take (David's request, 2026-10-23): with `vary`, each voicing's
+// own cost gains up to LENS_VARIATION points of chance for the search, well
+// under what breaking a strict rule costs, so the path found is another
+// smooth one the lens would still choose.
 export function chooseVoicings<V extends LensVoicing>(
   lens: Lens,
   steps: LensStep[],
   candidates: V[][],
+  vary?: () => number,
 ): LensChoice<V>[] {
   const settings = LENS_SETTINGS[lens]
   if (steps.length === 0) return []
@@ -673,22 +678,25 @@ export function chooseVoicings<V extends LensVoicing>(
       to: { chord: to.chord, notes: to.notes },
       gain: settings.gain,
     }).filter((h) => LENS_RULE_WEIGHTS[lens][h.rule] > 0)
+  const own = candidates.map((list) =>
+    list.map((v) => v.cost + (vary ? vary() * LENS_VARIATION : 0)),
+  )
   // best[i][j]: least cost of a path ending on candidate j of chord i.
   let best = candidates[0].map(
-    (v) => v.cost + rulePenalty(rules(0, undefined, v), lens),
+    (v, j) => own[0][j] + rulePenalty(rules(0, undefined, v), lens),
   )
   const back: number[][] = [candidates[0].map(() => -1)]
   for (let i = 1; i < steps.length; i++) {
     const next: number[] = []
     const from: number[] = []
-    candidates[i].forEach((to) => {
+    candidates[i].forEach((to, j) => {
       let low = Infinity
       let at = -1
       candidates[i - 1].forEach((prev, k) => {
-        if (best[k] + to.cost >= low) return
+        if (best[k] + own[i][j] >= low) return
         const cost =
           best[k] +
-          to.cost +
+          own[i][j] +
           voiceLeading(prev.notes, to.notes, settings.movement).cost +
           rulePenalty(rules(i, prev, to), lens)
         if (cost < low) {
@@ -723,11 +731,13 @@ export function voiceProgression(
   lens: Lens,
   steps: LensStep[],
   random: () => number = Math.random,
+  vary?: () => number,
 ): LensChoice[] {
   return chooseVoicings(
     lens,
     steps,
     steps.map((s) => lensVoicings(lens, s.key, s.chord, random)),
+    vary,
   )
 }
 
@@ -737,6 +747,9 @@ export function voiceProgression(
 // result is surprising but hangs together. A fresh `random` gives a fresh
 // result every time.
 const WILD_CHANCE = 8 // points of chance added to each voicing's cost
+// A lens's other takes: points of chance on each voicing's cost, under the
+// cost of the strictest rules (parallels cost 20 in the Classical lens).
+export const LENS_VARIATION = 3
 const WILD_KEEP = 6 // voicings kept from each lens
 const WILD_TASTE = 0.25 // how much each lens's own liking still counts
 
