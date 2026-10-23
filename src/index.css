@@ -2150,3 +2150,8 @@ body:has(.workspace) #app {
   padding: 0.4rem 0.6rem;
   margin-bottom: 0.5rem;
 }
+
+/* The Wildcard line, marked as the chord Wildcard is (dashed). */
+.line-group.wildcard button {
+  border-style: dashed;
+}

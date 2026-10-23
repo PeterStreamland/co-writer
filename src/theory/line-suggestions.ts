@@ -15,11 +15,13 @@ import {
   LINE_GROUPS,
   LINE_MODES,
   lineFor,
+  lineSeed,
   type Line,
   type LineNote,
   type LineStep,
   type LineTag,
 } from './lines'
+import { seededRandom } from './lens'
 import { formatNote } from './note'
 import { keyName } from './numeral'
 import { fillTemplate, makeSuggestion, type Suggestion } from './suggestion'
@@ -150,14 +152,19 @@ export function lineSuggestion(line: Line, steps: LineStep[]): LineSuggestion {
 }
 
 // Every line mode over the progression as a suggestion, grouped (bass
-// lines, inner voices, between chords) and ranked within each group: the
-// higher score first, ties in the modes' own order.
-export function lineSuggestions(steps: LineStep[]): LineSuggestion[] {
+// lines, inner voices, between chords, then the Wildcard) and ranked within
+// each group: the higher score first, ties in the modes' own order. The
+// Wildcard's roll comes from the chords, so it repeats for the same input;
+// each `roll` after the first (Another) gives a fresh one.
+export function lineSuggestions(steps: LineStep[], roll = 0): LineSuggestion[] {
   if (steps.length === 0) return []
   return LINE_GROUPS.flatMap((g) =>
     LINE_MODES.filter((m) => m.group === g.id)
       .map((m, order) => ({
-        s: lineSuggestion(lineFor(m.id, steps), steps),
+        s: lineSuggestion(
+          lineFor(m.id, steps, seededRandom(lineSeed(steps) + roll)),
+          steps,
+        ),
         order,
       }))
       .sort((a, b) => b.s.score - a.s.score || a.order - b.order)

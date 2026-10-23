@@ -1100,3 +1100,23 @@ Every line mode over the progression is now a Suggestion (`src/theory/line-sugge
   - Each rule that moved the line adds a context note ("Ranked higher: it moves by step or less", "Ranked lower: 2 notes outside C major").
 - **Lines between chords changed:** ranking showed the scale-step and chromatic lines putting passing notes on strong beats (beat 3 in 4/4). They now follow the textbook rule: a chord tone on every strong beat, passing notes on the weak beats between, and the last stretch leading into the next chord. In a chromatic line, a common tone gets the semitone below as its neighbour (G F♯ G). Enclosures still take the chord's last beats.
 - **The Lines tab** lists the lines as buttons in their groups, best first. The chosen line's first line shows beside an ⓘ.
+
+## 2026-10-23 — Lines with the chords, and a Wildcard line (Phase 6 task 5, David's idea)
+
+**Chords and lines play together (task 5).**
+
+- The Lines tab's **▶ Play with chords** plays the progression the way the strip's ▶ Play does, with each chord in its chosen shape, the beat and bar lights and the strip highlight. The line sounds over it, note by note, and the sounding note glows on the instrument and in the tab.
+- **▶ Line alone** still plays the line by itself.
+- While a line plays along, each new chord lets the line's notes ring instead of cutting them off.
+- Like any playback, changing the progression or the time signature stops it.
+
+**A Wildcard line (David's request).**
+
+- It sits last, in its own group, dashed like the chord Wildcard (SPEC 6.2).
+- At each chord, chance picks the move into the next chord (scale steps, chromatic or an enclosure). It also picks which of the three best-fitting tones to aim for.
+- So it is a new line every roll, but it still lands on a chord tone at every change, keeps chord tones on strong beats where it passes by step, and explains every note.
+- The roll is seeded from the chords and where they fall, so the same progression gives the same Wildcard. **🎲 Another** rolls a fresh one.
+- It is tested with the other modes against the three line exit criteria.
+- SPEC's "Changes to the plan" lists it as item 9.
+
+All five Phase 6 tasks and its four exit criteria are now ticked. The phase gate still needs a reviewer check of the criteria, David's play-test, and the `v0.6-lines` tag.

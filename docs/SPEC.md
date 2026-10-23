@@ -427,5 +427,6 @@ None of the 13 decisions change. The spec adds:
 6. **Version history and JSON export/import**, in Phase 10.
 7. **Passing chords** between two picked chords, in Phase 4 (added 2026-10-22).
 8. **An Arpeggio tab** for trying arpeggios and extensions without adding them to the progression, in Phase 6 after the beat grid (added 2026-10-22).
+9. **A Wildcard line** among the line modes, built afresh by chance on each roll, in Phase 6 (added 2026-10-23).
 
 These get dated entries in `docs/DECISIONS.md` in the next Phase 0 session.

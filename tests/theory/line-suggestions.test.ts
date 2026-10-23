@@ -113,3 +113,36 @@ describe('lines as suggestions', () => {
     expect(lineSuggestions([])).toEqual([])
   })
 })
+
+describe('the Wildcard line', () => {
+  const steps = stepsOf('C major', 'C Am F G C Am F G')
+  const wild = (roll = 0) =>
+    lineSuggestions(steps, roll).find((s) => s.tags[0] === 'wildcard')!
+  const notes = (roll = 0) =>
+    wild(roll).candidate.notes.map((n) => `${n.midi}@${n.onset.n}/${n.onset.d}`)
+
+  it('comes last, as its own group', () => {
+    const found = lineSuggestions(steps)
+    expect(found.at(-1)?.candidate.mode.id).toBe('wildcard')
+    expect(found.at(-1)?.tags[0]).toBe('wildcard')
+  })
+
+  it('rolls the same for the same chords, and fresh for Another', () => {
+    expect(notes()).toEqual(notes())
+    const rolls = new Set([0, 1, 2, 3, 4].map((r) => notes(r).join()))
+    expect(rolls.size).toBeGreaterThan(1)
+  })
+
+  it('mixes its moves and explains them', () => {
+    const tags = new Set(
+      [0, 1, 2, 3].flatMap((r) =>
+        wild(r).candidate.notes.map((n) => n.tags[0]),
+      ),
+    )
+    expect(tags.has('passing') || tags.has('neighbour')).toBe(true)
+    expect(tags.has('approach')).toBe(true)
+    expect(wild().explanation).toMatch(
+      /^Chance picked the move into each chord/,
+    )
+  })
+})

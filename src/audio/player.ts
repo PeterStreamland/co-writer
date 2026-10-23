@@ -35,19 +35,21 @@ export function preparePiano(): void {
   })
 }
 
-export type PlayOptions = { strum?: boolean; seconds?: number }
+// keep: let notes already sounding ring on (a line playing over the
+// chords), rather than cutting them off.
+export type PlayOptions = { strum?: boolean; seconds?: number; keep?: boolean }
 
 // Plays the notes as a chord. The samples are fetched the first time, and the
 // browser only allows sound after a click or key press, so call this from
 // one.
 export async function playChord(
   notes: Note[],
-  { strum = false, seconds = 1.5 }: PlayOptions = {},
+  { strum = false, seconds = 1.5, keep = false }: PlayOptions = {},
 ): Promise<void> {
   await Tone.start()
   const piano = sampler()
   await Tone.loaded()
-  piano.releaseAll()
+  if (!keep) piano.releaseAll()
   const now = Tone.now()
   if (strum) {
     for (const { note, offset } of strumSchedule(notes)) {

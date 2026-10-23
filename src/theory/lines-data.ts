@@ -4,7 +4,7 @@
 // a guitar's low strings; inner voices and lines between chords sit in the
 // middle of the keyboard.
 
-export type LineGroup = 'bass' | 'inner' | 'between'
+export type LineGroup = 'bass' | 'inner' | 'between' | 'wildcard'
 
 export type LineModeId =
   | 'roots'
@@ -19,6 +19,7 @@ export type LineModeId =
   | 'scale-steps'
   | 'chromatic'
   | 'enclosure'
+  | 'wildcard'
 
 export type LineMode = {
   id: LineModeId
@@ -32,6 +33,7 @@ export const LINE_GROUPS: { id: LineGroup; label: string }[] = [
   { id: 'bass', label: 'Bass lines' },
   { id: 'inner', label: 'Inner voices' },
   { id: 'between', label: 'Between chords' },
+  { id: 'wildcard', label: 'Wildcard' },
 ]
 
 const BASS: [string, string] = ['E2', 'C4']
@@ -124,6 +126,17 @@ export const LINE_MODES: LineMode[] = [
     label: 'Enclosures',
     blurb:
       'A chord tone, then the step above and the semitone below the next chord’s tone.',
+    range: MIDDLE,
+  },
+  // David's request: chance picks the move into each chord (scale steps,
+  // chromatic or an enclosure) and which of its tones to aim for, so every
+  // roll is a new line that still lands on a chord tone at each change.
+  {
+    id: 'wildcard',
+    group: 'wildcard',
+    label: 'Wildcard',
+    blurb:
+      'A new line every roll: chance picks each move into the next chord, and the tone it lands on.',
     range: MIDDLE,
   },
 ]
