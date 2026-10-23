@@ -76,3 +76,43 @@ export const rootFifths: { key: string; chord: string; notes: string[] }[] = [
   { key: 'C major', chord: 'Bdim', notes: ['B', 'F'] },
   { key: 'E natural-minor', chord: 'E5', notes: ['E', 'B'] },
 ]
+
+// Added 2026-10-23 (Phase 6 gate review): a semitone the key already has
+// takes the key's spelling, so it isn't chromatic; and an enclosure's step
+// above is at most a whole tone.
+export const keyApproaches: {
+  key: string
+  target: string
+  from: 'below' | 'above'
+  note: string
+}[] = [
+  { key: 'C major', target: 'Ab', from: 'above', note: 'A' },
+  { key: 'C major', target: 'Bb', from: 'above', note: 'B' },
+  { key: 'C major', target: 'F#', from: 'below', note: 'F' },
+  { key: 'C major', target: 'G#', from: 'below', note: 'G' },
+  { key: 'C major', target: 'Db', from: 'below', note: 'C' },
+]
+
+export const chromaticEnclosures: {
+  key: string
+  target: string
+  notes: string[]
+}[] = [
+  { key: 'C major', target: 'Ab', notes: ['Bb', 'G'] },
+  { key: 'C major', target: 'Db', notes: ['Eb', 'C'] },
+]
+
+// Chromatic passing notes: naturals where they exist, sharps going up and
+// flats coming down for the rest, never stacking accidentals on one letter.
+export const chromaticRuns: {
+  key: string
+  from: string
+  to: string
+  notes: string[]
+}[] = [
+  { key: 'A harmonic-minor', from: 'F4', to: 'G#4', notes: ['F#', 'G'] },
+  { key: 'A minor-pentatonic', from: 'E4', to: 'G4', notes: ['F', 'F#'] },
+  { key: 'C major', from: 'C4', to: 'E4', notes: ['C#', 'D', 'D#'] },
+  { key: 'C major', from: 'E4', to: 'C4', notes: ['Eb', 'D', 'Db'] },
+  { key: 'F# major', from: 'F#4', to: 'A#4', notes: ['G', 'G#', 'A'] },
+]

@@ -13,6 +13,7 @@ import {
   parseChordSymbol,
   parseMeter,
   parseNote,
+  passingNotes,
   pitchClass,
   scaleNotes,
   sumDurs,
@@ -23,10 +24,16 @@ import {
 } from '../../src/theory'
 import {
   approaches,
+  chromaticEnclosures,
+  chromaticRuns,
   enclosures,
   guideTones,
+  keyApproaches,
   rootFifths,
 } from '../fixtures/lines'
+
+const spelled = (n: { letter: string; accidental: number }) =>
+  `${n.letter}${n.accidental}`
 
 const ascii = (n: Parameters<typeof formatNote>[0]) =>
   formatNote({ ...n, octave: undefined }, { ascii: true })
@@ -60,7 +67,7 @@ describe('line moves (golden)', () => {
     '$note approaches $target from $from in $key',
     ({ key, target, from, note, chromatic }) => {
       const t = { ...parseNote(target)!, octave: 3 }
-      const found = approachNote(t, from)
+      const found = approachNote(t, from, keyOf(key))
       expect(ascii(found)).toBe(note)
       const inKey = scaleNotes(keyOf(key).tonic, keyOf(key).mode).some(
         (n) => pitchClass(n) === pitchClass(found),
@@ -124,13 +131,21 @@ const cases: [string, string, string, string, (Dur | undefined)[]][] = [
   ],
   ['power chords', 'E natural-minor', 'E5 G5 A5 C5', '4/4', []],
   ['sus and 6ths', 'C major', 'Csus4 C6 Fsus2 G7sus4', '4/4', []],
+  // From the Phase 6 gate review: chromatic chords whose approaches and
+  // neighbours the key spells, and keys with gaps wider than a tone.
+  ['borrowed bVI bVII', 'C major', 'C Ab Bb C', '4/4', []],
+  ['diminished passing', 'C major', 'C F#dim7 G', '4/4', []],
+  ['V/vi', 'C major', 'C E7 Am', '4/4', []],
+  ['harmonic minor', 'A harmonic-minor', 'Am F E Am', '4/4', []],
+  ['pentatonic', 'A minor-pentatonic', 'Am Dm Am Em', '4/4', []],
 ]
 
 describe('every line (Phase 6 exit criteria)', () => {
   for (const [label, key, chords, meterText, lengths] of cases) {
     const steps = stepsOf(key, chords, parseMeter(meterText)!, lengths)
+    // By spelling (SPEC 4): E♯ is outside C major though F is in it.
     const scale = new Set(
-      scaleNotes(steps[0].key.tonic, steps[0].key.mode).map(pitchClass),
+      scaleNotes(steps[0].key.tonic, steps[0].key.mode).map(spelled),
     )
     for (const mode of LINE_MODES) {
       it(`${mode.label} over ${label} (${chords}, ${meterText})`, () => {
@@ -149,7 +164,7 @@ describe('every line (Phase 6 exit criteria)', () => {
         for (const n of notes) {
           expect(n.tags.length).toBeGreaterThan(0)
           expect(n.explanation.length).toBeGreaterThan(0)
-          if (!scale.has(pitchClass(n.note))) {
+          if (!scale.has(spelled(n.note))) {
             expect(n.tags).toContain('chromatic')
             expect(n.explanation).toMatch(/outside/)
           }
@@ -286,6 +301,79 @@ describe('lines move', () => {
       for (const n of lineFor(id, steps).notes) {
         expect(n.midi).toBeGreaterThanOrEqual(59) // B3
         expect(n.midi).toBeLessThanOrEqual(79) // G5
+      }
+    }
+  })
+})
+
+describe('spelling (Phase 6 gate review)', () => {
+  it.each(keyApproaches)(
+    'into $target from $from in $key is $note, as the key spells it',
+    ({ key, target, from, note }) => {
+      const t = { ...parseNote(target)!, octave: 3 }
+      expect(ascii(approachNote(t, from, keyOf(key)))).toBe(note)
+    },
+  )
+
+  it.each(chromaticEnclosures)(
+    'enclosing $target in $key steps down a whole tone: $notes',
+    ({ key, target, notes }) => {
+      const t = { ...parseNote(target)!, octave: 4 }
+      expect(enclosureOf(keyOf(key), t).map(ascii)).toEqual(notes)
+    },
+  )
+
+  it.each(chromaticRuns)(
+    'a chromatic run from $from to $to in $key is $notes',
+    ({ key, from, to, notes }) => {
+      const run = passingNotes(
+        keyOf(key),
+        parseNote(from)!,
+        parseNote(to)!,
+        true,
+      )
+      expect(run.map(ascii)).toEqual(notes)
+    },
+  )
+
+  it('never spells a note outside the key when the key has that pitch, unless it is a chord tone', () => {
+    for (const [, key, chords, meter, lengths] of cases) {
+      const steps = stepsOf(key, chords, parseMeter(meter)!, lengths)
+      const k = steps[0].key
+      const scale = scaleNotes(k.tonic, k.mode)
+      for (const mode of LINE_MODES) {
+        for (const n of lineFor(mode.id, steps).notes) {
+          if (n.tags[0] === 'chord-tone' || n.tags[0] === 'pedal') continue
+          const same = scale.find((x) => pitchClass(x) === pitchClass(n.note))
+          if (same) {
+            expect(spelled(n.note), `${mode.id} over ${chords}`).toBe(
+              spelled(same),
+            )
+          }
+        }
+      }
+    }
+  })
+
+  it('leads the last chord back into the note the line starts on', () => {
+    const steps = stepsOf('C major', 'C Ab Bb C')
+    for (const id of ['walking', 'approach'] as const) {
+      const { notes } = lineFor(id, steps)
+      expect(Math.abs(notes.at(-1)!.midi - notes[0].midi), id).toBe(1)
+    }
+    // A line between chords that ends on a lead-in note leads into the
+    // note it starts on, not one an octave away.
+    for (const chords of ['C Ab Bb C', 'C Am F G', 'Dm7 G7 Cmaj7 A7']) {
+      const loop = stepsOf('C major', chords)
+      for (const id of ['scale-steps', 'chromatic', 'enclosure'] as const) {
+        const { notes } = lineFor(id, loop)
+        const last = notes.at(-1)!
+        if (last.tags[0] !== 'chord-tone') {
+          expect(
+            Math.abs(last.midi - notes[0].midi),
+            `${id} ${chords}`,
+          ).toBeLessThanOrEqual(2)
+        }
       }
     }
   })

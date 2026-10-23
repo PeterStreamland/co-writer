@@ -59,7 +59,6 @@ export type LineNote = {
 export type Line = { mode: LineMode; notes: LineNote[] }
 
 const SEMITONE = parseInterval('m2') as Interval
-const AUGMENTED_UNISON = parseInterval('A1') as Interval
 const WHOLE_TONE = parseInterval('M2') as Interval
 
 type Slot = { at: Dur; length: Dur; strength: BeatStrength | 'off' }
@@ -125,10 +124,32 @@ const ORDINALS: Record<number, string> = {
   7: '7th',
 }
 
+// Whether the key has the note as spelled (SPEC 4: notes keep their
+// spelling, so E♯ isn't in C major though F is).
 function inKey(key: Key, note: Note): boolean {
   return scaleNotes(key.tonic, key.mode).some(
-    (n) => pitchClass(n) === pitchClass(note),
+    (n) => n.letter === note.letter && n.accidental === note.accidental,
   )
+}
+
+// A pitch in a line, spelled: as the key spells it if the key has it,
+// else as a natural, else raised going up and lowered coming down (C♯ on
+// the way up to D, D♭ on the way down to C).
+function spellPitch(key: Key, midi: number, rising: boolean): Note {
+  const pc = mod(midi, 12)
+  const scale = scaleNotes(key.tonic, key.mode).find(
+    (n) => pitchClass(n) === pc,
+  )
+  if (scale) return noteAtMidi(scale, midi) as Note
+  const natural = LETTERS.find(
+    (l) => pitchClass({ letter: l, accidental: 0 }) === pc,
+  )
+  if (natural)
+    return noteAtMidi({ letter: natural, accidental: 0 }, midi) as Note
+  const letter = LETTERS.find(
+    (l) => pitchClass({ letter: l, accidental: rising ? 1 : -1 }) === pc,
+  ) as Note['letter']
+  return noteAtMidi({ letter, accidental: rising ? 1 : -1 }, midi) as Note
 }
 
 const name = (n: Note) => formatNote({ ...n, octave: undefined })
@@ -175,24 +196,38 @@ function lineNote(
 }
 
 // The note a semitone from a target, from below (F♯ to G) or above (A♭ to
-// G), spelled toward it, in the octave next to it.
-export function approachNote(target: Note, from: 'below' | 'above'): Note {
+// G), in the octave next to it: as the key spells it when the key has it
+// (B into C, A into A♭ in C major), else spelled toward the target.
+export function approachNote(
+  target: Note,
+  from: 'below' | 'above',
+  key?: Key,
+): Note {
+  const midi = pitch(target) + (from === 'below' ? -1 : 1)
+  const scale = key
+    ? scaleNotes(key.tonic, key.mode).find(
+        (n) => pitchClass(n) === mod(midi, 12),
+      )
+    : undefined
   const spelling =
-    from === 'below'
+    scale ??
+    (from === 'below'
       ? transposeDown(target, SEMITONE)
-      : transpose(target, SEMITONE)
-  return noteAtMidi(
-    spelling,
-    pitch(target) + (from === 'below' ? -1 : 1),
-  ) as Note
+      : transpose(target, SEMITONE))
+  return noteAtMidi(spelling, midi) as Note
 }
 
-// The key's note a step above a target (its next letter up), in the octave
-// above it.
+// A step above a target, in the octave above it: the key's note on the
+// next letter up, unless that is more than a whole tone away (B over A♭ in
+// C major), when the whole tone (B♭) is the step.
 function stepAbove(key: Key, target: Note): Note {
   const letter = LETTERS[mod(letterIndex(target.letter) + 1, 7)]
   const scale = scaleNotes(key.tonic, key.mode).find((n) => n.letter === letter)
-  const spelling = scale ?? transpose(target, WHOLE_TONE)
+  const near =
+    scale && mod(pitchClass(scale) - pitchClass(target), 12) <= 2
+      ? scale
+      : undefined
+  const spelling = near ?? transpose(target, WHOLE_TONE)
   const above = mod(pitchClass(spelling) - pitchClass(target), 12)
   return noteAtMidi(spelling, pitch(target) + above) as Note
 }
@@ -200,32 +235,25 @@ function stepAbove(key: Key, target: Note): Note {
 // An enclosure of a target: the key's step above it, then the semitone
 // below it.
 export function enclosureOf(key: Key, target: Note): Note[] {
-  return [stepAbove(key, target), approachNote(target, 'below')]
+  return [stepAbove(key, target), approachNote(target, 'below', key)]
 }
 
 // The notes strictly between two pitches, from the first toward the
-// second: the key's notes, or every semitone (spelled as the key does, or
-// as a raised note going up and a lowered one coming down).
-function between(key: Key, from: Note, to: Note, chromatic: boolean): Note[] {
+// second: the key's notes, or every semitone (spellPitch).
+export function passingNotes(
+  key: Key,
+  from: Note,
+  to: Note,
+  chromatic: boolean,
+): Note[] {
   const scale = scaleNotes(key.tonic, key.mode)
   const a = pitch(from)
   const b = pitch(to)
   const dir = Math.sign(b - a)
   const notes: Note[] = []
-  let previous = from
   for (let m = a + dir; dir !== 0 && m !== b; m += dir) {
-    const inScale = scale.find((n) => pitchClass(n) === mod(m, 12))
-    if (inScale) {
-      previous = noteAtMidi(inScale, m) as Note
-      notes.push(previous)
-    } else if (chromatic) {
-      const spelling =
-        dir > 0
-          ? transpose(previous, AUGMENTED_UNISON)
-          : transposeDown(previous, AUGMENTED_UNISON)
-      previous = noteAtMidi(spelling, m) as Note
-      notes.push(previous)
-    }
+    const inScale = scale.some((n) => pitchClass(n) === mod(m, 12))
+    if (inScale || chromatic) notes.push(spellPitch(key, m, dir > 0))
   }
   return notes
 }
@@ -303,16 +331,20 @@ function bassLine(
     const root = place(step.chord.root, last, range)
     last = pitch(root)
     // The approach into the next root, on the chord's last slot.
+    // The last chord leads back to the note the line actually starts on.
     const approach = (after: Note): LineNote => {
-      const target = place(next.chord.root, pitch(after), range)
+      const target =
+        i === steps.length - 1 && notes[0]
+          ? notes[0].note
+          : place(next.chord.root, pitch(after), range)
       // From the side the line comes from, unless that note is the one
       // already sounding (E to F): then from the other side.
       let from: 'below' | 'above' =
         pitch(target) >= pitch(after) ? 'below' : 'above'
-      if (pitch(approachNote(target, from)) === pitch(after)) {
+      if (pitch(approachNote(target, from, step.key)) === pitch(after)) {
         from = from === 'below' ? 'above' : 'below'
       }
-      const note = approachNote(target, from)
+      const note = approachNote(target, from, step.key)
       return lineNote(
         step,
         i,
@@ -434,7 +466,10 @@ function betweenLine(
     let held: Slot[] = []
     strong.forEach((from, j) => {
       const to = strong[j + 1] ?? slots.length
-      const toward = j === strong.length - 1 ? next.chord : step.chord
+      const lastStretch = j === strong.length - 1
+      const toward = lastStretch ? next.chord : step.chord
+      // Back at the top, the line leads into the note it started on.
+      const wrap = lastStretch && i === steps.length - 1 ? notes[0] : undefined
       const { target, path } = leadInto(
         id,
         step.key,
@@ -443,6 +478,7 @@ function betweenLine(
         to - from - 1,
         range,
         wild ? random : undefined,
+        wrap?.note,
       )
       held.push(...slots.slice(from, to - path.length))
       const leads = path.length > 0 || pitch(target) !== pitch(start)
@@ -521,9 +557,10 @@ function leadInto(
   room: number,
   range: number[],
   random?: () => number,
+  only?: Note,
 ): { target: Note; path: Note[] } {
-  const targets: Note[] = []
-  for (const t of tonesOf(next)) {
+  const targets: Note[] = only ? [only] : []
+  for (const t of only ? [] : tonesOf(next)) {
     for (let m = range[0]; m <= range[1]; m++) {
       if (mod(m, 12) === pitchClass(t.note)) {
         targets.push(noteAtMidi(t.note, m) as Note)
@@ -551,11 +588,11 @@ function leadInto(
         ? room > 0
           ? [
               id === 'chromatic'
-                ? approachNote(start, 'below')
+                ? approachNote(start, 'below', key)
                 : stepAbove(key, start),
             ]
           : []
-        : between(key, start, target, id === 'chromatic')
+        : passingNotes(key, start, target, id === 'chromatic')
     if (path.length > room) continue
     // Unused room counts most, then the leap; staying put costs a little,
     // so the line moves to another tone where it can; straying more than a
@@ -576,5 +613,10 @@ function leadInto(
   const chosen = random
     ? fits[Math.floor(random() * Math.min(WILD_CHOICE, fits.length))]
     : fits[0]
-  return chosen ?? { target: place(next.root, pitch(start), range), path: [] }
+  return (
+    chosen ?? {
+      target: only ?? place(next.root, pitch(start), range),
+      path: [],
+    }
+  )
 }

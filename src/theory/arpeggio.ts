@@ -9,6 +9,7 @@
 import {
   ADDED_TONES,
   ARPEGGIO_LEVELS,
+  BORROW_ORDER,
   type ArpeggioLevel,
   type ArpeggioPattern,
 } from './arpeggio-data'
@@ -72,10 +73,38 @@ function tone(root: Note, note: Note, number: number): ArpeggioTone {
   return { note, number, label: toneLabel(root, note, number) }
 }
 
-// The key's note on the letter `letters` above the root, if it has one.
-function keyNoteAbove(key: Key, root: Note, letters: number): Note | undefined {
+// The scale a chord's added tones come from: the key's when it holds all
+// the chord's own notes (as spelled); for a borrowed chord, the first mode
+// on the key's tonic that does (BORROW_ORDER); otherwise the key's.
+export function sourceScale(chord: ChordName, key: Key): Note[] {
+  const own = ownTones(chord).map((t) => t.note)
+  const holds = (scale: Note[]) =>
+    own.every((n) =>
+      scale.some((s) => s.letter === n.letter && s.accidental === n.accidental),
+    )
+  const keys = scaleNotes(key.tonic, key.mode)
+  if (holds(keys)) return keys
+  const third = mod(
+    pitchClass(keys[2] ?? key.tonic) - pitchClass(key.tonic),
+    12,
+  )
+  const order = BORROW_ORDER[third === 3 ? 'minor' : 'major']
+  for (const mode of order) {
+    if (mode === key.mode) continue
+    const scale = scaleNotes(key.tonic, mode)
+    if (holds(scale)) return scale
+  }
+  return keys
+}
+
+// The scale's note on the letter `letters` above the root, if it has one.
+function noteAbove(
+  scale: Note[],
+  root: Note,
+  letters: number,
+): Note | undefined {
   const letter = LETTERS[mod(letterIndex(root.letter) + letters, 7)]
-  return scaleNotes(key.tonic, key.mode).find((n) => n.letter === letter)
+  return scale.find((n) => n.letter === letter)
 }
 
 // Which simple numbers stand in for an added tone: a 6th for the 7th (C6),
@@ -110,12 +139,13 @@ export function arpeggioTones(
   const own = ownTones(chord)
   const tones = own.filter((t) => t.number <= top)
   const left: LeftOutTone[] = []
+  const scale = sourceScale(chord, key)
   for (const number of [7, 9, 11, 13]) {
     if (!numbers.includes(number)) continue
     if (own.some((t) => STANDS_IN[number].includes(t.number))) continue
     const { letters, fallback } = ADDED_TONES[number]
     const note =
-      keyNoteAbove(key, root, letters) ??
+      noteAbove(scale, root, letters) ??
       transpose(root, parseInterval(fallback) as Interval)
     const added = tone(root, note, number)
     if (tones.some((t) => pitchClass(t.note) === pitchClass(note))) continue
@@ -162,7 +192,18 @@ export function arpeggioName(
     number: t.number,
   }))
   const quality = qualityFromIntervals(intervals)
-  return quality && chordSymbol({ root: chord.root, quality })
+  if (quality) return chordSymbol({ root: chord.root, quality })
+  // A sus chord the namer doesn't know as such: named as the chord with a
+  // 3rd in place of its 4th, then "sus4" (G13sus4).
+  const fourth = tones.findIndex((t) => t.number === 4)
+  if (fourth < 0 || tones.some((t) => t.number === 3)) return undefined
+  const withThird = intervals.map((i, k) =>
+    k === fourth ? { quality: 'M', number: 3 } : i,
+  )
+  const asThird = qualityFromIntervals(
+    [...withThird].sort((a, b) => a.number - b.number),
+  )
+  return asThird && `${chordSymbol({ root: chord.root, quality: asThird })}sus4`
 }
 
 // A note of the arpeggio in its range: spelled with its octave, with its

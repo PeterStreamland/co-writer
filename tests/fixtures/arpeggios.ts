@@ -143,3 +143,34 @@ export const arpeggios: ArpeggioFixture[] = [
     tones: ['E R', 'B 5'],
   },
 ]
+
+// Added 2026-10-23 (Phase 6 gate, David's choice): a borrowed chord takes
+// its 7th and extensions from the mode it's borrowed from, as players
+// expect. Fm in C is iv from C minor, so Fm7; Bb is bVII, so Bb7.
+// Secondary dominants (E7, A7 in C) aren't borrowed and keep the key's.
+export const borrowedArpeggios: ArpeggioFixture[] = [
+  {
+    key: 'C major',
+    chord: 'Fm',
+    level: 'seventh',
+    tones: ['F R', 'Ab b3', 'C 5', 'Eb b7'],
+  },
+  {
+    key: 'C major',
+    chord: 'Fm',
+    level: 'thirteenth',
+    tones: ['F R', 'Ab b3', 'C 5', 'Eb b7', 'G 9', 'Bb 11', 'D 13'],
+  },
+  {
+    key: 'C major',
+    chord: 'Bb',
+    level: 'seventh',
+    tones: ['Bb R', 'D 3', 'F 5', 'Ab b7'],
+  },
+  {
+    key: 'C major',
+    chord: 'A',
+    level: 'seventh',
+    tones: ['A R', 'C# 3', 'E 5', 'G b7'],
+  },
+]

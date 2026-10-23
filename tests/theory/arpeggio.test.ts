@@ -14,11 +14,12 @@ import {
   parseChordSymbol,
   parseNote,
   patternCycle,
+  pitchClass,
   ratioOf,
   type ArpeggioPattern,
   type Key,
 } from '../../src/theory'
-import { arpeggios } from '../fixtures/arpeggios'
+import { arpeggios, borrowedArpeggios } from '../fixtures/arpeggios'
 
 const ascii = (text: string) =>
   text.replace(/♭/g, 'b').replace(/♯/g, '#').replace(/𝄫/g, 'bb')
@@ -38,22 +39,24 @@ const pattern = (id: string) =>
   ARPEGGIO_PATTERNS.find((p) => p.id === id) as ArpeggioPattern
 
 describe('arpeggio tones (golden)', () => {
-  it.each(arpeggios.map((f) => [`${f.chord} ${f.level} in ${f.key}`, f]))(
-    '%s',
-    (_, f) => {
-      const { tones, left } = arpeggioTones(
-        chordOf(f.chord),
-        keyOf(f.key),
-        f.level,
-      )
-      const show = (t: {
-        note: Parameters<typeof formatNote>[0]
-        label: string
-      }) => `${formatNote(t.note, { ascii: true })} ${ascii(t.label)}`
-      expect(tones.map(show)).toEqual(f.tones)
-      expect(left.map(show)).toEqual(f.left ?? [])
-    },
-  )
+  it.each(
+    [...arpeggios, ...borrowedArpeggios].map((f) => [
+      `${f.chord} ${f.level} in ${f.key}`,
+      f,
+    ]),
+  )('%s', (_, f) => {
+    const { tones, left } = arpeggioTones(
+      chordOf(f.chord),
+      keyOf(f.key),
+      f.level,
+    )
+    const show = (t: {
+      note: Parameters<typeof formatNote>[0]
+      label: string
+    }) => `${formatNote(t.note, { ascii: true })} ${ascii(t.label)}`
+    expect(tones.map(show)).toEqual(f.tones)
+    expect(left.map(show)).toEqual(f.left ?? [])
+  })
 
   it('keeps every tone of the chord itself, up to its level', () => {
     const tops = {
@@ -233,5 +236,40 @@ describe('arpeggio rhythm', () => {
   it('plays nothing with no notes or no time', () => {
     expect(arpeggioRhythm(0, pattern('up'), dur(1, 8), dur(1, 1))).toEqual([])
     expect(arpeggioRhythm(3, pattern('up'), dur(1, 8), dur(0, 1))).toEqual([])
+  })
+})
+
+describe('arpeggio names and tensions (Phase 6 gate review)', () => {
+  it('names a 13th sus4 chord', () => {
+    const g = chordOf('G7sus4')
+    expect(
+      arpeggioName(g, arpeggioTones(g, keyOf('C major'), 'thirteenth')),
+    ).toBe('G13sus4')
+  })
+
+  it('names borrowed chords from their source mode', () => {
+    const fm = chordOf('Fm')
+    expect(
+      arpeggioName(fm, arpeggioTones(fm, keyOf('C major'), 'seventh')),
+    ).toBe('Fm7')
+    const bb = chordOf('Bb')
+    expect(
+      arpeggioName(bb, arpeggioTones(bb, keyOf('C major'), 'seventh')),
+    ).toBe('B♭7')
+  })
+
+  it('gives a diminished 7th only tensions a whole tone above its notes', () => {
+    const b = chordOf('Bdim7')
+    const { tones, left } = arpeggioTones(b, keyOf('C major'), 'thirteenth')
+    const own = new Set(['B', 'D', 'F', 'Ab'])
+    for (const t of tones) {
+      const name = formatNote(t.note, { ascii: true })
+      if (own.has(name)) continue
+      const below = [...own].some(
+        (o) => (pitchClass(t.note) - pitchClass(parseNote(o)!) + 12) % 12 === 2,
+      )
+      expect(below, `${name} is a whole tone above a chord tone`).toBe(true)
+    }
+    expect(left.map((t) => formatNote(t.note, { ascii: true }))).toContain('C')
   })
 })
