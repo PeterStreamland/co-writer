@@ -68,6 +68,7 @@ export function ArpeggioPanel({
   onPlayAlong,
   onStop,
   onAddRow,
+  onAddBar,
 }: {
   sources: ArpeggioSource[]
   // The source to begin on (the selected or current chord).
@@ -85,6 +86,8 @@ export function ArpeggioPanel({
   onStop: () => void
   // Adds these arpeggios as a row under the progression.
   onAddRow: (recipe: PartRecipe) => void
+  // Adds one chord's arpeggio to a row.
+  onAddBar: (step: number, recipe: PartRecipe) => void
 }) {
   const [settings, setSettings] = useState(loadArpeggio)
   useEffect(() => saveArpeggio(settings), [settings])
@@ -447,19 +450,38 @@ export function ArpeggioPanel({
               key={i}
               class={i === index || shown ? 'line-chord focus' : 'line-chord'}
             >
-              <button
-                type="button"
-                class="line-chord-name"
-                aria-pressed={i === index}
-                onClick={() => setAt(i)}
-              >
-                {chordSymbol(s.chord)}
-                <span class="muted">
-                  {s.bar !== undefined
-                    ? ` · bar ${s.bar}`
-                    : ' · not in the progression'}
-                </span>
-              </button>
+              <div class="bar-head">
+                <button
+                  type="button"
+                  class="line-chord-name"
+                  aria-pressed={i === index}
+                  onClick={() => setAt(i)}
+                >
+                  {chordSymbol(s.chord)}
+                  <span class="muted">
+                    {s.bar !== undefined
+                      ? ` · bar ${s.bar}`
+                      : ' · not in the progression'}
+                  </span>
+                </button>
+                {s.step !== undefined && (
+                  <button
+                    type="button"
+                    class="add-bar"
+                    aria-label={`Add the arpeggio over ${chordSymbol(s.chord)} in bar ${s.bar} to a row`}
+                    title="Add this bar's arpeggio to a row"
+                    onClick={() =>
+                      onAddBar(s.step as number, {
+                        kind: 'arpeggio',
+                        settings,
+                        from: mode === 'position' ? here : undefined,
+                      })
+                    }
+                  >
+                    +
+                  </button>
+                )}
+              </div>
               <span class="arpeggio-of muted">{plans[i].name}</span>
               <span class="line-notes">
                 {v.events.map((e, k) => {

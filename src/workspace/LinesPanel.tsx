@@ -46,6 +46,7 @@ export function LinesPanel({
   onPlayAlong,
   onStop,
   onAddRow,
+  onAddBar,
 }: {
   progression: Progression
   sectionKey: Key
@@ -61,6 +62,8 @@ export function LinesPanel({
   onStop: () => void
   // Adds the line as a row under the progression.
   onAddRow: (recipe: PartRecipe) => void
+  // Adds one chord's bar of the line to a row.
+  onAddBar: (step: number, recipe: PartRecipe) => void
 }) {
   const [modeId, setModeId] = useState(loadLineMode)
   useEffect(() => saveLineMode(modeId), [modeId])
@@ -255,15 +258,32 @@ export function LinesPanel({
             key={s}
             class={s === shownStep ? 'line-chord focus' : 'line-chord'}
           >
-            <button
-              type="button"
-              class="line-chord-name"
-              aria-pressed={s === at}
-              onClick={() => setFocus(s)}
-            >
-              {chordSymbol(step.chord)}
-              <span class="muted"> · bar {step.placed.bar}</span>
-            </button>
+            <div class="bar-head">
+              <button
+                type="button"
+                class="line-chord-name"
+                aria-pressed={s === at}
+                onClick={() => setFocus(s)}
+              >
+                {chordSymbol(step.chord)}
+                <span class="muted"> · bar {step.placed.bar}</span>
+              </button>
+              <button
+                type="button"
+                class="add-bar"
+                aria-label={`Add the line over ${chordSymbol(step.chord)} in bar ${step.placed.bar} to a row`}
+                title="Add this bar of the line to a row"
+                onClick={() =>
+                  onAddBar(s, {
+                    kind: 'line',
+                    mode: line.mode.id,
+                    roll: line.mode.id === 'wildcard' ? roll : 0,
+                  })
+                }
+              >
+                +
+              </button>
+            </div>
             <span class="line-notes">
               {line.notes.map((n, i) =>
                 n.step !== s ? null : (

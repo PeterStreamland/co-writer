@@ -51,7 +51,9 @@ import type { Along, AlongNote } from './along'
 import { PartRows, type PartView } from './PartRows'
 import { partLabel, partNotes } from './parts-view'
 import {
+  addCell,
   addPart,
+  clearCell,
   partsShown,
   removePart,
   setPartMuted,
@@ -619,13 +621,16 @@ export function Workspace() {
     () =>
       partsShown(progression).map((part) => ({
         part,
-        label: partLabel(part.recipe),
+        label: partLabel(part),
         notes: partNotes(part, progression, key, timing, guitar),
       })),
     [progression, key, timing, guitar],
   )
   const addRow = (recipe: PartRecipe) =>
     change(addPart(progression, recipe), selected)
+  // + on one bar adds just that bar to a row (David's request).
+  const addBar = (step: number, recipe: PartRecipe) =>
+    change(addCell(progression, path[step].id, recipe), selected)
   const [arpeggioShow, setArpeggioShow] = useState<ArpeggioOnShow>()
   // The Arpeggio and Lines tabs light their notes on the instrument while
   // open.
@@ -644,6 +649,7 @@ export function Workspace() {
       onPlayAlong={playAlong}
       onStop={() => setPlayingAt(undefined)}
       onAddRow={addRow}
+      onAddBar={addBar}
     />
   )
   const arpeggio = (
@@ -660,6 +666,7 @@ export function Workspace() {
       onPlayAlong={playAlong}
       onStop={() => setPlayingAt(undefined)}
       onAddRow={addRow}
+      onAddBar={addBar}
     />
   )
   // The chord box beside the side panel (David's layout); on a phone it
@@ -746,6 +753,9 @@ export function Workspace() {
               change(setPartMuted(progression, id, muted), selected)
             }
             onRemove={(id) => change(removePart(progression, id), selected)}
+            onClearBar={(id, step) =>
+              change(clearCell(progression, id, path[step].id), selected)
+            }
           />
         </main>
         <SidePanel
