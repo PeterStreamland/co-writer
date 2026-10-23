@@ -17,6 +17,7 @@ import {
   type LineNote,
   type Placement,
 } from '../theory'
+import { roleOf } from '../instruments/chord-tones'
 import type { Guitar } from '../instruments/guitar'
 import { partKind, recipeAt, type Part, type PartRecipe } from '../sketch/parts'
 import { keyAt, pathNodes, type Progression } from '../sketch/progression'
@@ -92,6 +93,11 @@ export function partNotes(
                 length: note.length,
                 note: note.note,
                 ref,
+                label: note.label,
+                look: [
+                  `tag-${note.tags[0]}`,
+                  note.tags.includes('chromatic') ? 'chromatic' : '',
+                ].join(' '),
               },
             ]
           : [],
@@ -124,6 +130,8 @@ export function partNotes(
       length: e.length,
       note: voice.notes[e.index].note,
       ref: e.index,
+      label: voice.notes[e.index].label,
+      look: `role-${roleOf(voice.notes[e.index].number)}`,
     }))
   })
 }

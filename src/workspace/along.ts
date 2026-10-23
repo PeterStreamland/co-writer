@@ -11,6 +11,10 @@ export type AlongNote = {
   length: Dur
   note: Note
   ref: number
+  // How a row shows it: its interval over the chord (R, ♭3, 9) and the
+  // class that colours its box (a line's tag, an arpeggio tone's role).
+  label?: string
+  look?: string
 }
 
 export type Along = { source: object; notes: AlongNote[] }

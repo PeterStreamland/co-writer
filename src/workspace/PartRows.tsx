@@ -10,12 +10,14 @@ export type PartView = { part: Part; label: string; notes: AlongNote[] }
 
 // The rows under the progression strip (David's request): each line or
 // arpeggio added with + on the Lines and Arpeggio tabs, a box per chord
-// with the notes it plays there. A bar added on its own says what it
-// plays; any bar can be silenced with its ×. Each row can be muted or removed; Play
+// and bar with the notes it plays there, as the tabs show them (David's
+// request). A bar added on its own says what it plays; any bar can be
+// silenced with its ×. Each row can be muted or removed; Play
 // on the strip plays the chords with every row that isn't muted.
 export function PartRows({
   rows,
   path,
+  bars,
   sounding,
   onMute,
   onRemove,
@@ -23,6 +25,8 @@ export function PartRows({
 }: {
   rows: PartView[]
   path: ChordNode[]
+  // The bar each chord starts in.
+  bars: number[]
   sounding?: AlongNote
   onMute: (id: string, muted: boolean) => void
   onRemove: (id: string) => void
@@ -56,43 +60,56 @@ export function PartRows({
               ×
             </button>
           </div>
-          <ol class="part-chords">
+          <ol class="line-chords part-chords">
             {path.map((n, i) => {
               const own = part.cells?.[n.id]
-              const sounds = notes.some((note) => note.step === i)
+              const played = notes.filter((note) => note.step === i)
               return (
-                <li key={i}>
-                  <span class="part-bar">
-                    <span class="muted">{chordSymbol(n.chord)}</span>
-                    {own && (
-                      <span class="part-cell" title={recipeLabel(own)}>
-                        {recipeLabel(own)}
-                      </span>
-                    )}
-                    {sounds && (
+                <li
+                  key={i}
+                  class={played.length ? 'line-chord' : 'line-chord silent'}
+                >
+                  <div class="bar-head">
+                    <span class="line-chord-name">
+                      {chordSymbol(n.chord)}
+                      <span class="muted"> · bar {bars[i]}</span>
+                    </span>
+                    {played.length > 0 && (
                       <button
                         type="button"
                         class="clear-bar"
-                        aria-label={`Silence ${label} over ${chordSymbol(n.chord)}`}
+                        aria-label={`Silence ${label} over ${chordSymbol(n.chord)} in bar ${bars[i]}`}
                         title="Silence this bar of the row (Undo brings it back)"
                         onClick={() => onClearBar(part.id, i)}
                       >
                         ×
                       </button>
                     )}
-                  </span>
-                  <span class="part-notes">
-                    {notes
-                      .filter((note) => note.step === i)
-                      .map((note, k) => (
+                  </div>
+                  {own && (
+                    <span class="part-cell" title={recipeLabel(own)}>
+                      {recipeLabel(own)}
+                    </span>
+                  )}
+                  {played.length ? (
+                    <span class="line-notes">
+                      {played.map((note, k) => (
                         <span
                           key={k}
-                          class={note === sounding ? 'sounding' : undefined}
+                          class={[
+                            'line-note',
+                            note.look ?? '',
+                            note === sounding ? 'sounding' : '',
+                          ].join(' ')}
                         >
-                          {formatNote(note.note)}
+                          <span class="label">{note.label}</span>
+                          <span class="name">{formatNote(note.note)}</span>
                         </span>
                       ))}
-                  </span>
+                    </span>
+                  ) : (
+                    <span class="muted">silent</span>
+                  )}
                 </li>
               )
             })}
