@@ -41,12 +41,17 @@ export function noteMarker(
   const scale = scaleNotes(key.tonic, key.mode)
   const tones = chord ? chordNotes(chord) : []
   if (chord?.bass) tones.push(chord.bass)
-  tones.push(...extra.map((t) => t.note))
+  // Spellings only: the octave comes from the key pressed.
+  const spelled = extra.map((t) => ({
+    ...t,
+    note: { letter: t.note.letter, accidental: t.note.accidental },
+  }))
+  tones.push(...spelled.map((t) => t.note))
   const rootPitch = pitchClass(key.tonic)
   const scalePitches = new Set(scale.map(pitchClass))
   const tonePitches = new Set(tones.map(pitchClass))
   const toneOf = chord ? chordTones(chord) : new Map<number, ChordTone>()
-  for (const t of extra) {
+  for (const t of spelled) {
     if (toneOf.has(pitchClass(t.note))) continue
     toneOf.set(pitchClass(t.note), {
       label: t.label,

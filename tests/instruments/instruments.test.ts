@@ -97,6 +97,18 @@ describe('keyboard view', () => {
     ])
   })
 
+  it('names an added tone without its octave on every key', () => {
+    const C = key('C', 'major')
+    const mark = noteMarker(
+      C,
+      parseChordSymbol('Dm7')!,
+      [],
+      [{ note: parseNote('Ab2')!, label: '♭5', number: 99 }],
+    )
+    const ab = pianoKeys(55, 70, mark).filter((k) => k.mark?.name === 'A♭')
+    expect(ab.map((k) => k.midi)).toEqual([56, 68])
+  })
+
   it('colours the 11th and 13th too (Dm as Dm13, F as Fmaj13♯11)', () => {
     const C = key('C', 'major')
     const roles = (symbol: string) => {

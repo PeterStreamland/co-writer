@@ -1057,3 +1057,30 @@ The Arpeggio tab sits beside Voice. It arpeggiates any chord of the progression,
   - **Across the neck:** a run of two or three notes a string that moves up the neck as it climbs.
   - If a range doesn't fit, the tab says so and suggests fewer octaves or another start.
 - **Hearing it:** Play plays the chord's arpeggio at the tempo, and Play through every chord steps through the progression. The note sounding glows amber on the instrument, as the beat light does. Every note in the arpeggio is ringed and labelled R, 3, 5, ♭7, 9, and so on. While the tab is open, the box beside the instrument stays (David's choice, 2026-10-23). On guitar it becomes a position picker (David's request): it draws the arpeggio's position as a box, every note a labelled dot, with ◀ ▶ to step through the positions that fit, and "Pick a position" when the run is across the neck. On keyboard it stays the chord's voicing box, and the voicing is no longer ringed on the keys, so the rings show only the arpeggio.
+
+## 2026-10-23 — Line modes and the Lines tab (Phase 6 task 3)
+
+The line modes are in `src/theory/lines.ts`, with the modes and their ranges as data in `lines-data.ts`. The golden moves (approach notes, enclosures, guide tones, root and 5th) are in `tests/fixtures/lines.ts`. A **Lines** tab beside Arpeggio shows a line over the progression and plays it alone. Playing it with the chords is task 5, and each line as a ranked Suggestion with ⓘ is task 4.
+
+- **Built on the beat grid:** each chord's slots are its start and every beat inside it. Every note fills whole slots, so a line fits the beats exactly in any meter (two dotted beats a bar in 6/8, three uneven ones in 7/8). A chord shorter than a beat gets one note.
+- **Bass lines** sit in E2–C4, low enough to sound like a bass and high enough for a guitar's low strings:
+  - **Roots:** the root held.
+  - **Root and 5th:** the root, then the 5th from the first strong beat after it (4/4 as two minims; 3/4 as root for two beats, then the 5th).
+  - **Approach notes:** the root, then a semitone into the next root on the last beat, from the side the line comes from. If that note is the one already sounding, the approach comes from the other side.
+  - **Walking:** a note a beat. The root, then the chord's tones climbing (or falling, when high in the range), then a semitone into the next root (G F D D♭ | C…).
+  - **Pedal:** the key note held low. Under a chord that lacks it, it's tagged pedal.
+- **Inner voices:**
+  - the tenor and alto of the Classical lens's four parts
+  - guide tones, from the 3rd or the 7th: each chord's 3rd or 7th, whichever is nearer the last (F F E over Dm7 G7 Cmaj7)
+- **Between chords** (around middle C to C6): each chord starts on a chord tone, holds it, then leads into a tone of the next chord on its last beats.
+  - **Scale steps:** passing notes of the key; a common tone gets a neighbour above.
+  - **Chromatic:** every semitone, spelled raised going up and lowered coming down.
+  - **Enclosures:** the key's step above the target, then the semitone below it. When the held note is already the step above, only the semitone below follows.
+  - The target is the tone whose path fills the beats, then the nearest. Straying more than a 4th from the middle of the range costs as much as an empty beat, so long lines turn round instead of climbing.
+- **The last chord leads back to the first**, as the progression repeats.
+- **Tags:** chord tone, passing, neighbour, approach, pedal, and chromatic for any note outside the key (also on chord tones like the G♯ of E7 in C). Each note has a plain-English reason ("A♭ leads by a semitone down into G, the root of G7. A♭ is outside C major: a chromatic note.").
+- **The tab:**
+  - Pick a mode, and see each chord's notes labelled by their interval over the chord, outlined in their tag's colour, with a red underline outside the key.
+  - Tap a note for its reason, or a chord to light its notes on the instrument.
+  - On guitar, a line's notes ring everywhere they can be played, as lines have no fixed fingering yet.
+- **Phase 6 exit criteria 1–3** are proven by `tests/theory/lines.test.ts`, over 12 progressions (4/4, 3/4, 6/8, 7/8, uneven and two-bar chords, power, sus and 6th chords) with all 12 modes.

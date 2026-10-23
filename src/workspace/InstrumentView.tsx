@@ -466,7 +466,13 @@ function Keyboard({
     arpeggio?.sounding === undefined
       ? undefined
       : arpeggio.notes[arpeggio.sounding]?.midi
-  const inView = sounding === undefined ? held : [...held, sounding]
+  // Keep the note sounding in view, or else the notes on show.
+  const inView =
+    sounding !== undefined
+      ? [...held, sounding]
+      : held.length
+        ? held
+        : (arpeggio?.notes.map((n) => n.midi) ?? [])
   useEffect(
     () => setLow((l) => scrollToHeld(l, span, inView)),
     [inView.join(), span],
@@ -575,19 +581,36 @@ function Fretboard({
   )
   const frets = grid[0].map((f) => f.fret)
   const label = (m: Mark) => markLabel(m, labels, toneColours)
-  // The arpeggio's spots, with their labels; and the one sounding.
+  // The arpeggio's spots, with their labels, and the one sounding. Notes
+  // with no spots of their own (a line from the Lines tab) ring everywhere
+  // they can be played.
   const at = (s: number, f: number) => `${s}:${f}`
+  const byPitch = new Map(arpeggio?.notes.map((n) => [n.midi, n.label]))
+  const playable = grid.flat().filter((s) => !s.behindCapo)
   const arpeggioAt = new Map(
-    arpeggio?.spots?.map((s, i) => [
-      at(s.string, s.fret),
-      arpeggio.notes[i].label,
-    ]),
+    arpeggio?.spots
+      ? arpeggio.spots.map((s, i) => [
+          at(s.string, s.fret),
+          arpeggio.notes[i].label,
+        ])
+      : playable
+          .filter((s) => byPitch.has(s.midi))
+          .map((s) => [at(s.string, s.fret), byPitch.get(s.midi) as string]),
   )
-  const soundingSpot =
+  const soundingNote =
     arpeggio?.sounding === undefined
       ? undefined
-      : arpeggio.spots?.[arpeggio.sounding]
-  const sounding = soundingSpot && at(soundingSpot.string, soundingSpot.fret)
+      : arpeggio.notes[arpeggio.sounding]
+  const soundingSpot = soundingNote && arpeggio?.spots?.[arpeggio.sounding!]
+  const sounding = new Set(
+    soundingSpot
+      ? [at(soundingSpot.string, soundingSpot.fret)]
+      : soundingNote && !arpeggio?.spots
+        ? playable
+            .filter((s) => s.midi === soundingNote.midi)
+            .map((s) => at(s.string, s.fret))
+        : [],
+  )
   return (
     <div class="scroll">
       <div
@@ -623,7 +646,7 @@ function Fretboard({
                 !arpeggioAt.has(at(spot.string, spot.fret))
                   ? 'off-shape'
                   : '',
-                at(spot.string, spot.fret) === sounding ? 'sounding' : '',
+                sounding.has(at(spot.string, spot.fret)) ? 'sounding' : '',
               ].join(' ')}
               disabled={!spot.mark}
               aria-label={
