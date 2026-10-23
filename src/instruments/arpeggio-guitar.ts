@@ -13,7 +13,7 @@ import {
   type Note,
 } from '../theory'
 import { BOX_FRETS } from './chord-box'
-import type { ToneRole } from './chord-tones'
+import { roleOf, type ToneRole } from './chord-tones'
 import { DEFAULT_SPAN } from './fingering'
 import { fretMidi, playableFrets, type Guitar } from './guitar'
 
@@ -171,13 +171,6 @@ export type PositionBox = {
   dots: PositionDot[]
 }
 
-const ROLES: Record<number, ToneRole> = {
-  1: 'root',
-  3: 'third',
-  5: 'fifth',
-  7: 'seventh',
-}
-
 export function positionBox(
   guitar: Guitar,
   spots: Spot[],
@@ -199,7 +192,7 @@ export function positionBox(
       row: spot.fret === open ? undefined : spot.fret - first + 1,
       open: spot.fret === open,
       label: tones[i].label,
-      role: ROLES[tones[i].number] ?? 'extension',
+      role: roleOf(tones[i].number),
     })),
   }
 }

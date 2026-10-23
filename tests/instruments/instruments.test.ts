@@ -16,6 +16,7 @@ import {
 import { tuningPitches } from '../fixtures/tunings'
 import {
   allScales,
+  arpeggioTones,
   enharmonicKey,
   formatNote,
   midiNumber,
@@ -75,6 +76,49 @@ describe('keyboard view', () => {
     const tones = pianoKeys(60, 71, mark).filter((k) => k.mark?.chordTone)
     expect(tones.map((k) => k.mark!.name)).toEqual(['D', 'E', 'G♯', 'B'])
     expect(tones.find((k) => k.mark!.name === 'G♯')?.mark!.inScale).toBe(false)
+  })
+
+  it("colours an arpeggio's added tones by their interval (C as Cmaj9)", () => {
+    const C = key('C', 'major')
+    const c = parseChordSymbol('C')!
+    const { tones } = arpeggioTones(c, C, 'ninth')
+    const mark = noteMarker(C, c, [], tones)
+    const roles = pianoKeys(60, 71, mark)
+      .filter((k) => k.mark?.tone)
+      .map(
+        (k) => `${k.mark!.name} ${k.mark!.tone!.label} ${k.mark!.tone!.role}`,
+      )
+    expect(roles).toEqual([
+      'C R root',
+      'D 9 extension',
+      'E 3 third',
+      'G 5 fifth',
+      'B 7 seventh',
+    ])
+  })
+
+  it('colours the 11th and 13th too (Dm as Dm13, F as Fmaj13♯11)', () => {
+    const C = key('C', 'major')
+    const roles = (symbol: string) => {
+      const chord = parseChordSymbol(symbol)!
+      const { tones } = arpeggioTones(chord, C, 'thirteenth')
+      const mark = noteMarker(C, chord, [], tones)
+      return pianoKeys(60, 71, mark)
+        .filter((k) => k.mark?.tone)
+        .map((k) => `${k.mark!.tone!.label} ${k.mark!.tone!.role}`)
+    }
+    expect(roles('Dm')).toEqual([
+      '♭7 seventh',
+      'R root',
+      '9 extension',
+      '♭3 third',
+      '11 extension',
+      '5 fifth',
+      '13 extension',
+    ])
+    expect(roles('F')).toEqual(
+      expect.arrayContaining(['♯11 extension', '13 extension', '9 extension']),
+    )
   })
 })
 

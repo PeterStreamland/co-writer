@@ -24,6 +24,11 @@ const ROLES: Record<number, ToneRole> = {
   7: 'seventh',
 }
 
+// The colour role of a tone by its interval number above the root.
+export function roleOf(number: number): ToneRole {
+  return ROLES[number] ?? 'extension'
+}
+
 // A label from the root to a note, numbered as given: ♭9, not ♭2.
 function label(root: Note, note: Note, number: number): string {
   if (number === 1) return 'R'
