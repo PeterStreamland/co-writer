@@ -45,6 +45,7 @@ import { SidePanel } from './SidePanel'
 import { SuggestPanel } from './SuggestPanel'
 import { VoicePanel } from './VoicePanel'
 import { ArpeggioBox } from './ArpeggioBox'
+import { LinesPanel } from './LinesPanel'
 import {
   ArpeggioPanel,
   type ArpeggioOnShow,
@@ -557,7 +558,20 @@ export function Workspace() {
     return sources
   }, [progression, timing, key, freeChord && chordKey(freeChord), suggestKey])
   const [arpeggioShow, setArpeggioShow] = useState<ArpeggioOnShow>()
-  const arpeggioOn = tab === 'arpeggio' ? arpeggioShow : undefined
+  // The Arpeggio and Lines tabs light their notes on the instrument while
+  // open.
+  const arpeggioOn =
+    tab === 'arpeggio' || tab === 'lines' ? arpeggioShow : undefined
+  const lines = (
+    <LinesPanel
+      progression={progression}
+      sectionKey={key}
+      timing={timing}
+      bpm={bpm}
+      meter={time.meter}
+      onShow={setArpeggioShow}
+    />
+  )
   const arpeggio = (
     <ArpeggioPanel
       sources={arpeggioSources}
@@ -661,6 +675,7 @@ export function Workspace() {
             { id: 'suggest', label: 'Suggest', content: suggest },
             { id: 'voice', label: 'Voice', content: voice },
             { id: 'arpeggio', label: 'Arpeggio', content: arpeggio },
+            { id: 'lines', label: 'Lines', content: lines },
           ]}
           open={sheetOpen}
           onOpenChange={setSheetOpen}

@@ -215,13 +215,13 @@ Goal: lines within and between chords, chosen by mode.
 
 1. Minimal time: chord lengths in beats, strong and weak beats, time signature. ✅
 2. An Arpeggio tab beside Voice, for trying arpeggios without adding them to the progression (added 2026-10-22, David's idea). Pick a chord, or step through the progression, and an arpeggio: triad, 7th, 9th, 11th or 13th, or a lens's colours. Choose a pattern (up, down, up and down, broken 3rds, and so on), a rate (8ths, triplets, 16ths) and a range. Hear it at the tempo, with each note lit and labelled (R, 3, 5, 7, 9…) on the fretboard or keyboard; on guitar, in one position or as a run across the neck. ✅
-3. Line modes: inner-voice lines (from Phase 5); bass lines (root, root–5th, approach notes, walking, pedal); passing and approach notes between chords (scale steps, chromatic, enclosures).
+3. Line modes: inner-voice lines (from Phase 5); bass lines (root, root–5th, approach notes, walking, pedal); passing and approach notes between chords (scale steps, chromatic, enclosures). ✅
 4. Each line is a Suggestion, tagged chord tone, passing, neighbour or approach, with ⓘ.
 5. Chords and lines play back together.
 
-- [ ] Lines land on a chord tone at each chord change unless tagged otherwise
-- [ ] Every note outside the scale is tagged and explained
-- [ ] Lines fit the beats available
+- [x] Lines land on a chord tone at each chord change unless tagged otherwise
+- [x] Every note outside the scale is tagged and explained
+- [x] Lines fit the beats available
 - [x] Every arpeggio note is a tone of the chord or its chosen extensions, labelled by its interval, and the pattern fits the rate and beats chosen
 
 Your test: generate a bass line and a passing-note line over two progressions and play them on guitar; play arpeggios of three chords in two patterns and check the notes and fingerings on the neck.
