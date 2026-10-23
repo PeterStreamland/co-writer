@@ -1371,3 +1371,21 @@ The Melody tab now has **Next note**: up to eight notes that could come next, be
   Or your own: two note names with octaves. The range is saved with the melody (`melodyRange`; SPEC 12 updated), undo covers it, and the strip's Clear keeps it.
 
 - **Exit criterion 1** ("every suggestion stays in range and is tagged") is tested for next-note suggestions. It stays unticked until the motif options (task 3) and the next-token interface (task 4) are in, as it covers them too.
+
+## 2026-10-23 — Motif options (Phase 7 task 3)
+
+The Melody tab has a **Motif** section under Next note. It offers a motif from the melody again, in the next free bar, in up to five ways. Tap one to add it, or ▶ to hear it first. The theory is `src/theory/motif.ts`, its scores and wording are in `motif-data.ts`, and the cases are in `tests/fixtures/motifs.ts`.
+
+- **What a motif is (my call):** the notes that start in one bar, two or more of them. So the melody "contains a motif" as soon as any bar has two notes, which makes the exit criterion testable. It is tested over four ranges, three keys and seven melodies, and ticked.
+- **Which motif:** the bar whose rhythm (where each note falls in the bar, and its length) comes back most, else the first bar. A rhythm that recurs is the surest sign of a motif. **Motif from** picks any other bar with two or more notes.
+- **Where the options go:** the next bar line at or after the melody's end (and any rest waiting). Each note keeps its place in the bar, so an upbeat stays an upbeat.
+- **The options, best first.** Each is scored by how its notes sit on the chords where they land: chord tones on strong beats count for, other notes on strong beats against. Nearness to the melody's last note counts a little.
+  - **Repeat:** the motif again.
+  - **Sequence:** the motif moved up or down by one to three scale steps in the key. The best two show.
+    - Notes take the key's spelling at the new height.
+    - A note altered from the key keeps its alteration, so in A minor a step up from A G♯ A is B A♯ B (a tonal sequence).
+    - Seven-note scales only.
+  - **Changed ending:** the motif with its last note swapped for the best next note there, from the next-note rules, so it answers rather than repeats.
+  - **Upside down:** each scale step from the first note mirrored, so C E G becomes C A F.
+- **Range:** an option that doesn't fit moves by an octave (or two), and costs a little for it. One that can't fit at all isn't offered.
+- Options are tagged "motif" and their kind, and explained. Exit criterion 1 still waits for task 4.
