@@ -22,6 +22,7 @@ export function PartRows({
   onMute,
   onRemove,
   onClearBar,
+  onShift,
 }: {
   rows: PartView[]
   path: ChordNode[]
@@ -32,6 +33,8 @@ export function PartRows({
   onRemove: (id: string) => void
   // Leaves one bar of a row silent.
   onClearBar: (id: string, step: number) => void
+  // Moves a row, or one bar of it, up (1) or down (-1) an octave.
+  onShift: (id: string, by: number, step?: number) => void
 }) {
   if (rows.length === 0) return null
   return (
@@ -43,6 +46,27 @@ export function PartRows({
         >
           <div class="part-head">
             <strong>{label}</strong>
+            <span class="octave-one" role="group" aria-label="Row octave">
+              <button
+                type="button"
+                aria-label={`${label} down an octave`}
+                title="The whole row down an octave"
+                onClick={() => onShift(part.id, -1)}
+              >
+                ▼
+              </button>
+              {part.octave ? (
+                <span class="octave-label">{octaveText(part.octave)}</span>
+              ) : null}
+              <button
+                type="button"
+                aria-label={`${label} up an octave`}
+                title="The whole row up an octave"
+                onClick={() => onShift(part.id, 1)}
+              >
+                ▲
+              </button>
+            </span>
             <button
               type="button"
               aria-pressed={part.muted === true}
@@ -74,6 +98,31 @@ export function PartRows({
                       {chordSymbol(n.chord)}
                       <span class="muted"> · bar {bars[i]}</span>
                     </span>
+                    {played.length > 0 && (
+                      <span class="octave-one">
+                        <button
+                          type="button"
+                          aria-label={`${label} over ${chordSymbol(n.chord)} in bar ${bars[i]} down an octave`}
+                          title="This bar down an octave"
+                          onClick={() => onShift(part.id, -1, i)}
+                        >
+                          ▼
+                        </button>
+                        {part.octaves?.[n.id] ? (
+                          <span class="octave-label">
+                            {octaveText(part.octaves[n.id])}
+                          </span>
+                        ) : null}
+                        <button
+                          type="button"
+                          aria-label={`${label} over ${chordSymbol(n.chord)} in bar ${bars[i]} up an octave`}
+                          title="This bar up an octave"
+                          onClick={() => onShift(part.id, 1, i)}
+                        >
+                          ▲
+                        </button>
+                      </span>
+                    )}
                     {played.length > 0 && (
                       <button
                         type="button"
@@ -118,4 +167,9 @@ export function PartRows({
       ))}
     </section>
   )
+}
+
+// "+1 oct", "−2 oct".
+function octaveText(octave: number): string {
+  return `${octave > 0 ? '+' : '−'}${Math.abs(octave)} oct`
 }

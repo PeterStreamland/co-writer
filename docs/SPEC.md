@@ -348,6 +348,7 @@ type ChordNode = {
   parent?: string
   children: string[]
   keyChange?: Key
+  octave?: number // octaves moved up or down; its voicing holds the moved notes (2026-10-23)
 }
 type Progression = {
   nodes: Record<string, ChordNode>
@@ -362,6 +363,8 @@ type Part = {
   recipe?: PartRecipe // plays over every chord without a cell
   cells?: Record<string, PartRecipe | null> // a chord node's own bar; null is silent
   muted?: boolean
+  octave?: number // the whole row moved by octaves (2026-10-23)
+  octaves?: Record<string, number> // each bar's own, by chord node id
 }
 type PartRecipe =
   | {

@@ -55,6 +55,10 @@ export type Part = {
   recipe?: PartRecipe
   cells?: Record<string, PartRecipe | null>
   muted?: boolean
+  // Octaves the whole row is moved up (or down, below 0), and each bar's
+  // own on top, by chord node id (David's request).
+  octave?: number
+  octaves?: Record<string, number>
 }
 
 export function partKind(part: Part): PartRecipe['kind'] {
@@ -154,6 +158,43 @@ export function setPartMuted(
   }
 }
 
+// How far a row is moved at a chord: its own octaves and the bar's.
+export function octaveAt(part: Part, node: string): number {
+  return (part.octave ?? 0) + (part.octaves?.[node] ?? 0)
+}
+
+// Moves a whole row, or one bar of it, up (1) or down (-1) an octave; no
+// further than three octaves either way.
+export function shiftPart(
+  p: Progression,
+  id: string,
+  by: number,
+  node?: string,
+): Progression {
+  return {
+    ...p,
+    parts: (p.parts ?? []).map((r) => {
+      if (r.id !== id) return r
+      if (node === undefined) {
+        const octave = clampOctave((r.octave ?? 0) + by)
+        const moved: Part = { ...r, octave }
+        if (!octave) delete moved.octave
+        return moved
+      }
+      const octaves = { ...r.octaves }
+      const octave = clampOctave((octaves[node] ?? 0) + by)
+      if (octave) octaves[node] = octave
+      else delete octaves[node]
+      const moved: Part = { ...r, octaves }
+      if (!Object.keys(octaves).length) delete moved.octaves
+      return moved
+    }),
+  }
+}
+
+const OCTAVES = 3
+const clampOctave = (n: number) => Math.max(-OCTAVES, Math.min(OCTAVES, n))
+
 // The rows of the branch showing: those whose anchor is on the active path.
 export function partsShown(p: Progression): Part[] {
   return (p.parts ?? []).filter((r) => p.activePath.includes(r.anchor))
@@ -164,6 +205,15 @@ export function isPart(value: unknown, nodes: string[]): value is Part {
   const r = value as Part
   if (typeof r.id !== 'string' || !nodes.includes(r.anchor)) return false
   if (r.recipe === undefined && r.cells === undefined) return false
+  if (r.octave !== undefined && !Number.isInteger(r.octave)) return false
+  if (
+    r.octaves !== undefined &&
+    (typeof r.octaves !== 'object' ||
+      r.octaves === null ||
+      !Object.values(r.octaves).every(Number.isInteger))
+  ) {
+    return false
+  }
   if (r.recipe !== undefined && !isRecipe(r.recipe)) return false
   if (r.cells === undefined) return true
   if (typeof r.cells !== 'object' || r.cells === null) return false

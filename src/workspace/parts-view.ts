@@ -22,7 +22,13 @@ import {
 } from '../theory'
 import { roleOf } from '../instruments/chord-tones'
 import type { Guitar } from '../instruments/guitar'
-import { partKind, recipeAt, type Part, type PartRecipe } from '../sketch/parts'
+import {
+  octaveAt,
+  partKind,
+  recipeAt,
+  type Part,
+  type PartRecipe,
+} from '../sketch/parts'
 import { keyAt, pathNodes, type Progression } from '../sketch/progression'
 import type { AlongNote } from './along'
 import { ARPEGGIO_CHOICES, planArpeggio, voiceOf } from './arpeggio-view'
@@ -74,6 +80,25 @@ export function partLabel(part: Part): string {
 // it sounds over and where it falls: each chord plays what the row has for
 // it, a bar of its own or the row's recipe; a silent bar plays nothing.
 export function partNotes(
+  part: Part,
+  progression: Progression,
+  sectionKey: Key,
+  timing: Placement[],
+  guitar?: Guitar,
+): AlongNote[] {
+  // Moved by the row's octaves and each bar's (David's request).
+  const nodes = pathNodes(progression)
+  return unshiftedNotes(part, progression, sectionKey, timing, guitar).map(
+    (n) => {
+      const by = octaveAt(part, nodes[n.step]?.id ?? '')
+      return by
+        ? { ...n, note: { ...n.note, octave: (n.note.octave ?? 4) + by } }
+        : n
+    },
+  )
+}
+
+function unshiftedNotes(
   part: Part,
   progression: Progression,
   sectionKey: Key,

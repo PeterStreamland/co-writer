@@ -18,6 +18,7 @@ import {
   selectNode,
   switchAt,
   type Progression,
+  shiftAt,
 } from '../../src/sketch/progression'
 import { record, redo, startHistory, undo } from '../../src/sketch/history'
 import {
@@ -334,5 +335,44 @@ describe('reading a saved progression', () => {
     expect(isProgression({ nodes: {}, roots: ['x'], activePath: [] })).toBe(
       false,
     )
+  })
+})
+
+describe('moving chords by octaves (David’s request)', () => {
+  const voicing = (text: string) => ({
+    instrument: 'keyboard' as const,
+    notes: text.split(' ').map((n) => parseNote(n)!),
+  })
+  let p = EMPTY_PROGRESSION
+  for (const c of ['C', 'Am', 'F']) {
+    p = addAfter(p, p.activePath.length - 1, parseChordSymbol(c)!)
+  }
+
+  it('keeps the moved notes and counts the octaves', () => {
+    const up = shiftAt(p, 1, voicing('A4 C5 E5'), 1)
+    const n = pathNodes(up)[1]
+    expect(n.octave).toBe(1)
+    expect(n.voicing?.notes.map((x) => x.octave)).toEqual([4, 5, 5])
+    expect(pathNodes(up)[0].octave).toBeUndefined()
+    const back = shiftAt(up, 1, voicing('A3 C4 E4'), -1)
+    expect(pathNodes(back)[1].octave).toBeUndefined()
+    expect(isProgression(JSON.parse(JSON.stringify(up)))).toBe(true)
+  })
+
+  it('starts over when the chord itself changes', () => {
+    const up = shiftAt(p, 1, voicing('A4 C5 E5'), 1)
+    const changed = changeAt(up, 1, parseChordSymbol('Dm')!)
+    expect(pathNodes(changed)[1].octave).toBeUndefined()
+    expect(pathNodes(changed)[1].voicing).toBeUndefined()
+  })
+
+  it('rejects a saved octave that isn’t a whole number', () => {
+    const up = shiftAt(p, 1, voicing('A4 C5 E5'), 1)
+    const id = up.activePath[1]
+    const broken = {
+      ...up,
+      nodes: { ...up.nodes, [id]: { ...up.nodes[id], octave: 0.5 } },
+    }
+    expect(isProgression(broken)).toBe(false)
   })
 })

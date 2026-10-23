@@ -13,8 +13,10 @@ import {
   type ChordName,
   type Key,
   type NextChordSuggestion,
+  type Note,
   type StyleBlend,
 } from '../theory'
+import { OCTAVE_LIMIT, shiftNotes, shiftShape } from '../instruments/octave'
 import { playChord, playNote, preparePiano } from '../audio/player'
 import { useMidi } from '../midi/useMidi'
 import { IDLE, nextRecorder } from '../midi/record'
@@ -58,6 +60,7 @@ import {
   partsShown,
   removePart,
   setPartMuted,
+  shiftPart,
   type PartRecipe,
 } from '../sketch/parts'
 import {
@@ -84,6 +87,7 @@ import {
   keyAt,
   pathNodes,
   selectNode,
+  shiftAt,
   switchAt,
   type ChordNode,
   type ChordVoicing,
@@ -471,6 +475,65 @@ export function Workspace() {
       keep,
     })
   }
+  // A progression chord's notes as they play now: the voicing it keeps, or
+  // the one the instrument view would give it.
+  function voicingOf(n: ChordNode): ChordVoicing | undefined {
+    if (n.voicing) return n.voicing
+    if (instrument === 'guitar') {
+      const top = shapesOf(n.chord)[0]
+      return (
+        top && {
+          instrument: 'guitar',
+          notes: top.notes.filter((x): x is Note => x !== null),
+          frets: top.frets,
+        }
+      )
+    }
+    const choices = voicingChoices(n.chord, pianoFilters)
+    const v =
+      choices.find(
+        (c) => c.id === voicingPick.id && c.inversion === voicingPick.inversion,
+      ) ?? choices[0]
+    return { instrument: 'keyboard', notes: v.notes }
+  }
+  // The chord's voicing moved by octaves (David's request): on guitar the
+  // nearest playable shape; none past the limit or off the instrument.
+  function shiftedVoicing(n: ChordNode, by: number): ChordVoicing | undefined {
+    if (Math.abs((n.octave ?? 0) + by) > OCTAVE_LIMIT) return undefined
+    const v = voicingOf(n)
+    if (!v) return undefined
+    if (v.instrument === 'guitar' && v.frets) {
+      const moved = shiftShape(
+        guitar,
+        n.chord,
+        { frets: v.frets, notes: v.notes },
+        by,
+      )
+      return moved && { instrument: 'guitar', ...moved }
+    }
+    const notes = shiftNotes(v.notes, by)
+    return notes && { instrument: v.instrument, notes }
+  }
+  function shiftChord(index: number, by: number) {
+    const n = path[index]
+    const voicing = shiftedVoicing(n, by)
+    if (!voicing) return
+    const next = shiftAt(progression, index, voicing, by)
+    change(next, index)
+    const moved = pathNodes(next)[index]
+    showNode(moved)
+    playNode(moved)
+  }
+  // Every chord on the path moved together; a chord that can't move that
+  // far stays where it is.
+  function shiftAll(by: number) {
+    let next = progression
+    path.forEach((_, i) => {
+      const voicing = shiftedVoicing(pathNodes(next)[i], by)
+      if (voicing) next = shiftAt(next, i, voicing, by)
+    })
+    change(next, Math.max(0, selected))
+  }
   // Notes playing along with the progression (a line, or arpeggios), and
   // the one sounding.
   const [along, setAlong] = useState<Along>()
@@ -593,6 +656,8 @@ export function Workspace() {
         change(setLengthAt(progression, selected, length), selected)
       }
       between={between}
+      onShift={shiftChord}
+      onShiftAll={shiftAll}
       onBetween={(index) => {
         setBetweenAt(between === index ? undefined : index)
         setTab('suggest')
@@ -823,6 +888,17 @@ export function Workspace() {
             onRemove={(id) => change(removePart(progression, id), selected)}
             onClearBar={(id, step) =>
               change(clearCell(progression, id, path[step].id), selected)
+            }
+            onShift={(id, by, step) =>
+              change(
+                shiftPart(
+                  progression,
+                  id,
+                  by,
+                  step === undefined ? undefined : path[step].id,
+                ),
+                selected,
+              )
             }
           />
         </main>
