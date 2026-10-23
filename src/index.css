@@ -2114,3 +2114,39 @@ body:has(.workspace) #app {
   border: 2px solid var(--tag, var(--line));
   border-radius: 4px;
 }
+
+/* Lines as suggestions (Phase 6 task 4): a row of ranked lines per group. */
+.line-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.line-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.line-group button {
+  padding: 0.2rem 0.55rem;
+}
+
+.line-group button[aria-pressed='true'] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+  font-weight: 700;
+}
+
+.line-explanation {
+  margin: 0 0 0.4rem;
+}
+
+.lines .info-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+  margin-bottom: 0.5rem;
+}

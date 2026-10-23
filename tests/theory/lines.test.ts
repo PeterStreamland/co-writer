@@ -234,6 +234,22 @@ describe('lines between chords', () => {
     ).toBe(true)
   })
 
+  it.each(cases)(
+    'scale-step and chromatic lines put chord tones on strong beats: %s',
+    (_, key, chords, meter, lengths) => {
+      const steps = stepsOf(key, chords, parseMeter(meter)!, lengths)
+      for (const id of ['scale-steps', 'chromatic'] as const) {
+        for (const n of lineFor(id, steps).notes) {
+          const { placed } = steps[n.step]
+          const strength = durEquals(n.onset, placed.start)
+            ? 'start'
+            : placed.beats.find((b) => durEquals(b.at, n.onset))?.strength
+          if (strength !== 'weak') expect(n.tags[0], `${id}`).toBe('chord-tone')
+        }
+      }
+    },
+  )
+
   it('encloses each target from a step above and a semitone below', () => {
     const { notes } = lineFor('enclosure', stepsOf('C major', 'C G'))
     const bar1 = notes.filter((n) => n.step === 0)

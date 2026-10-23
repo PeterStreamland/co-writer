@@ -1084,3 +1084,19 @@ The line modes are in `src/theory/lines.ts`, with the modes and their ranges as 
   - Tap a note for its reason, or a chord to light its notes on the instrument.
   - On guitar, a line's notes ring everywhere they can be played, as lines have no fixed fingering yet.
 - **Phase 6 exit criteria 1–3** are proven by `tests/theory/lines.test.ts`, over 12 progressions (4/4, 3/4, 6/8, 7/8, uneven and two-bar chords, power, sus and 6th chords) with all 12 modes.
+
+## 2026-10-23 — Lines as suggestions (Phase 6 task 4)
+
+Every line mode over the progression is now a Suggestion (`src/theory/line-suggestions.ts`, rules and wording as data in `line-suggestions-data.ts`). They're grouped as in SPEC 6.2, with the groups as categories (Bass lines, Inner voices, Between chords), and ranked within each group.
+
+- **Ranking rules** (points; higher ranks first):
+  - up to 3 for the share of strong beats and downbeats that are chord tones
+  - minus the average move between notes in semitones: 0.05 a semitone for a bass, which may leap, and 0.3 for inner voices and lines between chords, which shouldn't
+  - minus 2 times the share of notes outside the key
+  - Ties keep the modes' own order, so the same progression always ranks the same way.
+- **The ⓘ panel:**
+  - The first line says what the line does, with its counts ("Walks a note a beat through each chord, with 4 approach notes leading into the next root").
+  - "More" breaks the notes down by tag, and says where a pedal sounds against a chord.
+  - Each rule that moved the line adds a context note ("Ranked higher: it moves by step or less", "Ranked lower: 2 notes outside C major").
+- **Lines between chords changed:** ranking showed the scale-step and chromatic lines putting passing notes on strong beats (beat 3 in 4/4). They now follow the textbook rule: a chord tone on every strong beat, passing notes on the weak beats between, and the last stretch leading into the next chord. In a chromatic line, a common tone gets the semitone below as its neighbour (G F♯ G). Enclosures still take the chord's last beats.
+- **The Lines tab** lists the lines as buttons in their groups, best first. The chosen line's first line shows beside an ⓘ.

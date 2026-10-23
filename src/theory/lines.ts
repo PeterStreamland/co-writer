@@ -394,61 +394,75 @@ function betweenLine(
   steps.forEach((step, i) => {
     const slots = slotsOf(step.placed)
     const next = steps[(i + 1) % steps.length]
-    const room = slots.length - 1
-    const { target, path } = leadInto(
-      id,
-      step.key,
-      start,
-      next.chord,
-      room,
-      range,
-    )
-    const held = slots.slice(0, slots.length - path.length)
-    notes.push(lineNote(step, i, start, held, 'tone'))
-    const nextSymbol = chordSymbol(next.chord)
-    const what = tonesOf(next.chord).find(
-      (t) => pitchClass(t.note) === pitchClass(target),
-    )
-    const targetName = `${name(target)}, the ${ORDINALS[what?.number ?? 1]} of ${nextSymbol}`
-    path.forEach((note, k) => {
-      const slot = slots[held.length + k]
-      if (id === 'enclosure') {
-        const above = pitch(note) > pitch(target)
-        notes.push(
-          lineNote(
-            step,
-            i,
-            note,
-            [slot],
-            'approach',
-            `${name(note)}, a ${above ? 'step above' : 'semitone below'} ${targetName}, closes in on it from ${above ? 'above' : 'below'} (an enclosure).`,
-          ),
-        )
-      } else if (pitch(target) === pitch(start)) {
-        notes.push(
-          lineNote(
-            step,
-            i,
-            note,
-            [slot],
-            'neighbour',
-            `${name(note)}, a step above ${name(start)}, steps back to it: ${targetName}.`,
-          ),
-        )
-      } else {
-        notes.push(
-          lineNote(
-            step,
-            i,
-            note,
-            [slot],
-            'passing',
-            `${name(note)} passes by ${id === 'chromatic' ? 'semitone' : 'step'} from ${name(start)} to ${targetName}.`,
-          ),
-        )
+    // Scale steps and chromatic lines put a chord tone on every strong beat
+    // and pass between them on the weak beats, the last stretch leading
+    // into the next chord. An enclosure takes the chord's last beats.
+    const strong =
+      id === 'enclosure'
+        ? [0]
+        : slots.flatMap((s, k) => (k === 0 || s.strength !== 'weak' ? [k] : []))
+    let held: Slot[] = []
+    strong.forEach((from, j) => {
+      const to = strong[j + 1] ?? slots.length
+      const toward = j === strong.length - 1 ? next.chord : step.chord
+      const { target, path } = leadInto(
+        id,
+        step.key,
+        start,
+        toward,
+        to - from - 1,
+        range,
+      )
+      held.push(...slots.slice(from, to - path.length))
+      const leads = path.length > 0 || pitch(target) !== pitch(start)
+      if (leads || j === strong.length - 1) {
+        if (held.length) notes.push(lineNote(step, i, start, held, 'tone'))
+        held = []
       }
+      const what = tonesOf(toward).find(
+        (t) => pitchClass(t.note) === pitchClass(target),
+      )
+      const targetName = `${name(target)}, the ${ORDINALS[what?.number ?? 1]} of ${chordSymbol(toward)}`
+      path.forEach((note, k) => {
+        const slot = slots[to - path.length + k]
+        if (id === 'enclosure') {
+          const above = pitch(note) > pitch(target)
+          notes.push(
+            lineNote(
+              step,
+              i,
+              note,
+              [slot],
+              'approach',
+              `${name(note)}, a ${above ? 'step above' : 'semitone below'} ${targetName}, closes in on it from ${above ? 'above' : 'below'} (an enclosure).`,
+            ),
+          )
+        } else if (pitch(target) === pitch(start)) {
+          notes.push(
+            lineNote(
+              step,
+              i,
+              note,
+              [slot],
+              'neighbour',
+              `${name(note)}, a ${pitch(note) > pitch(start) ? 'step above' : 'semitone below'} ${name(start)}, steps back to it: ${targetName}.`,
+            ),
+          )
+        } else {
+          notes.push(
+            lineNote(
+              step,
+              i,
+              note,
+              [slot],
+              'passing',
+              `${name(note)} passes by ${id === 'chromatic' ? 'semitone' : 'step'} from ${name(start)} to ${targetName}.`,
+            ),
+          )
+        }
+      })
+      start = target
     })
-    start = target
   })
   return notes
 }
@@ -465,7 +479,8 @@ function nearestTone(chord: ChordName, near: number, range: number[]): Note {
 // Which tone of the next chord to lead into from `start`, and the notes on
 // the way, in at most `room` slots. Scale steps and chromatic lines prefer
 // a target whose path fills the room, then the nearest and the one nearer
-// the middle of the range; a common tone gets a neighbour above it.
+// the middle of the range; a common tone gets a neighbour (the step above,
+// or in a chromatic line the semitone below).
 // Enclosures go to the nearest tone.
 function leadInto(
   id: LineModeId,
@@ -498,16 +513,26 @@ function leadInto(
     const path =
       pitch(target) === pitch(start)
         ? room > 0
-          ? [stepAbove(key, start)]
+          ? [
+              id === 'chromatic'
+                ? approachNote(start, 'below')
+                : stepAbove(key, start),
+            ]
           : []
         : between(key, start, target, id === 'chromatic')
     if (path.length > room) continue
-    // Unused room counts most, then the leap; straying more than a 4th
-    // from the middle of the range costs as much as unused room, so a long
-    // line turns round rather than climbing away.
+    // Unused room counts most, then the leap; staying put costs a little,
+    // so the line moves to another tone where it can; straying more than a
+    // 4th from the middle of the range costs as much as unused room, so a
+    // long line turns round rather than climbing away.
     const drift = Math.abs(pitch(target) - (range[0] + range[1]) / 2)
+    const stay = pitch(target) === pitch(start) ? 0.5 : 0
     const score =
-      room - path.length + distance(target) * 0.1 + Math.max(0, drift - 5)
+      room -
+      path.length +
+      distance(target) * 0.1 +
+      stay +
+      Math.max(0, drift - 5)
     if (!best || score < best.score) best = { target, path, score }
   }
   return best ?? { target: place(next.root, pitch(start), range), path: [] }
