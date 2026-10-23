@@ -1329,3 +1329,45 @@ A **Melody** tab joins the side panel, and a **♪ Melody** lane sits under the 
 - **The lane** shows the melody bar by bar, each note with its length as a fraction (1/4 for a crotchet). The note sounding is lit. Lining the bars up under the chords is Phase 7 task 6.
 - **Playback:** the strip's **▶ Play** plays the melody with the chords and rows. On the Melody tab, **▶ Play melody** plays it alone, every note, and **▶ Play with chords** plays it over the chords alone. Notes after the last chord ends play only with Play melody.
 - **Where it is kept:** on the progression as `melody` (SPEC 12 updated), outside the chord tree, so every branch plays over the same melody. This stands in for the section's melody until sections arrive. It is saved in the browser, undo and redo cover every change, and the strip's Clear keeps it.
+
+## 2026-10-23 — Generating a phrase (David's request)
+
+David asked whether the app would write melodies. The plan's melody features suggest the next note, a note at a time, rather than writing a whole tune. David asked for a generator as well. It joins Phase 7 as task 7, after the next-note suggestions it is built on, with an exit criterion of its own.
+
+- **What it does:** one button writes the next few notes, or a bar or two, by choosing from the next-note suggestions. Chance plays a part, as the Wildcard line's does, but every next-note rule still holds.
+- **Using it:** another press gives another take, and the phrase can be kept, trimmed or undone.
+
+## 2026-10-23 — Next-note suggestions (Phase 7 task 2)
+
+The Melody tab now has **Next note**: up to eight notes that could come next, best first. Each is tagged and comes with its reason, and tapping one adds it to the melody and plays it. Picking a range sits above the list. The grouped list, wildcard, preview and ⓘ of Phase 4 come with task 4. The theory is `src/theory/next-note.ts`, its weights, ranges and wording are data in `next-note-data.ts`, and the cases are in `tests/fixtures/next-notes.ts`.
+
+- **Candidates:** every note within an octave of the last note, inside the range. For the first note, every tone of the first chord in the range, nearer the middle first.
+  - Spelling: as the chord spells it, then as the key does, then raised going up and lowered coming down.
+  - The next note starts after the last note (and any rest waiting), and lasts the note value chosen.
+- **Rules, each a weight:**
+  - **Chord tones:** a chord tone on a strong beat scores well. A note that isn't one, on a strong beat, costs. On weak beats a chord tone counts for less.
+  - **Steps and skips:** steps are liked. A skip of a 3rd isn't penalised, as melodies outline chords that way. Leaps of a 4th or more cost, a 6th or more costs more, and nothing beyond an octave is offered.
+  - **After a leap:** after a leap of a 4th or more, turning back (by step especially) is liked, and carrying on the same way costs. So does a second leap the same way, and a fifth note running the same way.
+  - **Tendency notes:** the leading note rising to the tonic, 4 falling to 3, and a sharp rising or a flat falling by a semitone are liked.
+  - **Notes outside the key** cost.
+  - **Range:** going past the range the melody has used so far costs a little, so it leans towards that range (SPEC 7.3).
+  - **Found while trying it:**
+    - A third repeat of a note in a row gives way: each repeat already in a row costs more.
+    - A third swing between the same two notes (C B C B) costs, so the melody moves on. Going back to a neighbour once is fine.
+- **Tags:** chord tone, passing (a step on the same way, not a chord tone), neighbour (a step that turns back, not a chord tone), leap (a 3rd or more), repeat, chromatic, plus step and "resolves" for tendency notes. Every suggestion has at least one of the first six (tested over every range preset and several melodies).
+- **Chords:** the chord under the next note is the one used. With no chords at all, the key's tonic triad stands in. Past the last chord there is no harmony, so no chord rules apply.
+- **Ranges (SPEC 7.3, my call on the values; David to check):**
+
+  | Preset                    | Range               |
+  | ------------------------- | ------------------- |
+  | Bass voice                | E2–E4               |
+  | Baritone voice            | G2–G4               |
+  | Tenor voice (the default) | C3–A4               |
+  | Alto voice                | F3–D5               |
+  | Soprano voice             | C4–A5               |
+  | Guitar lead               | E3–E6, as it sounds |
+  | Keys lead                 | C4–C6               |
+
+  Or your own: two note names with octaves. The range is saved with the melody (`melodyRange`; SPEC 12 updated), undo covers it, and the strip's Clear keeps it.
+
+- **Exit criterion 1** ("every suggestion stays in range and is tagged") is tested for next-note suggestions. It stays unticked until the motif options (task 3) and the next-token interface (task 4) are in, as it covers them too.

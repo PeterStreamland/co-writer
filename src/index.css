@@ -2547,3 +2547,52 @@ button.remove-note {
   font-size: 0.65rem;
   color: var(--muted, inherit);
 }
+
+/* Next-note suggestions (Phase 7 task 2). */
+.next-notes {
+  list-style: none;
+  margin: 0 0 0.6rem;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.next-notes li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.5rem;
+}
+
+.next-note {
+  min-width: 4rem;
+  font-weight: 600;
+}
+
+.melody-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+}
+
+.melody-tag {
+  font-size: 0.7rem;
+  padding: 0 0.35rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--muted);
+}
+
+.melody-tag.tag-chord-tone {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.melody-tag.tag-chromatic {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.next-why {
+  flex-basis: 100%;
+  font-size: 0.8rem;
+}

@@ -62,7 +62,12 @@ export type Progression = {
   // The section's melody (SPEC 7.2), kept here, outside the tree, until
   // sketches have sections: every branch plays over the same melody.
   melody?: MelodyNote[]
+  // Its range (SPEC 7.3): a preset's id, or 'custom' with its own notes.
+  // Tenor when unset.
+  melodyRange?: MelodyRangeSetting
 }
+
+export type MelodyRangeSetting = { preset: string; low?: Note; high?: Note }
 
 export const EMPTY_PROGRESSION: Progression = {
   nodes: {},
@@ -469,7 +474,8 @@ export function isProgression(value: unknown): value is Progression {
     (p.parts === undefined ||
       (Array.isArray(p.parts) && p.parts.every((r) => isPart(r, ids)))) &&
     (p.melody === undefined ||
-      (Array.isArray(p.melody) && p.melody.every(isMelodyNote)))
+      (Array.isArray(p.melody) && p.melody.every(isMelodyNote))) &&
+    (p.melodyRange === undefined || isRangeSetting(p.melodyRange))
   )
 }
 
@@ -489,6 +495,23 @@ function isMelodyNote(value: unknown): value is MelodyNote {
     Number.isInteger(m.note.octave) &&
     isDur(m.onset) &&
     isDur(m.length)
+  )
+}
+
+const isPitch = (n: unknown): boolean =>
+  typeof n === 'object' &&
+  n !== null &&
+  typeof (n as Note).letter === 'string' &&
+  Number.isInteger((n as Note).accidental) &&
+  Number.isInteger((n as Note).octave)
+
+function isRangeSetting(value: unknown): value is MelodyRangeSetting {
+  if (typeof value !== 'object' || value === null) return false
+  const r = value as MelodyRangeSetting
+  return (
+    typeof r.preset === 'string' &&
+    (r.low === undefined || isPitch(r.low)) &&
+    (r.high === undefined || isPitch(r.high))
   )
 }
 

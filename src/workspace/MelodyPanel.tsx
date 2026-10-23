@@ -6,8 +6,11 @@ import {
   addDur,
   barLength,
   beatsOf,
+  RANGE_PRESETS,
   formatNote,
   melodyEnd,
+  nextNotes,
+  parseNote,
   meterOfBar,
   quantise,
   removeLast,
@@ -17,10 +20,13 @@ import {
   type Dur,
   type GridId,
   type Key,
+  type MelodyChord,
   type MelodyNote,
   type MeterMap,
 } from '../theory'
-import { playClick } from '../audio/player'
+import { playClick, playNote } from '../audio/player'
+import type { MelodyRangeSetting } from '../sketch/progression'
+import { rangeFromSetting } from './melody-view'
 import type { Midi } from '../midi/useMidi'
 import { finishTake, startTake, takeEvent, type Take } from '../midi/take'
 import { secondsOf, tempoNote } from '../sketch/time'
@@ -39,7 +45,9 @@ type Phase = 'idle' | 'count-in' | 'recording'
 // The Melody tab (PLAN Phase 7 task 1, SPEC 7.2): enter a melody by tapping
 // the fretboard or keyboard (step entry, with the note value chosen here),
 // by typing note names, or by recording on MIDI after a one-bar count-in,
-// snapped to the grid. The melody shows in the lane under the strip.
+// snapped to the grid. The melody shows in the lane under the strip. Next
+// note (task 2, SPEC 7.3) lists what could come next within the melody's
+// range, best first, each tagged and explained.
 export function MelodyPanel({
   melody,
   onChange,
@@ -55,6 +63,9 @@ export function MelodyPanel({
   onPlayChords,
   onStop,
   onRecordStart,
+  chords,
+  rangeSetting,
+  onRangeSetting,
 }: {
   melody: MelodyNote[]
   // Every change is undoable, with the strip's undo.
@@ -76,11 +87,32 @@ export function MelodyPanel({
   // Recording a melody turns off Record chords, so held notes aren't added
   // to the progression as chords.
   onRecordStart: () => void
+  // The chords under the melody, for next-note suggestions.
+  chords: MelodyChord[]
+  rangeSetting?: MelodyRangeSetting
+  onRangeSetting: (setting: MelodyRangeSetting) => void
 }) {
   const set = (part: Partial<MelodyEntry>) => onEntry({ ...entry, ...part })
   const value =
     NOTE_VALUES.find((v) => v.id === entry.value) ??
     NOTE_VALUES.find((v) => v.id === 'quarter')!
+  // Next-note suggestions (Phase 7 task 2): what could come after the
+  // last note, for the note value chosen, best first. Tap one to add it.
+  const range = rangeFromSetting(rangeSetting)
+  const suggestions = nextNotes({
+    melody,
+    key: keyValue,
+    chords,
+    time,
+    range,
+    length: value.length,
+    gap: entry.gap,
+  })
+  const addSuggested = (note: MelodyNote) => {
+    onChange([...melody, note])
+    set({ gap: ZERO })
+    void playNote(note.note, secondsOf(note.length, bpm, time.meter))
+  }
   const [text, setText] = useState('')
   const [unknown, setUnknown] = useState<string[]>([])
   const addTyped = () => {
@@ -274,6 +306,74 @@ export function MelodyPanel({
           </span>
         )}
       </div>
+      <h3>Next note</h3>
+      <div class="melody-bar">
+        <label>
+          Range
+          <select
+            value={rangeSetting?.preset ?? 'tenor'}
+            onChange={(e) => {
+              const preset = e.currentTarget.value
+              onRangeSetting(
+                preset === 'custom'
+                  ? { preset, low: range.low, high: range.high }
+                  : { preset },
+              )
+            }}
+          >
+            {RANGE_PRESETS.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.label} ({p.low}–{p.high})
+              </option>
+            ))}
+            <option value="custom">Your own</option>
+          </select>
+        </label>
+        {rangeSetting?.preset === 'custom' && (
+          <>
+            <RangeNote
+              key={`low-${formatNote(range.low)}`}
+              label="From"
+              value={range.low}
+              onChange={(low) => onRangeSetting({ ...rangeSetting, low })}
+            />
+            <RangeNote
+              key={`high-${formatNote(range.high)}`}
+              label="to"
+              value={range.high}
+              onChange={(high) => onRangeSetting({ ...rangeSetting, high })}
+            />
+          </>
+        )}
+      </div>
+      <p class="muted">
+        {melody.length
+          ? `What could follow ${formatNote(melody.at(-1)!.note)}, best first, as a ${value.name}. Tap one to add it.`
+          : `Notes to start on, best first, as a ${value.name}. Tap one to add it.`}
+      </p>
+      <ol class="next-notes">
+        {suggestions.map((s) => (
+          <li key={formatNote(s.candidate.note)}>
+            <button
+              type="button"
+              class="next-note"
+              title={s.explanation}
+              onClick={() => addSuggested(s.candidate)}
+            >
+              + {formatNote(s.candidate.note)}
+            </button>
+            <span class="melody-tags">
+              {s.tags.map((t) => (
+                <span key={t} class={`melody-tag tag-${t}`}>
+                  {TAG_TEXT[t] ?? t}
+                </span>
+              ))}
+            </span>
+            <span class="muted next-why">{s.explanation}</span>
+          </li>
+        ))}
+      </ol>
+
       <form
         class="melody-type"
         onSubmit={(e) => {
@@ -373,5 +473,47 @@ export function MelodyPanel({
         </>
       )}
     </section>
+  )
+}
+
+// How each next-note tag reads.
+const TAG_TEXT: Record<string, string> = {
+  'chord-tone': 'chord tone',
+  step: 'step',
+  passing: 'passing',
+  neighbour: 'neighbour',
+  leap: 'leap',
+  repeat: 'repeat',
+  chromatic: 'chromatic',
+  tendency: 'resolves',
+}
+
+// One end of a range of your own: a note name with its octave, kept when
+// it reads (E2, F#5), otherwise left as it was.
+function RangeNote({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: MelodyNote['note']
+  onChange: (note: MelodyNote['note']) => void
+}) {
+  const [text, setText] = useState(formatNote(value))
+  return (
+    <label>
+      {label}
+      <input
+        type="text"
+        size={4}
+        value={text}
+        onInput={(e) => setText(e.currentTarget.value)}
+        onBlur={() => {
+          const note = parseNote(text)
+          if (note && note.octave !== undefined) onChange(note)
+          else setText(formatNote(value))
+        }}
+      />
+    </label>
   )
 }
