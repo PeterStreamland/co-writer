@@ -1,7 +1,17 @@
 // The melody as notes playing along with the chords (SPEC 7.2): each note
 // sounds over the chord it starts under. Notes after the last chord ends
 // don't play with the chords; Play melody plays them all.
-import { addDur, compareDur, type MelodyNote, type Placement } from '../theory'
+import {
+  DEFAULT_RANGE,
+  addDur,
+  compareDur,
+  melodyRange,
+  midiNumber,
+  type MelodyNote,
+  type MelodyRange,
+  type Placement,
+} from '../theory'
+import type { MelodyRangeSetting } from '../sketch/progression'
 import type { AlongNote } from './along'
 
 export const MELODY_LOOK = 'melody'
@@ -29,4 +39,18 @@ export function melodyAlong(
           },
         ]
   })
+}
+
+// The melody's range from its setting: a preset's, or the notes chosen for
+// a range of your own when both are there and the low one is lower.
+// Tenor when unset (SPEC 7.3).
+export function rangeFromSetting(setting?: MelodyRangeSetting): MelodyRange {
+  if (setting?.preset === 'custom' && setting.low && setting.high) {
+    const low = midiNumber(setting.low)
+    const high = midiNumber(setting.high)
+    if (low !== undefined && high !== undefined && low < high) {
+      return { low: setting.low, high: setting.high }
+    }
+  }
+  return melodyRange(setting?.preset ?? DEFAULT_RANGE)
 }

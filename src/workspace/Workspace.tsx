@@ -727,6 +727,16 @@ export function Workspace() {
         setPlayingAt(undefined)
       }}
       onRecordStart={() => setRecording(false)}
+      chords={path.map((n, i) => ({
+        chord: n.chord,
+        key: keyAt(progression, i, key),
+        start: timing[i].start,
+        length: timing[i].length,
+      }))}
+      rangeSetting={progression.melodyRange}
+      onRangeSetting={(melodyRange) =>
+        setHistory((h) => record(h, { ...h.present, melodyRange }))
+      }
     />
   )
   const strip = (
@@ -759,9 +769,13 @@ export function Workspace() {
       onClear={() =>
         // The melody belongs to the section, so it stays.
         change(
-          progression.melody
-            ? { ...EMPTY_PROGRESSION, melody: progression.melody }
-            : EMPTY_PROGRESSION,
+          {
+            ...EMPTY_PROGRESSION,
+            ...(progression.melody && { melody: progression.melody }),
+            ...(progression.melodyRange && {
+              melodyRange: progression.melodyRange,
+            }),
+          },
           -1,
         )
       }
