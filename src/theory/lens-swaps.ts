@@ -122,18 +122,20 @@ export function withSwaps<V extends LensVoicing>(
   })
 }
 
-// For the chords either side of `index`, the lens's voicings that sit
-// better beside it than theirs do now, best first: after a swap, the
-// suggestions its new neighbour makes.
+// For each chord in `targets` (after a swap: the chords either side of it,
+// or the chord itself when a neighbour was swapped), the lens's best other
+// voicings where it is now, best first, and how many of them sit better
+// than its own does: the suggestions a neighbour's change makes. With none
+// smoother, the chord already sits as well as the lens can manage.
 export function neighbourOptions<V extends LensVoicing>(
   lens: Lens,
   steps: LensStep[],
   choices: LensChoice<V>[],
-  index: number,
+  targets: number[],
   candidatesAt: (at: number) => V[],
   shown = NEIGHBOUR_SHOWN,
-): { at: number; options: Suggestion<V>[] }[] {
-  return [index - 1, index + 1]
+): { at: number; options: Suggestion<V>[]; smoother: number }[] {
+  return targets
     .filter((at) => at >= 0 && at < choices.length)
     .map((at) => {
       const now = placed(lens, steps, choices, at, choices[at].voicing).cost
@@ -143,11 +145,9 @@ export function neighbourOptions<V extends LensVoicing>(
         choices,
         at,
         candidatesAt(at),
-        SWAPS_SHOWN,
+        shown,
       )
-        .filter((o) => -o.score < now - 1e-9)
-        .slice(0, shown)
-      return { at, options }
+      const smoother = options.filter((o) => -o.score < now - 1e-9).length
+      return { at, options, smoother }
     })
-    .filter((n) => n.options.length > 0)
 }

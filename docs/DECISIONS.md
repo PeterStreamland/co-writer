@@ -1279,3 +1279,10 @@ David found that clicking a chord in a Voice lens column didn't offer alternativ
 - "Other voicings" for a swapped chord now offers voicings of the chord that is there, for example C7 after a swap from Am.
 - **Every chord box in a lens column is one size (David's request):** the same width everywhere, with one height on keyboard and a taller one on guitar for the chord box. Long names and notes are cut short. A rule a voicing breaks shows as ⚠ in its box, with the reasons in the panel below.
 - The swap panel now opens below the column's chords, full width, so it no longer stretches one box.
+
+**Neighbour suggestions, fixed (David's report, same day).** "Suggestions due to the neighbour change" was hardly ever seen, for two reasons:
+
+- It only appeared on the swapped chord's own panel.
+- It only listed voicings strictly smoother than the neighbour's own. That is rarely any, because "Other chords here" already voices a new chord to fit between its neighbours, and the lens's own path can never be bettered one chord at a time.
+
+Now it also appears on the panel of a chord whose neighbour was swapped. Each neighbour always offers its two best other voicings beside the new chord: those that would be smoother than its own are marked "smoother", and otherwise the list says the chord is already the smoothest and offers two to try.

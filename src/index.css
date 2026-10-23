@@ -2452,3 +2452,7 @@ button.remove-note {
 .lens-swap-head {
   margin: 0 0 0.3rem;
 }
+
+.lens-swap-list button.smoother {
+  border-color: var(--accent);
+}
