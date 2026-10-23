@@ -235,6 +235,7 @@ Goal: enter a few notes and get next-note options; add harmonies and countermelo
 3. Motif awareness: offer a repeat, a sequence (transposed repeat) or a varied repeat of an earlier motif.
 4. The same next-token interface as Phase 4.
 5. Melody-based lines: diatonic 3rds and 6ths (twin-guitar harmony) and a contrary-motion countermelody.
+6. The rows under the progression and the melody lane line up bar by bar under the chords, and a row can be frozen into notes to edit by hand (added 2026-10-23, David's request).
 
 - [ ] Every suggestion stays in range and is tagged (chord tone, passing, neighbour, leap, chromatic)
 - [ ] A motif option appears whenever the melody contains a motif

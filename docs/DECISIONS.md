@@ -1149,3 +1149,14 @@ David asked for a way to add a line or an arpeggio to the progression without re
   - `Progression.parts` in `src/sketch/parts.ts`, with `addPart`, `removePart`, `setPartMuted` and `partsShown`, checked when a saved progression is read back.
   - Each recipe turns into notes in `src/workspace/parts-view.ts`.
   - SPEC 12's data model and its "Changes to the plan" (item 10) are updated.
+
+## 2026-10-23 — Adding single bars to rows (David's request)
+
+Each bar box in the Lines and Arpeggio tabs gains a **+** that adds just that bar to a row.
+
+- **Where a bar goes:** into the latest line row (from Lines) or arpeggio row (from Arpeggio) on the branch showing. With none, it starts a new row that plays only that bar.
+- **Bar by bar:** each bar can have its own setting (walking in bar 1, chromatic in bar 3; a 7th up in one bar, a 9th down in another), so a row can be built a bar at a time. Bars not added stay silent.
+- **Over a whole row:** a bar added to a row made with **+ Add as a row** plays its own way and the rest keep the row's recipe.
+- **Silencing a bar:** in a row, each bar that plays shows what it plays when it has its own setting, and a small **×** to silence it. Undo brings it back.
+- **The model:** a row (`Part`) now has an optional `recipe` for every chord plus `cells`, each chord's own recipe (or null for silence), keyed by chord node, and a `kind`. Rows saved before this still load.
+- **Lining up rows bar by bar under the chords** joins Phase 7 as task 6, with freezing a row into notes (David's request).

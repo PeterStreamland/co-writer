@@ -26,11 +26,28 @@ export type PartRecipe =
   // On guitar in one position, `from` is the fret the position sits near.
   | { kind: 'arpeggio'; settings: ArpeggioSettings; from?: number }
 
+// A row plays its recipe over every chord, except where a bar has its own
+// (David's request: + on a single bar): a cell keyed by the chord's node
+// id, with its own recipe, or null for a bar left silent. A row made bar
+// by bar has cells only. Its kind says which tab's + adds bars to it.
 export type Part = {
   id: string
   anchor: string
-  recipe: PartRecipe
+  kind?: PartRecipe['kind'] // rows saved before cells existed have none
+  recipe?: PartRecipe
+  cells?: Record<string, PartRecipe | null>
   muted?: boolean
+}
+
+export function partKind(part: Part): PartRecipe['kind'] {
+  return part.kind ?? part.recipe?.kind ?? 'line'
+}
+
+// What a row plays over a chord: its cell there, or else its recipe.
+export function recipeAt(part: Part, node: string): PartRecipe | undefined {
+  const cell = part.cells?.[node]
+  if (cell !== undefined) return cell ?? undefined
+  return part.recipe
 }
 
 function nextPartId(p: Progression): string {
@@ -42,8 +59,55 @@ function nextPartId(p: Progression): string {
 export function addPart(p: Progression, recipe: PartRecipe): Progression {
   const anchor = p.activePath.at(-1)
   if (!anchor) return p
-  const part: Part = { id: nextPartId(p), anchor, recipe }
+  const part: Part = { id: nextPartId(p), anchor, kind: recipe.kind, recipe }
   return { ...p, parts: [...(p.parts ?? []), part] }
+}
+
+// Adds one bar to the latest row of its kind showing, or to a new row of
+// that bar alone; the bar takes the recipe over any it had.
+export function addCell(
+  p: Progression,
+  node: string,
+  recipe: PartRecipe,
+): Progression {
+  const target = partsShown(p)
+    .filter((r) => partKind(r) === recipe.kind)
+    .at(-1)
+  if (!target) {
+    const anchor = p.activePath.at(-1)
+    if (!anchor || !p.activePath.includes(node)) return p
+    const part: Part = {
+      id: nextPartId(p),
+      anchor,
+      kind: recipe.kind,
+      cells: { [node]: recipe },
+    }
+    return { ...p, parts: [...(p.parts ?? []), part] }
+  }
+  return setCell(p, target.id, node, recipe)
+}
+
+// Leaves one bar of a row silent.
+export function clearCell(
+  p: Progression,
+  id: string,
+  node: string,
+): Progression {
+  return setCell(p, id, node, null)
+}
+
+function setCell(
+  p: Progression,
+  id: string,
+  node: string,
+  recipe: PartRecipe | null,
+): Progression {
+  return {
+    ...p,
+    parts: (p.parts ?? []).map((r) =>
+      r.id === id ? { ...r, cells: { ...r.cells, [node]: recipe } } : r,
+    ),
+  }
 }
 
 export function removePart(p: Progression, id: string): Progression {
@@ -75,7 +139,15 @@ export function isPart(value: unknown, nodes: string[]): value is Part {
   if (typeof value !== 'object' || value === null) return false
   const r = value as Part
   if (typeof r.id !== 'string' || !nodes.includes(r.anchor)) return false
-  const recipe = r.recipe as PartRecipe | undefined
+  if (r.recipe === undefined && r.cells === undefined) return false
+  if (r.recipe !== undefined && !isRecipe(r.recipe)) return false
+  if (r.cells === undefined) return true
+  if (typeof r.cells !== 'object' || r.cells === null) return false
+  return Object.values(r.cells).every((c) => c === null || isRecipe(c))
+}
+
+function isRecipe(value: unknown): value is PartRecipe {
+  const recipe = value as PartRecipe | undefined
   if (recipe?.kind === 'line') {
     return typeof recipe.mode === 'string' && typeof recipe.roll === 'number'
   }

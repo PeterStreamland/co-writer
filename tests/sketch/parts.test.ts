@@ -9,7 +9,10 @@ import {
   type Progression,
 } from '../../src/sketch/progression'
 import {
+  addCell,
   addPart,
+  clearCell,
+  recipeAt,
   partsShown,
   removePart,
   setPartMuted,
@@ -103,6 +106,50 @@ describe('rows under the progression', () => {
         ...saved,
         parts: [{ id: 'r9', anchor: 'n1', recipe: { kind: 'drums' } }],
       }),
+    ).toBe(false)
+  })
+})
+
+describe('bars added one at a time', () => {
+  it('go into the latest row of their kind, or start one', () => {
+    const p = build('C', 'Am', 'F')
+    const [n1, n2] = p.activePath
+    let q = addCell(p, n1, WALKING)
+    expect(partsShown(q)).toHaveLength(1)
+    expect(partsShown(q)[0].kind).toBe('line')
+    q = addCell(q, n2, { kind: 'line', mode: 'chromatic', roll: 0 })
+    expect(partsShown(q)).toHaveLength(1)
+    q = addCell(q, n2, ARPEGGIOS)
+    expect(partsShown(q).map((r) => r.kind)).toEqual(['line', 'arpeggio'])
+    const [lines] = partsShown(q)
+    expect(recipeAt(lines, n1)).toEqual(WALKING)
+    expect(recipeAt(lines, n2)).toMatchObject({ mode: 'chromatic' })
+    expect(recipeAt(lines, p.activePath[2])).toBeUndefined()
+  })
+
+  it('override a whole row, and can be left silent', () => {
+    const p = addPart(build('C', 'Am'), WALKING)
+    const [n1, n2] = p.activePath
+    let q = addCell(p, n2, { kind: 'line', mode: 'roots', roll: 0 })
+    const id = partsShown(q)[0].id
+    expect(recipeAt(partsShown(q)[0], n1)).toEqual(WALKING)
+    expect(recipeAt(partsShown(q)[0], n2)).toMatchObject({ mode: 'roots' })
+    q = clearCell(q, id, n2)
+    expect(recipeAt(partsShown(q)[0], n2)).toBeUndefined()
+  })
+
+  it('save and read back, and rows saved before bars still load', () => {
+    const p = build('C', 'Am')
+    const q = addCell(p, p.activePath[0], ARPEGGIOS)
+    expect(isProgression(JSON.parse(JSON.stringify(q)))).toBe(true)
+    const old = {
+      ...p,
+      parts: [{ id: 'r1', anchor: p.activePath[1], recipe: WALKING }],
+    }
+    expect(isProgression(old)).toBe(true)
+    expect(partsShown(old)[0].kind).toBeUndefined()
+    expect(
+      isProgression({ ...p, parts: [{ id: 'r1', anchor: p.activePath[1] }] }),
     ).toBe(false)
   })
 })
