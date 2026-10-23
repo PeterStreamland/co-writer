@@ -34,6 +34,36 @@ export const ADDED_TONES: Record<
   13: { letters: 5, fallback: 'M13' },
 }
 
+// Where a borrowed chord's added tones come from (David's choice, Phase 6
+// gate): the first mode on the key's tonic that holds all the chord's own
+// notes, tried in this order. A major key borrows from its minors first (Fm
+// in C is iv of C minor, so Fm7), a minor key from harmonic and melodic
+// minor first (E in A minor is V of A harmonic minor, so E7♭9). A chord no
+// mode on the tonic holds (a secondary dominant: E7 in C) takes the key's.
+export const BORROW_ORDER: { major: string[]; minor: string[] } = {
+  major: [
+    'natural-minor',
+    'dorian',
+    'mixolydian',
+    'phrygian',
+    'lydian',
+    'harmonic-minor',
+    'melodic-minor',
+    'locrian',
+  ],
+  minor: [
+    'harmonic-minor',
+    'melodic-minor',
+    'dorian',
+    'major',
+    'mixolydian',
+    'phrygian',
+    'lydian',
+    'natural-minor',
+    'locrian',
+  ],
+}
+
 export type PatternDirection = 'up' | 'down' | 'up-down' | 'down-up'
 
 export type ArpeggioPattern = {

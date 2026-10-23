@@ -1036,7 +1036,7 @@ The Arpeggio tab sits beside Voice. It arpeggiates any chord of the progression,
 
 - **Which notes (my calls, as the spec leaves them open):**
   - A chord's own tones always stay.
-  - Any 7th, 9th, 11th or 13th the chord lacks comes from the key, stacked in 3rds on its root: the key's note six, one, three or five letters up. So in C, G gives G7, C gives Cmaj7 and F gives Fmaj13♯11. Chromatic chords work the same way: E is E7 (V/vi) and A♭ is A♭maj7 (♭VI).
+  - Any 7th, 9th, 11th or 13th the chord lacks comes from the key, stacked in 3rds on its root: the key's note six, one, three or five letters up. So in C, G gives G7, C gives Cmaj7 and F gives Fmaj13♯11. Chromatic chords work the same way: E is E7 (V/vi) and A♭ is A♭maj7 (♭VI). (Changed 2026-10-23 at the Phase 6 gate: a borrowed chord stacks from the mode it's borrowed from, so Fm in C is Fm7 and B♭ is B♭7.)
   - **An added note a semitone above a chord tone is left out:** the 11th over a major 3rd, and a ♭9 or ♭13 over a minor or major chord. These are the arranger's avoid notes, the same rule the experimental lenses use. The tab names each note it leaves out and why ("F (11), a semitone above the 3rd").
   - **A dominant 7th keeps its ♭9 and ♭13**, as they are its colours: E in A minor goes up to E7♭9♭13.
   - A 6th stands in for the 7th (C6 stays a 6/9 chord), and sus chords keep their 2nd or 4th.
@@ -1168,3 +1168,18 @@ Each bar box in the Lines and Arpeggio tabs gains a **+** that adds just that ba
 - The × to silence it.
 
 Bars a row doesn't play show as faint "silent" boxes, so every row reads bar by bar across the progression.
+
+## 2026-10-23 — Phase 6 gate review fixes
+
+The theory reviewer checked Phase 6 against SPEC and found lines spelling notes the key already has as outside it, and borrowed chords taking the wrong 7ths. Fixed in `src/theory/lines.ts` and `src/theory/arpeggio.ts`, with new golden entries added to `tests/fixtures/lines.ts` and `tests/fixtures/arpeggios.ts` (no existing entry changed).
+
+- **Outside the key means spelled outside it.** A line note is in the key when its letter and accidental match a scale note, not just its pitch. The criterion test now compares spellings too.
+- **Approach notes use the key's spelling** when the key has that pitch: in C, the note above A♭ is A (not B♭♭) and the note below F♯ is F (not E♯). Otherwise the semitone is spelled toward the target, as before (F♯ to G, A♭ to G).
+- **An enclosure's step above is at most a whole tone:** above A♭ in C it is B♭, not B.
+- **Chromatic passing notes:** the scale's spelling where it has one, then a natural, then a sharp going up or a flat coming down. So C to E in C runs C♯ D D♯, and E to C runs E♭ D D♭. No letter carries two accidentals.
+- **Wrapping round:** on the last chord, approach, walking and between lines lead into the line's actual first note, so the loop back to the start joins up.
+- **Borrowed chords (David's choice: "what most players expect"):** a chord whose notes the key doesn't hold takes its 7th and extensions from the mode on the tonic it is borrowed from. Modes are tried in this order: in major keys, natural minor, Dorian, Mixolydian, Phrygian, Lydian, harmonic minor, melodic minor, Locrian; in minor keys, harmonic minor, melodic minor, Dorian, major, Mixolydian, Phrygian, Lydian, natural minor, Locrian. So in C, Fm is Fm7 (not FmMaj7), B♭ is B♭7 (the backdoor ♭VII7, where the numeral reading's Mixolydian would give B♭maj7) and A♭ stays A♭maj7. A chord no mode holds, such as a secondary dominant (E in C, V/vi), still stacks from the key, so E stays E7.
+- **B°7 at the 13th keeps G (my call, as David asked for the prudent one):** each added tone is a whole tone above a chord tone (G above F), the standard diminished-7th tensions, and C, a semitone above B, is left out.
+- **Sus names:** an extended sus4 chord is named with sus4 at the end, so G7sus4 at the 13th is G13sus4.
+
+Still to do for the gate: David's Phase 6 play-test, then the `v0.6-lines` tag.
