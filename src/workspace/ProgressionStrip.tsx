@@ -73,6 +73,7 @@ export function ProgressionStrip({
   between,
   onBetween,
   onShift,
+  onRemove,
   onShiftAll,
 }: {
   progression: Progression
@@ -108,6 +109,8 @@ export function ProgressionStrip({
   // Moves one chord, or every chord, up (1) or down (-1) an octave (David's
   // request).
   onShift: (index: number, by: number) => void
+  // Takes the chord at a slot out of the progression (David's request).
+  onRemove: (index: number) => void
   onShiftAll: (by: number) => void
 }) {
   const [treeOpen, setTreeOpen] = useState(false)
@@ -284,6 +287,15 @@ export function ProgressionStrip({
                     onClick={() => onShift(i, 1)}
                   >
                     ▲
+                  </button>
+                  <button
+                    type="button"
+                    class="remove"
+                    aria-label={`Remove ${chordSymbol(n.chord)}`}
+                    title="Take this chord out (Undo brings it back)"
+                    onClick={() => onRemove(i)}
+                  >
+                    ✕
                   </button>
                 </span>
               )}

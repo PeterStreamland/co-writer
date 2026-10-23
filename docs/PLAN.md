@@ -234,7 +234,7 @@ Your test: generate a bass line and a passing-note line over two progressions an
 
 Goal: enter a few notes and get next-note options; add harmonies and countermelodies to a melody.
 
-1. Melody entry: click on the fretboard or keyboard, type note names, or play it on your MIDI keyboard, with rough timing snapped to the beat grid.
+1. Melody entry: click on the fretboard or keyboard, type note names, or play it on your MIDI keyboard, with rough timing snapped to the beat grid. ✅
 2. Next-note generator: scale membership, chord tones on strong beats, mostly steps, a change of direction after a leap, tendency notes (7 to 1, 4 to 3), range and contour limits.
 3. Motif awareness: offer a repeat, a sequence (transposed repeat) or a varied repeat of an earlier motif.
 4. The same next-token interface as Phase 4.

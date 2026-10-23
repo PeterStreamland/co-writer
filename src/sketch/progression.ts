@@ -11,6 +11,7 @@ import {
   type ChordName,
   type Dur,
   type Key,
+  type MelodyNote,
   type MeterMap,
   type Note,
   type Placement,
@@ -58,6 +59,9 @@ export type Progression = {
   activePath: string[]
   // Rows of lines and arpeggios under the chords (parts.ts).
   parts?: Part[]
+  // The section's melody (SPEC 7.2), kept here, outside the tree, until
+  // sketches have sections: every branch plays over the same melody.
+  melody?: MelodyNote[]
 }
 
 export const EMPTY_PROGRESSION: Progression = {
@@ -364,6 +368,63 @@ export function setLengthAt(
   return { ...own, nodes: { ...own.nodes, [id]: changed } }
 }
 
+// Takes the chord at a slot out of the progression (David's request): the
+// chords after it close up behind the chord before. Its other children
+// (alternatives at the next slot) move up with the one on the path, and its
+// own alternatives stay. A key change it carried passes to the chord after
+// it, so later chords keep their key. Rows anchored to it move to the chord
+// before (or after), and its bars in rows go with it.
+export function removeAt(p: Progression, index: number): Progression {
+  if (index < 0 || index >= p.activePath.length) return p
+  const own = materialise(p, index + 1)
+  const id = own.activePath[index]
+  const gone = node(own, id)
+  const parentId = gone.parent
+  const nodes = { ...own.nodes }
+  delete nodes[id]
+  for (const child of gone.children) {
+    const moved: ChordNode = { ...node(own, child) }
+    if (parentId === undefined) delete moved.parent
+    else moved.parent = parentId
+    nodes[child] = moved
+  }
+  const afterId = own.activePath[index + 1]
+  if (gone.keyChange && afterId && !nodes[afterId].keyChange) {
+    nodes[afterId] = { ...nodes[afterId], keyChange: gone.keyChange }
+  }
+  const lift = (ids: string[]) =>
+    ids.flatMap((c) => (c === id ? gone.children : [c]))
+  let roots = own.roots
+  if (parentId === undefined) roots = lift(roots)
+  else {
+    const parent = nodes[parentId]
+    const changed: ChordNode = { ...parent, children: lift(parent.children) }
+    if (changed.activeChild === id) delete changed.activeChild
+    nodes[parentId] = changed
+  }
+  const activePath = own.activePath.filter((n) => n !== id)
+  const anchor = own.activePath[index - 1] ?? afterId
+  const parts = own.parts?.flatMap((part) => {
+    const moved = { ...part }
+    if (moved.anchor === id) {
+      if (!anchor) return []
+      moved.anchor = anchor
+    }
+    if (moved.cells && id in moved.cells) {
+      moved.cells = { ...moved.cells }
+      delete moved.cells[id]
+    }
+    if (moved.octaves && id in moved.octaves) {
+      moved.octaves = { ...moved.octaves }
+      delete moved.octaves[id]
+    }
+    return [moved]
+  })
+  const out: Progression = { ...own, nodes, roots, activePath }
+  if (parts) out.parts = parts
+  return remember(out)
+}
+
 // Where each chord on the active path falls in the bars, and how long it
 // lasts there (SPEC 7.1).
 export function timingOf(p: Progression, time: MeterMap): Placement[] {
@@ -406,7 +467,28 @@ export function isProgression(value: unknown): value is Progression {
         (n.octave === undefined || Number.isInteger(n.octave)),
     ) &&
     (p.parts === undefined ||
-      (Array.isArray(p.parts) && p.parts.every((r) => isPart(r, ids))))
+      (Array.isArray(p.parts) && p.parts.every((r) => isPart(r, ids)))) &&
+    (p.melody === undefined ||
+      (Array.isArray(p.melody) && p.melody.every(isMelodyNote)))
+  )
+}
+
+const isDur = (d: unknown): boolean =>
+  typeof d === 'object' &&
+  d !== null &&
+  Number.isInteger((d as Dur).n) &&
+  Number.isInteger((d as Dur).d) &&
+  (d as Dur).d > 0
+
+function isMelodyNote(value: unknown): value is MelodyNote {
+  if (typeof value !== 'object' || value === null) return false
+  const m = value as MelodyNote
+  return (
+    typeof m.note?.letter === 'string' &&
+    Number.isInteger(m.note.accidental) &&
+    Number.isInteger(m.note.octave) &&
+    isDur(m.onset) &&
+    isDur(m.length)
   )
 }
 

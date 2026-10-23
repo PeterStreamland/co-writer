@@ -1299,3 +1299,33 @@ David asked for an easy way to move a piece up or down an octave. It is practica
   - Each chord moves at most three octaves each way and stays within a piano's range. A chord that can't move that far stays where it is while the rest move.
 - **On guitar (David's choice: nearest playable shape):** the same shape 12 frets along where the neck has room (open C at fret 12). Otherwise it uses the chord's shape whose notes sit nearest the pitch asked for, on that side, so a moved chord can always be played. The theory is `src/instruments/octave.ts`.
 - **Rows (David's choice: the same controls as the chords):** ▼ ▲ on each row move the whole row, and ▼ ▲ on each bar of a row move just that bar, three octaves at most either way. Rows move on their own, not with the chords, so a bass line stays a bass line unless you move it. Notes keep their spelling and labels. They are stored as `octave` and `octaves` on the row (SPEC 12 updated).
+
+## 2026-10-23 — Removing a chord (David's request)
+
+David found no way to take a chord out of the progression. The selected chord in the strip now has **✕** beside its ▼ ▲ (`removeAt` in `src/sketch/progression.ts`):
+
+- The chords after it close up behind the chord before, and the chord before is selected. Undo brings it back.
+- **Alternatives:** the chord's own alternatives at its slot stay, one ‹ › away. Alternatives at the next slot move up with the chord on the path.
+- **A key change** on the removed chord passes to the chord after it, so later chords keep their key.
+- **Rows:** a row anchored to the removed chord moves to the chord before (or after, if it was the first), and the chord's own bars in rows go with it. With no chords left, the row goes too.
+
+## 2026-10-23 — Melody entry (Phase 7 task 1)
+
+A **Melody** tab joins the side panel, and a **♪ Melody** lane sits under the progression strip (SPEC 2, 7.2). The theory is `src/theory/melody.ts`, with the note values and grids as data in `melody-data.ts` and the musical truths in `tests/fixtures/melodies.ts`. Three ways in:
+
+- **Tap the instrument (step entry).** While the Melody tab is open and "Tapping the instrument adds notes" is ticked (the default), every key and fret adds a note after the last, and plays it. Keys outside the scale can be tapped too.
+  - Each note lasts the note value chosen: semiquaver, quaver triplet, quaver, dotted quaver, crotchet (the default), dotted crotchet, minim, dotted minim or semibreve. Each button shows its symbol and its fraction of a whole note (1/4), as the musical symbols look alike in some fonts.
+  - **𝄽 Rest** leaves a rest of that value before the next note. **⌫ Last note** and **Clear** take notes out.
+  - Spelling: as the instrument shows the note (the scale's, or the current chord's). Otherwise it is raised going up from the note before and lowered coming down, as the lines spell (C♯ after C, D♭ after D). With no note before, the key signature decides.
+- **Type note names,** such as `E4 F# G - r B`. Each note lasts the chosen value, `r` is a rest and `-` holds the note before. Spelling is kept as typed.
+  - **Octaves (my call):** a note without an octave goes to whichever octave is nearer the note before, within a 4th by letter, as LilyPond's relative mode reads it. So C up to F, C down to G, B up to C. The first note without one is in octave 4. Words it can't read are listed, not guessed.
+- **Record on MIDI.** Choose the grid (semiquavers by default, quavers, quaver triplets, or off), then **● Record**. A bar of clicks counts in at the tempo, and the clicks carry on through the take.
+  - **My calls:** the chords play from bar 1 while you record (a tick-box turns this off). The take replaces the melody, and Undo brings the old one back. Record chords is switched off while recording, so held notes don't become chords.
+  - It stops on **■ Stop recording**, or at the end of the last chord. With no chords it runs until Stop.
+  - **Snapping:** starts and ends snap to the grid, and one note sounds at a time. Notes struck together keep the highest, and a note held into the next ends there. A note let go a grid step or less before the next lasts until it, so slightly detached crotchets still read as crotchets (found when testing a recording). Longer gaps are rests, and no note is shorter than a grid step. A note struck just before the count-in ends counts from beat 1.
+  - With the grid off, timing keeps a 96th of a whole note, still an exact fraction.
+  - Notes are spelled by the key, then by the way the melody moves, as for taps.
+  - The sustain pedal is ignored: a melody note lasts while its key is down.
+- **The lane** shows the melody bar by bar, each note with its length as a fraction (1/4 for a crotchet). The note sounding is lit. Lining the bars up under the chords is Phase 7 task 6.
+- **Playback:** the strip's **▶ Play** plays the melody with the chords and rows. On the Melody tab, **▶ Play melody** plays it alone, every note, and **▶ Play with chords** plays it over the chords alone. Notes after the last chord ends play only with Play melody.
+- **Where it is kept:** on the progression as `melody` (SPEC 12 updated), outside the chord tree, so every branch plays over the same melody. This stands in for the section's melody until sections arrive. It is saved in the browser, undo and redo cover every change, and the strip's Clear keeps it.

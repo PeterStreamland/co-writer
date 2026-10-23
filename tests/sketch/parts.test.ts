@@ -5,6 +5,7 @@ import {
   changeAt,
   isProgression,
   pathNodes,
+  removeAt,
   switchAt,
   type Progression,
 } from '../../src/sketch/progression'
@@ -16,6 +17,7 @@ import {
   partsShown,
   removePart,
   setPartMuted,
+  shiftPart,
   type PartRecipe,
 } from '../../src/sketch/parts'
 import { record, redo, startHistory, undo } from '../../src/sketch/history'
@@ -215,5 +217,30 @@ describe('edited bars in rows (David’s request)', () => {
         notes: [{ ...edited.notes![0], at: { n: -1, d: 4 } }],
       }),
     ).toBe(false)
+  })
+})
+
+describe('rows when a chord is removed (David’s request)', () => {
+  it('moves a row anchored to it onto the chord before', () => {
+    const p = addPart(build('C', 'Am', 'F'), WALKING)
+    const q = removeAt(p, 2)
+    expect(partsShown(q)).toHaveLength(1)
+    expect(partsShown(q)[0].anchor).toBe(q.activePath[1])
+  })
+
+  it('drops its bars from rows', () => {
+    let p = build('C', 'Am', 'F')
+    p = addCell(p, p.activePath[1], WALKING)
+    const id = p.parts![0].id
+    p = shiftPart(p, id, 1, p.activePath[1])
+    const removed = p.activePath[1]
+    const q = removeAt(p, 1)
+    expect(q.parts![0].cells).not.toHaveProperty(removed)
+    expect(q.parts![0].octaves).not.toHaveProperty(removed)
+  })
+
+  it('drops a row when no chords are left', () => {
+    const p = addPart(build('C'), WALKING)
+    expect(removeAt(p, 0).parts).toEqual([])
   })
 })

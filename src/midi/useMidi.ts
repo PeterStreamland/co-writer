@@ -1,7 +1,13 @@
 // The Web MIDI connection (Chrome and Edge, SPEC 1 and 5). Thin on purpose:
 // reading messages and tracking held notes is in held.ts, which is tested.
 import { useEffect, useRef, useState } from 'preact/hooks'
-import { NOTHING_HELD, heldNotes, nextHeld, parseMidiMessage } from './held'
+import {
+  NOTHING_HELD,
+  heldNotes,
+  nextHeld,
+  parseMidiMessage,
+  type MidiEvent,
+} from './held'
 
 export type MidiStatus = 'unsupported' | 'idle' | 'connected' | 'denied'
 
@@ -10,7 +16,13 @@ export type Midi = {
   devices: string[]
   held: number[]
   connect: () => void
+  // Hears every key and pedal event as it comes, with its time in
+  // milliseconds on performance.now()'s clock (melody recording, SPEC 7.2).
+  // Returns a function that stops listening.
+  onEvent: (listener: MidiListener) => () => void
 }
+
+export type MidiListener = (event: MidiEvent, at: number) => void
 
 export function useMidi(): Midi {
   const supported =
@@ -21,6 +33,7 @@ export function useMidi(): Midi {
   const [devices, setDevices] = useState<string[]>([])
   const [state, setState] = useState(NOTHING_HELD)
   const access = useRef<MIDIAccess | null>(null)
+  const listeners = useRef(new Set<MidiListener>())
 
   function listen(midi: MIDIAccess) {
     const names: string[] = []
@@ -28,7 +41,9 @@ export function useMidi(): Midi {
       input.onmidimessage = (event) => {
         if (!event.data) return
         const message = parseMidiMessage(event.data)
-        if (message.type !== 'other') setState((s) => nextHeld(s, message))
+        if (message.type === 'other') return
+        setState((s) => nextHeld(s, message))
+        listeners.current.forEach((l) => l(message, event.timeStamp))
       }
       names.push(input.name ?? 'MIDI keyboard')
     })
@@ -61,5 +76,10 @@ export function useMidi(): Midi {
     }
   }, [])
 
-  return { status, devices, held: heldNotes(state), connect }
+  const onEvent = (listener: MidiListener) => {
+    listeners.current.add(listener)
+    return () => void listeners.current.delete(listener)
+  }
+
+  return { status, devices, held: heldNotes(state), connect, onEvent }
 }
