@@ -1279,3 +1279,23 @@ David found that clicking a chord in a Voice lens column didn't offer alternativ
 - "Other voicings" for a swapped chord now offers voicings of the chord that is there, for example C7 after a swap from Am.
 - **Every chord box in a lens column is one size (David's request):** the same width everywhere, with one height on keyboard and a taller one on guitar for the chord box. Long names and notes are cut short. A rule a voicing breaks shows as ⚠ in its box, with the reasons in the panel below.
 - The swap panel now opens below the column's chords, full width, so it no longer stretches one box.
+
+**Neighbour suggestions, fixed (David's report, same day).** "Suggestions due to the neighbour change" was hardly ever seen, for two reasons:
+
+- It only appeared on the swapped chord's own panel.
+- It only listed voicings strictly smoother than the neighbour's own. That is rarely any, because "Other chords here" already voices a new chord to fit between its neighbours, and the lens's own path can never be bettered one chord at a time.
+
+Now it also appears on the panel of a chord whose neighbour was swapped. Each neighbour always offers its two best other voicings beside the new chord: those that would be smoother than its own are marked "smoother", and otherwise the list says the chord is already the smoothest and offers two to try.
+
+## 2026-10-23 — Moving chords and rows by octaves (David's request)
+
+David asked for an easy way to move a piece up or down an octave. It is practical because every chord either keeps its exact notes (from a chord box or a lens) or is voiced when it plays, so moving it means moving those notes.
+
+- **Chords (David's choice: both):**
+  - ▼ ▲ beside the selected chord move just that chord.
+  - **Octave ▼ ▲** on the progression bar moves every chord on the branch showing.
+  - A moved chord shows "+1 oct" or "−1 oct".
+  - A chord keeps its moved notes as its voicing, so playback, the fretboard, saving, undo and branches all follow. Its chord, length and key change stay, and changing the chord itself starts it over.
+  - Each chord moves at most three octaves each way and stays within a piano's range. A chord that can't move that far stays where it is while the rest move.
+- **On guitar (David's choice: nearest playable shape):** the same shape 12 frets along where the neck has room (open C at fret 12). Otherwise it uses the chord's shape whose notes sit nearest the pitch asked for, on that side, so a moved chord can always be played. The theory is `src/instruments/octave.ts`.
+- **Rows (David's choice: the same controls as the chords):** ▼ ▲ on each row move the whole row, and ▼ ▲ on each bar of a row move just that bar, three octaves at most either way. Rows move on their own, not with the chords, so a bass line stays a bass line unless you move it. Notes keep their spelling and labels. They are stored as `octave` and `octaves` on the row (SPEC 12 updated).

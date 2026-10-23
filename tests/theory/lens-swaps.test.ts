@@ -108,16 +108,29 @@ describe('swapping a chord in a lens column (David’s request)', () => {
       (a, b) => midiNumber(b.notes[0])! - midiNumber(a.notes[0])!,
     )[0]
     const swapped = withSwaps(lens, steps, choices, { 1: high })
-    const around = neighbourOptions(lens, steps, swapped, 1, (j) =>
+    const around = neighbourOptions(lens, steps, swapped, [0, 2], (j) =>
       lensVoicings(lens, C, steps[j].chord),
     )
-    expect(around.length).toBeGreaterThan(0)
+    expect(around.map((n) => n.at)).toEqual([0, 2])
+    expect(around.some((n) => n.smoother > 0)).toBe(true)
     for (const { at, options } of around) {
-      expect([0, 2]).toContain(at)
-      expect(options.length).toBeGreaterThan(0)
       for (const o of options) {
         expect(notesOf(o.candidate)).not.toBe(notesOf(swapped[at].voicing))
       }
+    }
+  })
+
+  it('marks none smoother where a chord already sits as well as it can', () => {
+    const lens = 'classical'
+    const choices = voiceProgression(lens, steps)
+    // The lens's own best path: no neighbour has a smoother voicing alone.
+    const around = neighbourOptions(lens, steps, choices, [0, 2], (j) =>
+      lensVoicings(lens, C, steps[j].chord),
+    )
+    expect(around).toHaveLength(2)
+    for (const { options, smoother } of around) {
+      expect(smoother).toBe(0)
+      expect(options.length).toBeGreaterThan(0)
     }
   })
 })

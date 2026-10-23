@@ -47,6 +47,9 @@ export type ChordNode = {
   // The child the active path last went through, so switching back to this
   // node restores the branch that was showing.
   activeChild?: string
+  // How many octaves it has been moved up (or down, below 0) from where it
+  // was voiced (David's request); its voicing holds the moved notes.
+  octave?: number
 }
 
 export type Progression = {
@@ -148,6 +151,7 @@ function materialise(p: Progression, upTo: number): Progression {
     if (original.keyChange) copy.keyChange = original.keyChange
     if (original.voicing) copy.voicing = original.voicing
     if (original.length) copy.length = original.length
+    if (original.octave) copy.octave = original.octave
     const parent = node(out, parentId)
     const activePath = [...out.activePath]
     activePath[i] = id
@@ -326,6 +330,7 @@ export function changeAt(
   const id = own.activePath[index]
   const changed: ChordNode = { ...node(own, id), chord }
   delete changed.voicing
+  delete changed.octave
   if (voicing) changed.voicing = voicing
   return { ...own, nodes: { ...own.nodes, [id]: changed } }
 }
@@ -397,9 +402,30 @@ export function isProgression(value: unknown): value is Progression {
         typeof n.chord.quality === 'string' &&
         Array.isArray(n.children) &&
         n.children.every(known) &&
-        (n.parent === undefined || known(n.parent)),
+        (n.parent === undefined || known(n.parent)) &&
+        (n.octave === undefined || Number.isInteger(n.octave)),
     ) &&
     (p.parts === undefined ||
       (Array.isArray(p.parts) && p.parts.every((r) => isPart(r, ids))))
   )
+}
+
+// Moves the chord at a slot by octaves (David's request): its voicing
+// becomes the moved notes, and it counts the octaves moved, giving the
+// slot its own copy first if it was shared. Its chord, length and any key
+// change stay.
+export function shiftAt(
+  p: Progression,
+  index: number,
+  voicing: ChordVoicing,
+  by: number,
+): Progression {
+  const own = materialise(p, index)
+  const id = own.activePath[index]
+  const before = node(own, id)
+  const octave = (before.octave ?? 0) + by
+  const moved: ChordNode = { ...before, voicing }
+  if (octave) moved.octave = octave
+  else delete moved.octave
+  return { ...own, nodes: { ...own.nodes, [id]: moved } }
 }

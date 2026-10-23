@@ -69,7 +69,11 @@ type Alternatives = {
     suggestion: NextChordSuggestion
     voicing: Suggestion<Choice['voicing']>
   }[]
-  neighbours: { at: number; options: Suggestion<Choice['voicing']>[] }[]
+  neighbours: {
+    at: number
+    options: Suggestion<Choice['voicing']>[]
+    smoother: number
+  }[]
 }
 
 // A voicing's notes, or its frets on guitar.
@@ -226,13 +230,16 @@ export function VoicePanel({
     // After a swap, the chords either side are offered voicings that sit
     // better beside it (David's idea): suggestions due to the neighbour's
     // change.
-    const neighbours =
-      at in own
-        ? neighbourOptions(lens, steps, choices, at, (j) => {
-            const chord = own[j]?.chord ?? steps[j].chord
-            return candidatesFor(lens, [{ key: steps[j].key, chord }])[0]
-          })
-        : []
+    // For a swapped chord, its neighbours; for a chord whose neighbour was
+    // swapped, itself.
+    const targets = [
+      ...(at in own ? [at - 1, at + 1] : []),
+      ...(!(at in own) && (at - 1 in own || at + 1 in own) ? [at] : []),
+    ]
+    const neighbours = neighbourOptions(lens, steps, choices, targets, (j) => {
+      const chord = own[j]?.chord ?? steps[j].chord
+      return candidatesFor(lens, [{ key: steps[j].key, chord }])[0]
+    })
     return { voicings, others, neighbours }
   }, [open?.lens, open?.at, openColumn?.choices])
   // The column playing and the chord sounding in it.
@@ -600,24 +607,34 @@ function LensColumn({
               {alternatives.neighbours.length > 0 && (
                 <>
                   <p class="muted">Suggestions due to the neighbour change:</p>
-                  {alternatives.neighbours.map(({ at: j, options }) => (
-                    <div key={j} class="lens-swap-list">
-                      <span class="muted">
-                        {chordSymbol(choices[j].voicing.chord)} (chord {j + 1}):
-                      </span>
-                      {options.map((o, k) => (
-                        <button
-                          key={k}
-                          type="button"
-                          title={[o.explanation, ...o.contextNotes].join(' ')}
-                          onClick={() => onSwap(j, o.candidate)}
-                        >
-                          <span class="muted">{o.candidate.label}</span>{' '}
-                          {notesText(o.candidate, guitar)}
-                        </button>
-                      ))}
-                    </div>
-                  ))}
+                  {alternatives.neighbours.map(
+                    ({ at: j, options, smoother }) => (
+                      <div key={j} class="lens-swap-list">
+                        <span class="muted">
+                          {chordSymbol(choices[j].voicing.chord)} (chord {j + 1}
+                          ):
+                        </span>
+                        {smoother === 0 && (
+                          <span class="muted">
+                            already the smoothest; or try
+                          </span>
+                        )}
+                        {options.map((o, k) => (
+                          <button
+                            key={k}
+                            type="button"
+                            class={k < smoother ? 'smoother' : ''}
+                            title={[o.explanation, ...o.contextNotes].join(' ')}
+                            onClick={() => onSwap(j, o.candidate)}
+                          >
+                            {k < smoother && <strong>smoother: </strong>}
+                            <span class="muted">{o.candidate.label}</span>{' '}
+                            {notesText(o.candidate, guitar)}
+                          </button>
+                        ))}
+                      </div>
+                    ),
+                  )}
                 </>
               )}
               {swapped.includes(at) && (

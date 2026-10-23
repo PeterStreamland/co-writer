@@ -14,6 +14,7 @@ import {
   addPart,
   clearCell,
   partsShown,
+  shiftPart,
   type PartRecipe,
 } from '../../src/sketch/parts'
 import {
@@ -295,5 +296,42 @@ describe('edited rows (David’s request)', () => {
     expect(
       recipeLabel({ kind: 'line', mode: 'walking', roll: 0, notes: bar }),
     ).toBe('Walking, edited')
+  })
+})
+
+describe('moving rows by octaves (David’s request)', () => {
+  const p = addPart(build('C', 'Am', 'F', 'G'), {
+    kind: 'line',
+    mode: 'roots',
+    roll: 0,
+  })
+  const id = partsShown(p)[0].id
+  const notes = (q: Progression) =>
+    partNotes(partsShown(q)[0], q, C, timingOf(q, time), guitar)
+  const pitches = (q: Progression) => notes(q).map((n) => midiNumber(n.note))
+
+  it('moves a whole row, or one bar of it', () => {
+    const before = pitches(p)
+    const up = shiftPart(p, id, 1)
+    expect(pitches(up)).toEqual(before.map((m) => m! + 12))
+    const bar = shiftPart(p, id, -1, p.activePath[2])
+    expect(pitches(bar)).toEqual(before.map((m, i) => (i === 2 ? m! - 12 : m)))
+    // Labels and spelling stay.
+    expect(notes(up).map((n) => n.label)).toEqual(notes(p).map((n) => n.label))
+  })
+
+  it('goes no further than three octaves, and back to none', () => {
+    let q = p
+    for (let k = 0; k < 5; k++) q = shiftPart(q, id, 1)
+    expect(partsShown(q)[0].octave).toBe(3)
+    q = shiftPart(shiftPart(p, id, 1), id, -1)
+    expect(partsShown(q)[0].octave).toBeUndefined()
+    const bar = shiftPart(
+      shiftPart(p, id, 1, p.activePath[0]),
+      id,
+      -1,
+      p.activePath[0],
+    )
+    expect(partsShown(bar)[0].octaves).toBeUndefined()
   })
 })

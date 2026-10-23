@@ -2452,3 +2452,29 @@ button.remove-note {
 .lens-swap-head {
   margin: 0 0 0.3rem;
 }
+
+.lens-swap-list button.smoother {
+  border-color: var(--accent);
+}
+
+/* Moving chords and rows by octaves (David's request): ▼ ▲ beside the
+   selected chord, the whole progression, each row and each bar of a row. */
+.octave-one,
+.octave-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.octave-one button,
+.octave-all button {
+  padding: 0 0.35rem;
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.octave-label {
+  font-size: 0.7rem;
+  color: var(--accent);
+  font-weight: 600;
+}

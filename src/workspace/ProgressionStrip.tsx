@@ -72,6 +72,8 @@ export function ProgressionStrip({
   onLengthChange,
   between,
   onBetween,
+  onShift,
+  onShiftAll,
 }: {
   progression: Progression
   sectionKey: Key
@@ -103,6 +105,10 @@ export function ProgressionStrip({
   // The slot whose gap to the next chord is being filled, if any.
   between: number | undefined
   onBetween: (index: number) => void
+  // Moves one chord, or every chord, up (1) or down (-1) an octave (David's
+  // request).
+  onShift: (index: number, by: number) => void
+  onShiftAll: (by: number) => void
 }) {
   const [treeOpen, setTreeOpen] = useState(false)
   const path = pathNodes(progression)
@@ -176,6 +182,27 @@ export function ProgressionStrip({
           <button type="button" onClick={onRedo} disabled={!canRedo}>
             ⟳ Redo
           </button>
+          <span class="octave-all" role="group" aria-label="Every chord">
+            Octave
+            <button
+              type="button"
+              aria-label="Every chord down an octave"
+              title="Every chord down an octave"
+              onClick={() => onShiftAll(-1)}
+              disabled={path.length === 0}
+            >
+              ▼
+            </button>
+            <button
+              type="button"
+              aria-label="Every chord up an octave"
+              title="Every chord up an octave"
+              onClick={() => onShiftAll(1)}
+              disabled={path.length === 0}
+            >
+              ▲
+            </button>
+          </span>
           <button
             type="button"
             aria-expanded={treeOpen}
@@ -233,7 +260,33 @@ export function ProgressionStrip({
                 {n.keyChange && (
                   <span class="key-change">→ {keyName(n.keyChange)}</span>
                 )}
+                {n.octave ? (
+                  <span class="octave-label">
+                    {n.octave > 0 ? '+' : '−'}
+                    {Math.abs(n.octave)} oct
+                  </span>
+                ) : null}
               </button>
+              {i === selected && (
+                <span class="octave-one">
+                  <button
+                    type="button"
+                    aria-label={`${chordSymbol(n.chord)} down an octave`}
+                    title="Down an octave"
+                    onClick={() => onShift(i, -1)}
+                  >
+                    ▼
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`${chordSymbol(n.chord)} up an octave`}
+                    title="Up an octave"
+                    onClick={() => onShift(i, 1)}
+                  >
+                    ▲
+                  </button>
+                </span>
+              )}
               {options.length > 1 && (
                 <span class="alts">
                   <button
