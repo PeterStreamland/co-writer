@@ -11,6 +11,7 @@ import {
   meterOfBar,
   ratioOf,
   romanNumeral,
+  type BeatStrength,
   type ChordName,
   type Dur,
   type Key,
@@ -64,6 +65,7 @@ export function ProgressionStrip({
   onStop,
   bpm,
   onBpmChange,
+  pulse,
   time,
   timing,
   onTimeChange,
@@ -90,6 +92,8 @@ export function ProgressionStrip({
   onStop: () => void
   bpm: number
   onBpmChange: (bpm: number) => void
+  // The latest beat while playing, for the beat and bar lights.
+  pulse: Pulse | undefined
   // The time signature, any bar overrides, and where each chord falls.
   time: MeterMap
   timing: Placement[]
@@ -118,6 +122,7 @@ export function ProgressionStrip({
       <div class="strip-bar">
         <h2>Progression</h2>
         <div class="strip-tools">
+          <BeatLights pulse={pulse} />
           <label class="time-signature">
             Time
             <select
@@ -414,6 +419,31 @@ function Tree({
     <div class="tree" aria-label="Every branch">
       {branch(progression.roots)}
     </div>
+  )
+}
+
+// The beat that last sounded during playback: how many beats and bars so
+// far, and how strong it was.
+export type Pulse = { beats: number; bars: number; strength: BeatStrength }
+
+// Two lights that flash in time while the progression plays (David's
+// request): amber on every beat, brighter on strong beats, and red on the
+// first beat of each bar. Each flash remounts its light, restarting the
+// fade.
+function BeatLights({ pulse }: { pulse: Pulse | undefined }) {
+  return (
+    <span class="beat-lights" aria-hidden="true">
+      <i
+        key={`beat-${pulse?.beats ?? 0}`}
+        class={pulse ? `light beat flash ${pulse.strength}` : 'light beat'}
+        title="Beat"
+      />
+      <i
+        key={`bar-${pulse?.bars ?? 0}`}
+        class={pulse && pulse.bars > 0 ? 'light bar flash' : 'light bar'}
+        title="Bar"
+      />
+    </span>
   )
 }
 

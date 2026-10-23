@@ -45,7 +45,7 @@ import { addLensVoicings } from './lens-columns'
 import { StyleBlendControl } from './StyleBlendControl'
 import { loadStyles } from './style-editor'
 import { blendedWeights, loadBlend, saveBlend } from './style-blend'
-import { ProgressionStrip } from './ProgressionStrip'
+import { ProgressionStrip, type Pulse } from './ProgressionStrip'
 import {
   EMPTY_PROGRESSION,
   addAfter,
@@ -72,7 +72,14 @@ import {
   type History,
 } from '../sketch/history'
 import { loadProgression, saveProgression } from '../sketch/storage'
-import { loadBpm, loadTime, saveBpm, saveTime, secondsOf } from '../sketch/time'
+import {
+  flashesOf,
+  loadBpm,
+  loadTime,
+  saveBpm,
+  saveTime,
+  secondsOf,
+} from '../sketch/time'
 import { useNarrow } from './useNarrow'
 import { played } from './played'
 import { recordedChord } from './recorded'
@@ -109,6 +116,8 @@ export function Workspace() {
   // instrument.
   const [playingAt, setPlayingAt] = useState<number>()
   const [playingChord, setPlayingChord] = useState<ChordName>()
+  // The beat and bar lights: each flash counts up so the light restarts.
+  const [pulse, setPulse] = useState<Pulse>()
   // The tempo for playing the progression, remembered in this browser.
   const [bpm, setBpm] = useState(loadBpm)
   useEffect(() => saveBpm(bpm), [bpm])
@@ -401,6 +410,7 @@ export function Workspace() {
   useEffect(() => {
     if (playingAt === undefined) {
       setPlayingChord(undefined)
+      setPulse(undefined)
       return
     }
     const n = path[playingAt]
@@ -418,7 +428,22 @@ export function Workspace() {
         setPlayingAt(playingAt + 1 < path.length ? playingAt + 1 : undefined),
       seconds * 1000,
     )
-    return () => clearTimeout(timer)
+    // The lights flash on each beat the chord covers.
+    const flashes = flashesOf(timing[playingAt], bpm, time.meter).map((f) =>
+      setTimeout(
+        () =>
+          setPulse((p) => ({
+            beats: (p?.beats ?? 0) + 1,
+            bars: (p?.bars ?? 0) + (f.strength === 'downbeat' ? 1 : 0),
+            strength: f.strength,
+          })),
+        f.ms,
+      ),
+    )
+    return () => {
+      clearTimeout(timer)
+      flashes.forEach(clearTimeout)
+    }
   }, [playingAt])
   // Any change to the progression or its time stops playback.
   useEffect(() => setPlayingAt(undefined), [progression, time])
@@ -453,6 +478,7 @@ export function Workspace() {
       }}
       bpm={bpm}
       onBpmChange={setBpm}
+      pulse={pulse}
       time={time}
       timing={timing}
       onTimeChange={setTime}
