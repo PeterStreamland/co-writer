@@ -15,6 +15,7 @@ import {
   keyAfter,
   keyAt,
   pathNodes,
+  removeAt,
   selectNode,
   switchAt,
   type Progression,
@@ -374,5 +375,64 @@ describe('moving chords by octaves (David’s request)', () => {
       nodes: { ...up.nodes, [id]: { ...up.nodes[id], octave: 0.5 } },
     }
     expect(isProgression(broken)).toBe(false)
+  })
+})
+
+describe('removing a chord (David’s request)', () => {
+  it('closes up the chords after it', () => {
+    const p = build('C', 'Am', 'F', 'G')
+    expect(strip(removeAt(p, 1))).toBe('C F G')
+    expect(strip(removeAt(p, 0))).toBe('Am F G')
+    expect(strip(removeAt(p, 3))).toBe('C Am F')
+    expect(strip(removeAt(build('C'), 0))).toBe('')
+  })
+
+  it('keeps the tree whole: the next chord hangs off the chord before', () => {
+    const p = removeAt(build('C', 'Am', 'F', 'G'), 1)
+    const [c, f] = pathNodes(p)
+    expect(f.parent).toBe(c.id)
+    expect(c.children).toEqual([f.id])
+    expect(isProgression(p)).toBe(true)
+    // More chords carry on from the new path.
+    expect(strip(addAfter(p, 2, parse('C')))).toBe('C F G C')
+  })
+
+  it('leaves the alternatives at its slot', () => {
+    let p = build('C', 'Am', 'F')
+    p = addAfter(p, 0, parse('Em')) // Em is Am's alternative, sharing F
+    expect(strip(p)).toBe('C Em F')
+    const q = removeAt(p, 1)
+    expect(strip(q)).toBe('C F')
+    // Am is still there, one ‹ › away from F at that slot.
+    expect(
+      alternatives(q, 1).map((id) => chordSymbol(q.nodes[id].chord)),
+    ).toEqual(['Am', 'F'])
+    // The removed chord's own continuation stays under Am.
+    expect(strip(switchAt(q, 1, -1))).toBe('C Am F')
+  })
+
+  it('passes its key change to the chord after it', () => {
+    const p = addAllAfter(
+      EMPTY_PROGRESSION,
+      -1,
+      [parse('C'), parse('D7'), parse('G')],
+      [{}, { keyChange: G_MAJOR }],
+    )
+    const q = removeAt(p, 1)
+    expect(strip(q)).toBe('C G')
+    expect(keyAt(q, 1, C_MAJOR)).toEqual(C_MAJOR)
+    expect(keyAfter(q, 1, C_MAJOR)).toEqual(G_MAJOR)
+  })
+
+  it('can be undone', () => {
+    const p = build('C', 'Am', 'F')
+    const h = record(startHistory(p), removeAt(p, 1))
+    expect(strip(undo(h).present)).toBe('C Am F')
+  })
+
+  it('ignores a slot that isn’t there', () => {
+    const p = build('C')
+    expect(removeAt(p, 4)).toBe(p)
+    expect(removeAt(p, -1)).toBe(p)
   })
 })

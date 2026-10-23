@@ -1299,3 +1299,12 @@ David asked for an easy way to move a piece up or down an octave. It is practica
   - Each chord moves at most three octaves each way and stays within a piano's range. A chord that can't move that far stays where it is while the rest move.
 - **On guitar (David's choice: nearest playable shape):** the same shape 12 frets along where the neck has room (open C at fret 12). Otherwise it uses the chord's shape whose notes sit nearest the pitch asked for, on that side, so a moved chord can always be played. The theory is `src/instruments/octave.ts`.
 - **Rows (David's choice: the same controls as the chords):** ▼ ▲ on each row move the whole row, and ▼ ▲ on each bar of a row move just that bar, three octaves at most either way. Rows move on their own, not with the chords, so a bass line stays a bass line unless you move it. Notes keep their spelling and labels. They are stored as `octave` and `octaves` on the row (SPEC 12 updated).
+
+## 2026-10-23 — Removing a chord (David's request)
+
+David found no way to take a chord out of the progression. The selected chord in the strip now has **✕** beside its ▼ ▲ (`removeAt` in `src/sketch/progression.ts`):
+
+- The chords after it close up behind the chord before, and the chord before is selected. Undo brings it back.
+- **Alternatives:** the chord's own alternatives at its slot stay, one ‹ › away. Alternatives at the next slot move up with the chord on the path.
+- **A key change** on the removed chord passes to the chord after it, so later chords keep their key.
+- **Rows:** a row anchored to the removed chord moves to the chord before (or after, if it was the first), and the chord's own bars in rows go with it. With no chords left, the row goes too.

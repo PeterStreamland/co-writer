@@ -81,6 +81,7 @@ import {
   chordsUpTo,
   insertAllBetween,
   insertBetween,
+  removeAt,
   setLengthAt,
   timingOf,
   keyAfter,
@@ -657,6 +658,9 @@ export function Workspace() {
       }
       between={between}
       onShift={shiftChord}
+      onRemove={(index) =>
+        change(removeAt(progression, index), Math.max(0, index - 1))
+      }
       onShiftAll={shiftAll}
       onBetween={(index) => {
         setBetweenAt(between === index ? undefined : index)
