@@ -44,6 +44,7 @@ import { NO_CHORD, nextLastChord, type LastChord } from './last-chord'
 import { SidePanel } from './SidePanel'
 import { SuggestPanel } from './SuggestPanel'
 import { VoicePanel } from './VoicePanel'
+import { ArpeggioBox } from './ArpeggioBox'
 import {
   ArpeggioPanel,
   type ArpeggioOnShow,
@@ -646,7 +647,15 @@ export function Workspace() {
           {strip}
         </main>
         <SidePanel
-          aside={!narrow && tab !== 'voice' && tab !== 'arpeggio' && box}
+          aside={
+            !narrow &&
+            tab !== 'voice' &&
+            (arpeggioOn?.guitar && instrument === 'guitar' ? (
+              <ArpeggioBox guitar={guitar} show={arpeggioOn} />
+            ) : (
+              box
+            ))
+          }
           tabs={[
             { id: 'explore', label: 'Explore', content: explore },
             { id: 'suggest', label: 'Suggest', content: suggest },

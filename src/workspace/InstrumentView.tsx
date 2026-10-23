@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'preact/hooks'
 import { playChord } from '../audio/player'
 import type { BoxActions } from './AddButton'
+import { ArpeggioBox } from './ArpeggioBox'
 import { ChordBoxes } from './ChordBoxes'
 import { KeyboardVoicings } from './KeyboardVoicings'
 import type { Voicing, VoicingFilters } from './voicing-choices'
@@ -40,13 +41,23 @@ import {
 
 export type Instrument = 'keyboard' | 'guitar'
 
-// An arpeggio on show from the Arpeggio tab: its notes (lowest first), each
-// with its interval label, and on guitar the spot each sits on; the note
-// sounding, if it is playing.
+// An arpeggio on show from the Arpeggio tab: its name and notes (lowest
+// first), each with its interval label and number, and on guitar the spot
+// each sits on; the note sounding, if it is playing. On guitar it also
+// carries the positions that fit, which one is showing and how to change
+// it, so the chord box can pick positions (David's request).
 export type ArpeggioShow = {
-  notes: { note: Note; midi: number; label: string }[]
+  name: string
+  notes: { note: Note; midi: number; label: string; number: number }[]
   spots?: Spot[]
   sounding?: number
+  guitar?: {
+    mode: 'position' | 'run'
+    positions: Spot[][]
+    at: number
+    onAt: (at: number) => void
+    onOnePosition: () => void
+  }
 }
 type Labels = 'names' | 'degrees' | 'chord-tones'
 
@@ -125,7 +136,8 @@ export function InstrumentView({
   onSettingsChange: (settings: GuitarSettings) => void
   shapes: Shapes
   voicings: Voicings
-  // An arpeggio to light and label in place of the chord's shape.
+  // An arpeggio to light and label on the instrument; the chord box stays
+  // beside it (David's choice), with its shape no longer ringed there.
   arpeggio?: ArpeggioShow
   // Whether the chord box beside the instrument has + to add the shape (on a
   // phone, where it is the only box). On wider screens the box with + sits
@@ -241,15 +253,13 @@ export function InstrumentView({
             voiced={voicing?.notes.map((n) => midiNumber(n) as number)}
             arpeggio={arpeggio}
           />
-          {!arpeggio && (
-            <ChordBox
-              instrument={instrument}
-              guitar={guitar}
-              chord={chord}
-              shapes={addable ? shapes : viewOnly(shapes)}
-              voicings={addable ? voicings : viewOnly(voicings)}
-            />
-          )}
+          <ChordBox
+            instrument={instrument}
+            guitar={guitar}
+            chord={chord}
+            shapes={addable ? shapes : viewOnly(shapes)}
+            voicings={addable ? voicings : viewOnly(voicings)}
+          />
         </div>
       ) : (
         <div class="with-box">
@@ -262,7 +272,9 @@ export function InstrumentView({
             shape={shape?.frets}
             arpeggio={arpeggio}
           />
-          {!arpeggio && (
+          {arpeggio?.guitar ? (
+            <ArpeggioBox guitar={guitar} show={arpeggio} />
+          ) : (
             <ChordBox
               instrument={instrument}
               guitar={guitar}
