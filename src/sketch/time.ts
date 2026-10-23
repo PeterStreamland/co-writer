@@ -9,10 +9,13 @@ import {
   parseMeter,
   ratioOf,
   sameMeter,
+  subDur,
   tempoUnit,
+  type BeatStrength,
   type Dur,
   type Meter,
   type MeterMap,
+  type Placement,
 } from '../theory'
 
 export type { Dur } from '../theory'
@@ -31,6 +34,21 @@ export function secondsOf(
   meter: Meter = COMMON_TIME,
 ): number {
   return (ratioOf(length, tempoUnit(meter)) * 60) / bpm
+}
+
+// When the beat and bar lights flash while a chord plays: each beat it
+// covers, in milliseconds from the chord's start (David's request).
+export type Flash = { ms: number; strength: BeatStrength }
+
+export function flashesOf(
+  placed: Placement,
+  bpm: number,
+  meter: Meter = COMMON_TIME,
+): Flash[] {
+  return placed.beats.map((b) => ({
+    ms: secondsOf(subDur(b.at, placed.start), bpm, meter) * 1000,
+    strength: b.strength,
+  }))
 }
 
 export function clampBpm(bpm: number): number {

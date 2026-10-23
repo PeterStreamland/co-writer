@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
+import { layOut } from '../../src/theory'
 import {
   DEFAULT_BPM,
   DEFAULT_TIME,
   METER_OPTIONS,
   meterId,
   clampBpm,
+  flashesOf,
   loadBpm,
   loadTime,
   saveBpm,
@@ -129,5 +131,40 @@ describe('the time-signature picker', () => {
     expect(meterId({ num: 7, den: 8 })).toBe('7/8:2+2+3')
     expect(meterId({ num: 7, den: 8, grouping: [3, 2, 2] })).toBe('7/8:3+2+2')
     expect(meterId({ num: 6, den: 8 })).toBe('6/8')
+  })
+})
+
+describe('the beat and bar lights', () => {
+  it('flash on every beat a chord covers, the bar light on downbeats', () => {
+    // C for six beats then G for two, in 4/4 at 120: a beat is 500 ms.
+    const [c, g] = layOut(
+      [
+        { n: 3, d: 2 },
+        { n: 1, d: 2 },
+      ],
+      DEFAULT_TIME,
+    )
+    expect(flashesOf(c, 120)).toEqual([
+      { ms: 0, strength: 'downbeat' },
+      { ms: 500, strength: 'weak' },
+      { ms: 1000, strength: 'strong' },
+      { ms: 1500, strength: 'weak' },
+      { ms: 2000, strength: 'downbeat' },
+      { ms: 2500, strength: 'weak' },
+    ])
+    expect(flashesOf(g, 120)).toEqual([
+      { ms: 0, strength: 'strong' },
+      { ms: 500, strength: 'weak' },
+    ])
+  })
+
+  it('flash on the dotted beats in 6/8 and the uneven ones in 7/8', () => {
+    const [six] = layOut([undefined], { meter: SIX_EIGHT })
+    expect(flashesOf(six, 60, SIX_EIGHT).map((f) => f.ms)).toEqual([0, 1000])
+    const [seven] = layOut([undefined], { meter: SEVEN_EIGHT })
+    // ♩ = 120: quavers are 250 ms, so 2+2+3 flashes at 0, 500 and 1000.
+    expect(flashesOf(seven, 120, SEVEN_EIGHT).map((f) => f.ms)).toEqual([
+      0, 500, 1000,
+    ])
   })
 })

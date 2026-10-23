@@ -1025,3 +1025,7 @@ Phase 6 task 1 is done: time signatures, strong and weak beats, and chord length
   - The selected chord says where it starts ("Starts bar 3, beat 2").
 - **Where it's kept:** sections don't exist in the app yet (SPEC 3), so the time signature and bar overrides are remembered in this browser, like the tempo. They move into the section when sections arrive. Changing them isn't undoable yet.
 - **Ready for the next tasks:** the theory core can say what accent any position has (downbeat, strong, weak or off the beat), and lists the beats each chord covers. The Arpeggio tab and line modes will use this for "land on a chord tone at each chord change" and "fit the beats available".
+
+## 2026-10-23 — Beat and bar lights (David's request)
+
+Two lights sit at the start of the strip's toolbar and flash in time while the progression plays, so the timing can be seen as well as heard. The beat light is amber and flashes on every counted beat; weak beats flash less brightly than the downbeat and strong beats. The bar light is red and flashes on the first beat of each bar, so in 6/8 the beat light flashes twice a bar and in 7/8 (2+2+3) three times, unevenly. They follow bar-level meter changes. When nothing plays, both stay dim. This is not a click: SPEC 5 keeps playback free of a metronome.

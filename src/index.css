@@ -1629,6 +1629,52 @@ body:has(.workspace) #app {
   font-size: 0.9rem;
 }
 
+/* The beat light (amber) and bar light (red) flash in time during
+   playback, then fade back to dim; weak beats flash less brightly. */
+.strip .beat-lights {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.2rem;
+}
+
+.strip .light {
+  --on: #f59e0b;
+  display: block;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+  border: 2px solid var(--on);
+  background: color-mix(in srgb, var(--on) 15%, transparent);
+}
+
+.strip .light.bar {
+  --on: #ef4444;
+}
+
+.strip .light.flash {
+  animation: light-flash 0.35s ease-out;
+}
+
+.strip .light.beat.weak {
+  --flash-start: 55%;
+}
+
+@keyframes light-flash {
+  from {
+    background: color-mix(
+      in srgb,
+      var(--on) var(--flash-start, 100%),
+      transparent
+    );
+    box-shadow: 0 0 0.5rem var(--on);
+  }
+  to {
+    background: color-mix(in srgb, var(--on) 15%, transparent);
+    box-shadow: none;
+  }
+}
+
 /* The bar a chord starts, and the beats it covers (SPEC 7.1). */
 .strip .chip .bar-number {
   font-size: 0.7rem;
