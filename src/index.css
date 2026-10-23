@@ -2389,3 +2389,22 @@ button.remove-note {
   color: var(--accent);
   font-weight: 600;
 }
+
+/* Keyboard voicings in a lens column are drawn on a small keyboard, as the
+   guitar's are drawn as chord boxes. */
+/* The lens columns sit outside the instrument, so they take its colours for
+   the dots: the chord's notes, and each tone's own. */
+.lens-column {
+  --chord: #f59e0b;
+  --tone-root: #e11d48;
+  --tone-third: #f59e0b;
+  --tone-fifth: #2563eb;
+  --tone-seventh: #9333ea;
+  --tone-extension: #0d9488;
+}
+
+.lens-chord .mini-keyboard {
+  width: 100%;
+  max-width: 12rem;
+  height: auto;
+}

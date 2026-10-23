@@ -155,11 +155,27 @@ const BLACK_HEIGHT = 28
 const BLACK_PCS = new Set([1, 3, 6, 8, 10])
 
 // Whole octaves from the C at or below the lowest note to the B at or above
-// the highest, with a dot on each note of the voicing.
-function MiniKeyboard({ chord, notes }: { chord: ChordName; notes: Note[] }) {
+// the highest, with a dot on each note of the voicing. The Voice tab draws
+// its keyboard voicings with it too, `tight`: just the white keys from the
+// lowest note to the highest, so it reads at the size of a lens's chord.
+export function MiniKeyboard({
+  chord,
+  notes,
+  tight = false,
+}: {
+  chord: ChordName
+  notes: Note[]
+  tight?: boolean
+}) {
   const midis = notes.map((n) => midiNumber(n) as number)
-  const low = Math.floor(Math.min(...midis) / 12) * 12
-  const high = Math.floor(Math.max(...midis) / 12) * 12 + 11
+  const lowest = Math.min(...midis)
+  const highest = Math.max(...midis)
+  const low = tight
+    ? lowest - (BLACK_PCS.has(lowest % 12) ? 1 : 0)
+    : Math.floor(lowest / 12) * 12
+  const high = tight
+    ? highest + (BLACK_PCS.has(highest % 12) ? 1 : 0)
+    : Math.floor(highest / 12) * 12 + 11
   const tones = chordTones(chord)
   const keys: { midi: number; black: boolean; x: number }[] = []
   let whites = 0
