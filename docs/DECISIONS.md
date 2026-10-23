@@ -1120,3 +1120,14 @@ Every line mode over the progression is now a Suggestion (`src/theory/line-sugge
 - SPEC's "Changes to the plan" lists it as item 9.
 
 All five Phase 6 tasks and its four exit criteria are now ticked. The phase gate still needs a reviewer check of the criteria, David's play-test, and the `v0.6-lines` tag.
+
+## 2026-10-23 — Arpeggios with the chords (David's request)
+
+The Arpeggio tab gains **▶ Play with chords**, as the Lines tab has. It plays the progression the way the strip's ▶ Play does, with chord shapes, the beat and bar lights and the strip highlight, and each chord's arpeggio over it.
+
+- Each arpeggio uses the tab's current choice, pattern and rate, and fills its chord's length.
+- On guitar in one position, the other chords play in the position nearest the selected one.
+- The chord picker follows the chord playing, and the sounding note glows.
+- The current chord, when it isn't in the progression, isn't played, since it has no place in the bars.
+
+Both tabs now hand their timed notes to the workspace in one shape (`src/workspace/along.ts`), so anything later that plays along (Phase 7's melodies) can do the same.

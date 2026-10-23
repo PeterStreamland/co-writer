@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'preact/hooks'
 import {
   ARPEGGIO_PATTERNS,
   ARPEGGIO_RATES,
+  addDur,
   formatNote,
   type ChordName,
   type Dur,
@@ -12,6 +13,7 @@ import { playNote } from '../audio/player'
 import type { Guitar } from '../instruments/guitar'
 import { secondsOf } from '../sketch/time'
 import type { ArpeggioShow, Instrument } from './InstrumentView'
+import type { Along, AlongNote } from './along'
 import {
   ARPEGGIO_CHOICES,
   OCTAVE_CHOICES,
@@ -33,6 +35,10 @@ export type ArpeggioSource = {
   length: Dur
   label: string
   lengthText: string // "1 bar", "2 beats"
+  // For a chord of the progression: which one, and where it starts, so its
+  // arpeggio can play along with the chords.
+  step?: number
+  start?: Dur
 }
 
 // What the instrument view shows: the arpeggio and the chord it's of.
@@ -42,8 +48,9 @@ export type ArpeggioOnShow = ArpeggioShow & { chord: ChordName }
 // extensions on a chord without adding anything to the progression. Pick a
 // chord or step through the progression, choose the arpeggio (triad to
 // 13th, or a lens's colours), a pattern, a rate and a range, and hear it at
-// the tempo, each note lit and labelled on the instrument. On guitar it
-// sits in one position (step through them) or runs across the neck.
+// the tempo, each note lit and labelled on the instrument, alone or played
+// with the progression's chords (David's request). On guitar it sits in one
+// position (step through them) or runs across the neck.
 export function ArpeggioPanel({
   sources,
   start,
@@ -52,6 +59,10 @@ export function ArpeggioPanel({
   bpm,
   meter,
   onShow,
+  along,
+  alongAt,
+  onPlayAlong,
+  onStop,
 }: {
   sources: ArpeggioSource[]
   // The source to begin on (the selected or current chord).
@@ -61,6 +72,12 @@ export function ArpeggioPanel({
   bpm: number
   meter: Meter
   onShow: (show: ArpeggioOnShow | undefined) => void
+  // Notes playing along with the progression's chords, if any, and the one
+  // sounding; starting and stopping that playback (David's request).
+  along?: Along
+  alongAt?: AlongNote
+  onPlayAlong: (notes: Along) => void
+  onStop: () => void
 }) {
   const [settings, setSettings] = useState(loadArpeggio)
   useEffect(() => saveArpeggio(settings), [settings])
@@ -104,7 +121,19 @@ export function ArpeggioPanel({
     return voiceOf(p, mode, nearest)
   }
   // The note sounding while the arpeggio plays: which chord, which note.
-  const [playing, setPlaying] = useState<{ at: number; note: number }>()
+  const [ownPlaying, setPlaying] = useState<{ at: number; note: number }>()
+  // Playing with the chords, the workspace says which note sounds.
+  const together = along?.source === plans
+  const alongSource =
+    together && alongAt ? sources.findIndex((s) => s.step === alongAt.step) : -1
+  const playing = together
+    ? alongSource >= 0
+      ? { at: alongSource, note: alongAt!.ref }
+      : undefined
+    : ownPlaying
+  useEffect(() => {
+    if (alongSource >= 0) setAt(alongSource)
+  }, [alongSource])
   const [through, setThrough] = useState<number[]>()
   useEffect(() => setPlaying(undefined), [plans])
   useEffect(() => {
@@ -136,7 +165,7 @@ export function ArpeggioPanel({
           }
         : undefined,
     })
-  }, [plan, playing, positionAt, mode])
+  }, [plan, playing?.at, playing?.note, positionAt, mode])
   useEffect(() => () => onShow(undefined), [])
 
   // Plays the chords at `order` one after another, each arpeggio filling
@@ -172,6 +201,24 @@ export function ArpeggioPanel({
     return () => timers.forEach(clearTimeout)
   }, [through])
   useEffect(() => setThrough(undefined), [plans])
+  // Plays the progression with each chord's arpeggio over it.
+  const playWithChords = () =>
+    onPlayAlong({
+      source: plans,
+      notes: sources.flatMap((s, i) => {
+        if (s.step === undefined || !s.start) return []
+        const step = s.step
+        const start = s.start
+        const voice = voiceAt(i)
+        return voice.events.map((e) => ({
+          step,
+          onset: addDur(start, e.onset),
+          length: e.length,
+          note: voice.notes[e.index].note,
+          ref: e.index,
+        }))
+      }),
+    })
 
   if (!source || !plan) {
     return (
@@ -352,11 +399,11 @@ export function ArpeggioPanel({
           )}
       </div>
       <div class="arpeggio-play">
-        {through ? (
+        {through || together ? (
           <button
             type="button"
             class="play"
-            onClick={() => setThrough(undefined)}
+            onClick={() => (together ? onStop() : setThrough(undefined))}
           >
             ■ Stop
           </button>
@@ -375,6 +422,11 @@ export function ArpeggioPanel({
                 onClick={() => setThrough(sources.map((_, i) => i))}
               >
                 ▶ Play through every chord
+              </button>
+            )}
+            {sources.some((s) => s.step !== undefined) && (
+              <button type="button" onClick={playWithChords}>
+                ▶ Play with chords
               </button>
             )}
           </>
