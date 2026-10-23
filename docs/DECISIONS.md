@@ -1236,3 +1236,25 @@ After play-testing line editing, David asked for any number of notes from 1 to 1
   - **🎲 Refresh every bar** refreshes them all. ↺ on a bar clears its count, refreshes and edits; "Undo all edits" clears every bar.
 - **Rows** store a bar's count and refresh (`count`, `seed` on a line recipe) and name them: "Walking, 6 notes, refreshed".
 - **Answering David's question:** before this, every line mode and every Voice lens gave exactly the same result for the same chords and settings. Only the Wildcards used chance. Refresh brings rule-following chance to every line. Voice lenses get the same next, as an Another on each lens.
+
+## 2026-10-23 — Chords for a chord's place (David's request)
+
+David asked for alternatives when he clicks a chord in the progression. Clicking a chord in the strip now opens **In place of Am** in the Suggest tab (David's choice of where, and of making a branch):
+
+- **What it offers:** chords that could follow the chord before and lead into the chord after, ranked as passing chords are (Phase 4 task 7), each with its explanation and ⓘ. The last chord's place offers what could follow the chords before it; the first chord's place offers starting chords that lead into the second.
+  - The chord already there is never offered, and neither is a change of key.
+  - The Wildcard and Another work as usual.
+  - The theory is `rankInPlace` in `src/theory/passing.ts`. Both rankers gained a `keep` option for this.
+- **Tap** plays the chord before, the suggestion, then the chord after.
+- **+ makes it an alternative at that slot.** The chords after it stay as they were, and the old chord is one ‹ › away. The place stays open, so several can be tried in turn.
+- **"What comes after Am"** goes back to the next-chord suggestions after the selected chord, which is what clicking a chord showed before. Adding a chord any other way moves on, as before.
+
+## 2026-10-23 — Another take on every Voice lens (David's request)
+
+David asked whether each lens gives the same voicings every time (it did) and for other paths that still follow the rules. Every lens column now has **🎲 Another** (David's choice: one per lens), and **↺ Best** goes back to the lens's own best.
+
+- **The first take is the lens's best,** as before (David's choice: best first, Another varies).
+- **Another take:** each voicing's own cost gains up to 3 points of seeded chance before the search (`LENS_VARIATION` in `src/theory/lens.ts`). The search still weighs voice leading and every rule the lens's way.
+  - Strict rules are kept: anything costing more than twice the chance, such as the Classical lens's parallels (20) and tendency notes (6), stays exactly as the best kept it (tested).
+  - Mild likings, such as parallels costing 1 in the Open lens, may be traded for a smoother path.
+- Each take is seeded by the chords, the lens and the take number, so a take plays the same until the progression changes, which starts every lens over at its best. On guitar, takes choose among the lens's guitar shapes.

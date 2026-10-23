@@ -176,6 +176,7 @@ export function voiceProgressionOnGuitar(
   lens: Lens,
   steps: LensStep[],
   random: () => number = Math.random,
+  vary?: () => number,
 ): LensChoice<GuitarLensVoicing>[] {
   const candidates = steps.map((s) =>
     guitarLensVoicings(guitar, lens, s.key, s.chord, random),
@@ -196,5 +197,5 @@ export function voiceProgressionOnGuitar(
             cost: 10 + 0.1 * (100 - f.score),
           })),
   )
-  return chooseVoicings(lens, steps, filled)
+  return chooseVoicings(lens, steps, filled, vary)
 }
