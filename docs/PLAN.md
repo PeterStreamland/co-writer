@@ -204,6 +204,7 @@ Goal: give a progression, get voicings that move well, in several style lenses s
 4. Lenses: classical (smooth, strict), rock (power chords, open strings, parallels fine), open/ambient (spread, sus, add9) and jazz (drop-2, rootless, shells). ✅
 5. Two to four lenses shown side by side on guitar and keyboard, each with playback. ✅
 6. Another take on every lens: another smooth path that keeps the lens's strict rules, back to its best with ↺ (added 2026-10-23, David's request). ✅
+7. Tap a chord in a lens column for the lens's other voicings of it and other chords for its place, swapped into that column until it is used (added 2026-10-23, David's request). ✅
 
 - [x] The classical lens produces no parallel 5ths or octaves across the test progressions
 - [x] Every lens beats a root-position baseline on average voice movement
