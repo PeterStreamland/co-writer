@@ -355,6 +355,7 @@ type Progression = {
   roots: string[]
   activePath: string[]
   parts?: Part[] // rows of lines and arpeggios under the chords (2026-10-23)
+  melody?: MelodyNote[] // the section's melody, until sections arrive (2026-10-23)
 }
 type Part = {
   id: string

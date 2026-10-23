@@ -11,6 +11,7 @@ import {
   type ChordName,
   type Dur,
   type Key,
+  type MelodyNote,
   type MeterMap,
   type Note,
   type Placement,
@@ -58,6 +59,9 @@ export type Progression = {
   activePath: string[]
   // Rows of lines and arpeggios under the chords (parts.ts).
   parts?: Part[]
+  // The section's melody (SPEC 7.2), kept here, outside the tree, until
+  // sketches have sections: every branch plays over the same melody.
+  melody?: MelodyNote[]
 }
 
 export const EMPTY_PROGRESSION: Progression = {
@@ -463,7 +467,28 @@ export function isProgression(value: unknown): value is Progression {
         (n.octave === undefined || Number.isInteger(n.octave)),
     ) &&
     (p.parts === undefined ||
-      (Array.isArray(p.parts) && p.parts.every((r) => isPart(r, ids))))
+      (Array.isArray(p.parts) && p.parts.every((r) => isPart(r, ids)))) &&
+    (p.melody === undefined ||
+      (Array.isArray(p.melody) && p.melody.every(isMelodyNote)))
+  )
+}
+
+const isDur = (d: unknown): boolean =>
+  typeof d === 'object' &&
+  d !== null &&
+  Number.isInteger((d as Dur).n) &&
+  Number.isInteger((d as Dur).d) &&
+  (d as Dur).d > 0
+
+function isMelodyNote(value: unknown): value is MelodyNote {
+  if (typeof value !== 'object' || value === null) return false
+  const m = value as MelodyNote
+  return (
+    typeof m.note?.letter === 'string' &&
+    Number.isInteger(m.note.accidental) &&
+    Number.isInteger(m.note.octave) &&
+    isDur(m.onset) &&
+    isDur(m.length)
   )
 }
 

@@ -2478,3 +2478,72 @@ button.remove-note {
   color: var(--accent);
   font-weight: 600;
 }
+
+/* Melody entry (Phase 7 task 1): the Melody tab and the lane under the
+   strip. */
+.melody h3 {
+  margin: 0.9rem 0 0.4rem;
+  font-size: 0.95rem;
+}
+
+.melody-bar,
+.note-values {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.note-values {
+  gap: 0.3rem;
+}
+
+.melody-bar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.note-values button {
+  min-width: 2.2rem;
+  padding: 0.2rem 0.4rem;
+  font-size: 1.05rem;
+}
+
+.note-values button[aria-pressed='true'] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+  font-weight: 700;
+}
+
+.melody-type {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.3rem;
+}
+
+.melody-type input {
+  flex: 1;
+  min-width: 0;
+}
+
+.melody .record.on {
+  border-color: #dc2626;
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.melody-lane .part-head p {
+  margin: 0;
+}
+
+.melody-lane .melody-note .label {
+  font-size: 0.85rem;
+}
+
+.note-values button small {
+  display: block;
+  font-size: 0.65rem;
+  color: var(--muted, inherit);
+}

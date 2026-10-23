@@ -41,6 +41,8 @@ import {
 
 export type Instrument = 'keyboard' | 'guitar'
 
+export type Tap = (midi: number, spelled?: Note) => void
+
 // An arpeggio on show from the Arpeggio tab: its name and notes (lowest
 // first), each with its interval label and number, and on guitar the spot
 // each sits on; the note sounding, if it is playing. On guitar it also
@@ -126,6 +128,7 @@ export function InstrumentView({
   voicings,
   arpeggio,
   addable = true,
+  onTap,
 }: {
   value: Key
   chord: ChordName | undefined
@@ -144,6 +147,10 @@ export function InstrumentView({
   // beside the side panel, and this one is a viewer, in step with it
   // (David's choice).
   addable?: boolean
+  // While set (the Melody tab's tap entry), every key and fret can be
+  // tapped, in the scale or not, and a tap goes here: its pitch, and its
+  // spelling when the view has one for it.
+  onTap?: Tap
 }) {
   const [labels, setLabels] = useState<Labels>('names')
   const { tuning, strings, capo, lastFret } = settings
@@ -247,6 +254,7 @@ export function InstrumentView({
             held={held}
             voiced={voicing?.notes.map((n) => midiNumber(n) as number)}
             arpeggio={arpeggio}
+            onTap={onTap}
           />
           <ChordBox
             instrument={instrument}
@@ -266,6 +274,7 @@ export function InstrumentView({
             toneColours={toneColours}
             shape={shape?.frets}
             arpeggio={arpeggio}
+            onTap={onTap}
           />
           {arpeggio?.guitar ? (
             <ArpeggioBox guitar={guitar} show={arpeggio} />
@@ -449,6 +458,7 @@ function Keyboard({
   held,
   voiced = [],
   arpeggio,
+  onTap,
 }: {
   mark: (midi: number) => Mark | undefined
   labels: Labels
@@ -456,6 +466,7 @@ function Keyboard({
   held: number[]
   voiced?: number[] // the voicing on show beside the keyboard, ringed
   arpeggio?: ArpeggioShow
+  onTap?: Tap
 }) {
   const narrow = useNarrow()
   const span = narrow ? 24 : KEYBOARD_HIGH - KEYBOARD_LOW
@@ -508,11 +519,11 @@ function Keyboard({
         left: `${left}%`,
         width: `${k.black ? width * 0.6 : width}%`,
       }}
-      disabled={!k.mark}
+      disabled={!k.mark && !onTap}
       aria-label={
         k.mark ? `${k.mark.name}, degree ${k.mark.degree}` : undefined
       }
-      onClick={() => play(k.mark)}
+      onClick={() => (onTap ? onTap(k.midi, k.mark?.note) : play(k.mark))}
     >
       {k.mark && (
         <span class={markClass(k.mark, toneColours)}>
@@ -565,6 +576,7 @@ function Fretboard({
   toneColours,
   shape,
   arpeggio,
+  onTap,
 }: {
   guitar: Guitar
   keyValue: Key
@@ -573,6 +585,7 @@ function Fretboard({
   toneColours: boolean
   shape?: (number | null)[]
   arpeggio?: ArpeggioShow
+  onTap?: Tap
 }) {
   const strings = guitar.strings
   const grid = fretboardGrid(guitar, mark)
@@ -648,13 +661,15 @@ function Fretboard({
                   : '',
                 sounding.has(at(spot.string, spot.fret)) ? 'sounding' : '',
               ].join(' ')}
-              disabled={!spot.mark}
+              disabled={!spot.mark && (!onTap || spot.behindCapo)}
               aria-label={
                 spot.mark
                   ? `${spot.mark.name} on string ${grid.length - spot.string}, fret ${spot.fret}`
                   : undefined
               }
-              onClick={() => play(spot.mark)}
+              onClick={() =>
+                onTap ? onTap(spot.midi, spot.mark?.note) : play(spot.mark)
+              }
             >
               {spot.mark && (
                 <span

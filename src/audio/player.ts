@@ -68,3 +68,17 @@ export async function playNote(note: Note, seconds: number): Promise<void> {
   await Tone.loaded()
   piano.triggerAttackRelease(frequency(note), seconds, Tone.now())
 }
+
+let clicker: Tone.Synth | undefined
+
+// The count-in and recording click (SPEC 5, 7.2): a short tick, higher on
+// the first beat of the bar.
+export async function playClick(accent: boolean): Promise<void> {
+  await Tone.start()
+  clicker ??= new Tone.Synth({
+    oscillator: { type: 'square' },
+    envelope: { attack: 0.001, decay: 0.05, sustain: 0, release: 0.02 },
+    volume: -10,
+  }).toDestination()
+  clicker.triggerAttackRelease(accent ? 1760 : 1175, 0.03, Tone.now())
+}

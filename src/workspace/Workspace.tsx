@@ -14,7 +14,13 @@ import {
   type Key,
   type NextChordSuggestion,
   type Note,
+  type MelodyNote,
   type StyleBlend,
+  ZERO,
+  addDur,
+  appendNote,
+  NOTE_VALUES,
+  spellTapped,
 } from '../theory'
 import { OCTAVE_LIMIT, shiftNotes, shiftShape } from '../instruments/octave'
 import { playChord, playNote, preparePiano } from '../audio/player'
@@ -52,6 +58,9 @@ import { LinesPanel } from './LinesPanel'
 import type { LineBars, LineEdits } from './lines-view'
 import type { Along, AlongNote } from './along'
 import { PartRows, type PartView } from './PartRows'
+import { MelodyLane } from './MelodyLane'
+import { MelodyPanel, type MelodyEntry } from './MelodyPanel'
+import { MELODY_LOOK, melodyAlong } from './melody-view'
 import { partLabel, partNotes } from './parts-view'
 import {
   addCell,
@@ -616,6 +625,110 @@ export function Workspace() {
     showNode(path[index])
     playNode(path[index])
   }
+  // The melody (SPEC 7.2), entered on the Melody tab and shown in the lane
+  // under the strip. Every change is undoable with the strip's undo.
+  const melody = progression.melody ?? []
+  function setMelody(next: MelodyNote[]) {
+    setHistory((h) => {
+      const p: Progression = { ...h.present, melody: next }
+      if (!next.length) delete p.melody
+      return record(h, p)
+    })
+  }
+  const [melodyEntry, setMelodyEntry] = useState<MelodyEntry>({
+    value: 'quarter',
+    gap: ZERO,
+    tap: true,
+    grid: '1/16',
+  })
+  // Tapping the instrument while the Melody tab is open adds a note of the
+  // chosen value after the last (step entry), and plays it.
+  const melodyTap =
+    tab === 'melody' && melodyEntry.tap
+      ? (midi: number, spelled?: Note) => {
+          const note = spelled ?? spellTapped(key, midi, melody.at(-1)?.note)
+          const value =
+            NOTE_VALUES.find((v) => v.id === melodyEntry.value) ??
+            NOTE_VALUES[4]
+          setHistory((h) =>
+            record(h, {
+              ...h.present,
+              melody: appendNote(
+                h.present.melody ?? [],
+                note,
+                value.length,
+                melodyEntry.gap,
+              ),
+            }),
+          )
+          setMelodyEntry((e) => ({ ...e, gap: ZERO }))
+          void playNote(note, secondsOf(value.length, bpm, time.meter))
+        }
+      : undefined
+  // Play melody plays it alone, every note, lit in the lane.
+  const [soloAt, setSoloAt] = useState<number>()
+  const soloTimers = useRef<number[]>([])
+  function stopSolo() {
+    soloTimers.current.forEach(clearTimeout)
+    soloTimers.current = []
+    setSoloAt(undefined)
+  }
+  function playMelody() {
+    stopSolo()
+    setPlayingAt(undefined)
+    const ms = (d: { n: number; d: number }) =>
+      secondsOf(d, bpm, time.meter) * 1000
+    melody.forEach((m, i) => {
+      soloTimers.current.push(
+        window.setTimeout(() => {
+          setSoloAt(i)
+          void playNote(m.note, secondsOf(m.length, bpm, time.meter))
+        }, ms(m.onset)),
+      )
+    })
+    const last = melody.at(-1)
+    if (last) {
+      soloTimers.current.push(
+        window.setTimeout(stopSolo, ms(addDur(last.onset, last.length))),
+      )
+    }
+  }
+  useEffect(() => stopSolo, [])
+  const lastPlaced = timing.at(-1)
+  const sectionEnd = lastPlaced && addDur(lastPlaced.start, lastPlaced.length)
+  const melodySounding = alongAt?.look === MELODY_LOOK ? alongAt.ref : soloAt
+  const melodyPanel = (
+    <MelodyPanel
+      melody={melody}
+      onChange={setMelody}
+      entry={melodyEntry}
+      onEntry={setMelodyEntry}
+      keyValue={key}
+      bpm={bpm}
+      time={time}
+      end={sectionEnd}
+      midi={midi}
+      playing={playingAt !== undefined || soloAt !== undefined}
+      onPlay={(withChords) => {
+        if (!withChords) {
+          playMelody()
+          return
+        }
+        stopSolo()
+        playAlong({ source: melody, notes: melodyAlong(melody, timing) })
+      }}
+      onPlayChords={() => {
+        stopSolo()
+        setAlong(undefined)
+        setPlayingAt(0)
+      }}
+      onStop={() => {
+        stopSolo()
+        setPlayingAt(undefined)
+      }}
+      onRecordStart={() => setRecording(false)}
+    />
+  )
   const strip = (
     <ProgressionStrip
       progression={progression}
@@ -631,18 +744,27 @@ export function Workspace() {
       playingAt={playingAt}
       onPlay={() => {
         // The rows that aren't muted play along with the chords.
+        // So does the melody.
         const playing = rows.filter((r) => !r.part.muted)
-        setAlong(
-          playing.length
-            ? { source: rows, notes: playing.flatMap((r) => r.notes) }
-            : undefined,
-        )
+        const notes = [
+          ...playing.flatMap((r) => r.notes),
+          ...melodyAlong(melody, timing),
+        ]
+        setAlong(notes.length ? { source: rows, notes } : undefined)
         setPlayingAt(0)
       }}
       onStop={() => setPlayingAt(undefined)}
       onUndo={() => step(undo(history))}
       onRedo={() => step(redo(history))}
-      onClear={() => change(EMPTY_PROGRESSION, -1)}
+      onClear={() =>
+        // The melody belongs to the section, so it stays.
+        change(
+          progression.melody
+            ? { ...EMPTY_PROGRESSION, melody: progression.melody }
+            : EMPTY_PROGRESSION,
+          -1,
+        )
+      }
       onPickNode={(id) => {
         const next = selectNode(progression, id)
         change(next, next.activePath.indexOf(id))
@@ -867,6 +989,7 @@ export function Workspace() {
             onSettingsChange={setSettings}
             shapes={shapeList}
             voicings={voicingList}
+            onTap={melodyTap}
           />
           <MidiPanel
             midi={midi}
@@ -881,6 +1004,15 @@ export function Workspace() {
             onShowShapes={showShapes}
           />
           {strip}
+          <MelodyLane
+            melody={melody}
+            time={time}
+            sounding={melodySounding}
+            onOpen={() => {
+              setTab('melody')
+              setSheetOpen(true)
+            }}
+          />
           <PartRows
             rows={rows}
             path={path}
@@ -922,6 +1054,7 @@ export function Workspace() {
             { id: 'voice', label: 'Voice', content: voice },
             { id: 'arpeggio', label: 'Arpeggio', content: arpeggio },
             { id: 'lines', label: 'Lines', content: lines },
+            { id: 'melody', label: 'Melody', content: melodyPanel },
           ]}
           open={sheetOpen}
           onOpenChange={setSheetOpen}
