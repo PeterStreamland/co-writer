@@ -1270,3 +1270,5 @@ David found that clicking a chord in a Voice lens column didn't offer alternativ
   - Another keeps swaps in place. A change to the progression clears them.
   - **⑂ New branch** or **+ Add to end** puts the column, swaps and all, into the progression.
 - On guitar the lists offer the lens's guitar shapes, as frets.
+
+**Keyboard shapes in the Voice tab (David's question, same day).** Lens columns on keyboard showed only note names; only guitar drew its shapes. Each keyboard voicing is now drawn on a small keyboard, the same drawing as the voicing box beside the keyboard. It is cropped to the keys from the lowest note to the highest so it reads at a column's size, with each note coloured by its role. The lens columns also take the instrument's tone colours, so guitar boxes there are now coloured too (their dots had been black).

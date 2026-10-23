@@ -32,6 +32,7 @@ import {
 import type { Progression } from '../sketch/progression'
 import { secondsOf } from '../sketch/time'
 import { BoxDiagram } from './ChordBoxes'
+import { MiniKeyboard } from './KeyboardVoicings'
 import type { Instrument } from './InstrumentView'
 import {
   MAX_LENSES,
@@ -490,9 +491,16 @@ function LensColumn({
                     <span class="lens-notes">{formatFrets(shape.frets)}</span>
                   </>
                 ) : (
-                  <span class="lens-notes">
-                    {voicing.notes.map((n) => formatNote(n)).join(' ')}
-                  </span>
+                  <>
+                    <MiniKeyboard
+                      chord={voicing.chord}
+                      notes={voicing.notes}
+                      tight
+                    />
+                    <span class="lens-notes">
+                      {voicing.notes.map((n) => formatNote(n)).join(' ')}
+                    </span>
+                  </>
                 )}
               </button>
               {choice.hits.length > 0 && (
