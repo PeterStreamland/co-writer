@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'preact/hooks'
 import {
   LINE_GROUPS,
-  LINE_MODES,
   chordSymbol,
   formatNote,
-  lineFor,
+  lineSuggestions,
   subDur,
   type Key,
   type Meter,
@@ -14,6 +13,7 @@ import { playNote } from '../audio/player'
 import type { Progression } from '../sketch/progression'
 import { secondsOf } from '../sketch/time'
 import type { ArpeggioOnShow } from './ArpeggioPanel'
+import { InfoToggle, useToggle } from './ChordInfo'
 import {
   TAG_LABELS,
   labelNumber,
@@ -22,12 +22,14 @@ import {
   saveLineMode,
 } from './lines-view'
 
-// The Lines tab (PLAN Phase 6 task 3, SPEC 7.4): a line over the
-// progression in one of the modes (bass lines, inner voices, lines between
-// chords), every note tagged and explained, laid on the beats. Tap a chord
-// to light its notes on the instrument; tap a note to see why it's there.
-// Play plays the line alone at the tempo; playing it with the chords comes
-// next (task 5).
+// The Lines tab (PLAN Phase 6 tasks 3–4, SPEC 6.2, 7.4): every line mode
+// over the progression as a suggestion, grouped as bass lines, inner voices
+// and lines between chords, best first in each group. The chosen line
+// shows its first line of explanation, with ⓘ for the theory and what moved
+// its ranking, and its notes chord by chord, every note tagged and
+// explained, laid on the beats. Tap a chord to light its notes on the
+// instrument; tap a note to see why it's there. Play plays the line alone
+// at the tempo; playing it with the chords comes next (task 5).
 export function LinesPanel({
   progression,
   sectionKey,
@@ -49,10 +51,10 @@ export function LinesPanel({
     () => lineSteps(progression, sectionKey, timing),
     [progression, sectionKey, timing],
   )
-  const line = useMemo(
-    () => (steps.length ? lineFor(modeId, steps) : undefined),
-    [modeId, steps],
-  )
+  const suggestions = useMemo(() => lineSuggestions(steps), [steps])
+  const chosen = suggestions.find((s) => s.candidate.mode.id === modeId)
+  const line = chosen?.candidate
+  const [infoOpen, toggleInfo] = useToggle()
   const [focus, setFocus] = useState(0)
   const [picked, setPicked] = useState<number>()
   // The note sounding while the line plays, by its index in the line.
@@ -69,7 +71,7 @@ export function LinesPanel({
   // Lights the chord's notes on the instrument, labelled; the one sounding
   // glows.
   useEffect(() => {
-    if (!line) {
+    if (!line || !chosen) {
       onShow(undefined)
       return
     }
@@ -129,24 +131,46 @@ export function LinesPanel({
   const pickedNote = picked === undefined ? undefined : line.notes[picked]
   return (
     <section class="lines" aria-label="Lines">
+      <div class="line-suggestions">
+        {LINE_GROUPS.map((g) => (
+          <div key={g.id} class="line-group">
+            <span class="muted">{g.label}:</span>
+            {suggestions
+              .filter((s) => s.tags[0] === g.id)
+              .map((s) => (
+                <button
+                  key={s.candidate.mode.id}
+                  type="button"
+                  aria-pressed={s.candidate.mode.id === modeId}
+                  title={s.explanation}
+                  onClick={() => setModeId(s.candidate.mode.id)}
+                >
+                  {s.candidate.mode.label}
+                </button>
+              ))}
+          </div>
+        ))}
+      </div>
+      <p class="line-explanation">
+        <strong>{line.mode.label}</strong> · {chosen.explanation}{' '}
+        <InfoToggle
+          open={infoOpen}
+          label={line.mode.label}
+          onToggle={toggleInfo}
+        />
+      </p>
+      {infoOpen && (
+        <div class="info-panel">
+          <h4>More</h4>
+          <p>{chosen.more}</p>
+          {chosen.contextNotes.map((note) => (
+            <p key={note} class="context">
+              {note}
+            </p>
+          ))}
+        </div>
+      )}
       <div class="lines-bar">
-        <label>
-          Line
-          <select
-            value={modeId}
-            onChange={(e) => setModeId(e.currentTarget.value as typeof modeId)}
-          >
-            {LINE_GROUPS.map((g) => (
-              <optgroup key={g.id} label={g.label}>
-                {LINE_MODES.filter((m) => m.group === g.id).map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.label}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </label>
         {on ? (
           <button type="button" class="play" onClick={() => setOn(false)}>
             ■ Stop
@@ -156,7 +180,6 @@ export function LinesPanel({
             ▶ Play line
           </button>
         )}
-        <span class="muted">{line.mode.blurb}</span>
       </div>
       <ol class="line-chords">
         {steps.map((step, s) => (
