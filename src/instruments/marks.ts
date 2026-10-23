@@ -29,15 +29,18 @@ export type Mark = {
 // A function from MIDI number to its mark, or undefined for a pitch that is
 // in neither the scale nor the current chord and isn't being played. A pitch
 // in the scale takes the scale's spelling; a chord tone outside the scale
-// takes the chord's, and a played note outside both its own.
+// takes the chord's, and a played note outside both its own. Extra notes
+// (an arpeggio's extensions) count as tones of the chord.
 export function noteMarker(
   key: Key,
   chord?: ChordName,
   played: Note[] = [],
+  extra: Note[] = [],
 ): (midi: number) => Mark | undefined {
   const scale = scaleNotes(key.tonic, key.mode)
   const tones = chord ? chordNotes(chord) : []
   if (chord?.bass) tones.push(chord.bass)
+  tones.push(...extra)
   const rootPitch = pitchClass(key.tonic)
   const scalePitches = new Set(scale.map(pitchClass))
   const tonePitches = new Set(tones.map(pitchClass))

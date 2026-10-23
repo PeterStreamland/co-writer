@@ -1,4 +1,5 @@
 // The theory core: pure TypeScript, no UI, audio or DOM imports.
+export * from './arpeggio'
 export * from './chord'
 export * from './chord-symbol'
 export * from './duration'

@@ -28,6 +28,7 @@ import {
   type PianoKey,
 } from '../instruments/keyboard'
 import { noteMarker, type Mark } from '../instruments/marks'
+import type { Spot } from '../instruments/arpeggio-guitar'
 import { TUNINGS, tuningStrings } from '../instruments/tunings'
 import {
   formatNote,
@@ -38,6 +39,15 @@ import {
 } from '../theory'
 
 export type Instrument = 'keyboard' | 'guitar'
+
+// An arpeggio on show from the Arpeggio tab: its notes (lowest first), each
+// with its interval label, and on guitar the spot each sits on; the note
+// sounding, if it is playing.
+export type ArpeggioShow = {
+  notes: { note: Note; midi: number; label: string }[]
+  spots?: Spot[]
+  sounding?: number
+}
 type Labels = 'names' | 'degrees' | 'chord-tones'
 
 export type GuitarSettings = {
@@ -103,6 +113,7 @@ export function InstrumentView({
   onSettingsChange,
   shapes,
   voicings,
+  arpeggio,
   addable = true,
 }: {
   value: Key
@@ -114,6 +125,8 @@ export function InstrumentView({
   onSettingsChange: (settings: GuitarSettings) => void
   shapes: Shapes
   voicings: Voicings
+  // An arpeggio to light and label in place of the chord's shape.
+  arpeggio?: ArpeggioShow
   // Whether the chord box beside the instrument has + to add the shape (on a
   // phone, where it is the only box). On wider screens the box with + sits
   // beside the side panel, and this one is a viewer, in step with it
@@ -128,11 +141,16 @@ export function InstrumentView({
   const setStrings = (strings: '6' | '7') => change({ strings })
   const setCapo = (capo: number) => change({ capo })
   const setLastFret = (lastFret: number) => change({ lastFret })
-  const mark = noteMarker(value, chord, played)
+  const mark = noteMarker(
+    value,
+    chord,
+    played,
+    arpeggio?.notes.map((n) => n.note),
+  )
   const toneColours = labels === 'chord-tones' && chord !== undefined
   const guitar = guitarFrom(settings)
-  const shape = chord ? shapes.list[shapes.at] : undefined
-  const voicing = chord ? voicings.list[voicings.at] : undefined
+  const shape = chord && !arpeggio ? shapes.list[shapes.at] : undefined
+  const voicing = chord && !arpeggio ? voicings.list[voicings.at] : undefined
   const held = played.map((n) => midiNumber(n) as number)
   return (
     <section class="instrument">
@@ -221,14 +239,17 @@ export function InstrumentView({
             toneColours={toneColours}
             held={held}
             voiced={voicing?.notes.map((n) => midiNumber(n) as number)}
+            arpeggio={arpeggio}
           />
-          <ChordBox
-            instrument={instrument}
-            guitar={guitar}
-            chord={chord}
-            shapes={addable ? shapes : viewOnly(shapes)}
-            voicings={addable ? voicings : viewOnly(voicings)}
-          />
+          {!arpeggio && (
+            <ChordBox
+              instrument={instrument}
+              guitar={guitar}
+              chord={chord}
+              shapes={addable ? shapes : viewOnly(shapes)}
+              voicings={addable ? voicings : viewOnly(voicings)}
+            />
+          )}
         </div>
       ) : (
         <div class="with-box">
@@ -239,14 +260,17 @@ export function InstrumentView({
             labels={labels}
             toneColours={toneColours}
             shape={shape?.frets}
+            arpeggio={arpeggio}
           />
-          <ChordBox
-            instrument={instrument}
-            guitar={guitar}
-            chord={chord}
-            shapes={addable ? shapes : viewOnly(shapes)}
-            voicings={addable ? voicings : viewOnly(voicings)}
-          />
+          {!arpeggio && (
+            <ChordBox
+              instrument={instrument}
+              guitar={guitar}
+              chord={chord}
+              shapes={addable ? shapes : viewOnly(shapes)}
+              voicings={addable ? voicings : viewOnly(voicings)}
+            />
+          )}
         </div>
       )}
       <p class="legend muted">
@@ -417,19 +441,28 @@ function Keyboard({
   toneColours,
   held,
   voiced = [],
+  arpeggio,
 }: {
   mark: (midi: number) => Mark | undefined
   labels: Labels
   toneColours: boolean
   held: number[]
   voiced?: number[] // the voicing on show beside the keyboard, ringed
+  arpeggio?: ArpeggioShow
 }) {
   const narrow = useNarrow()
   const span = narrow ? 24 : KEYBOARD_HIGH - KEYBOARD_LOW
   const [low, setLow] = useState(narrow ? 48 : KEYBOARD_LOW) // C3 or C2
+  // The arpeggio's notes, by pitch, with their labels; and the one sounding.
+  const arpeggioAt = new Map(arpeggio?.notes.map((n) => [n.midi, n.label]))
+  const sounding =
+    arpeggio?.sounding === undefined
+      ? undefined
+      : arpeggio.notes[arpeggio.sounding]?.midi
+  const inView = sounding === undefined ? held : [...held, sounding]
   useEffect(
-    () => setLow((l) => scrollToHeld(l, span, held)),
-    [held.join(), span],
+    () => setLow((l) => scrollToHeld(l, span, inView)),
+    [inView.join(), span],
   )
   const range = { low, high: low + span }
   const keys = pianoKeys(range.low, range.high, mark)
@@ -449,10 +482,14 @@ function Keyboard({
       class={[
         'key',
         k.black ? 'black' : 'white',
-        voiced.includes(k.midi) ? 'in-shape' : '',
-        voiced.length && k.mark?.chordTone && !voiced.includes(k.midi)
+        voiced.includes(k.midi) || arpeggioAt.has(k.midi) ? 'in-shape' : '',
+        (voiced.length || arpeggio) &&
+        k.mark?.chordTone &&
+        !voiced.includes(k.midi) &&
+        !arpeggioAt.has(k.midi)
           ? 'off-shape'
           : '',
+        k.midi === sounding ? 'sounding' : '',
       ].join(' ')}
       style={{
         left: `${left}%`,
@@ -465,7 +502,9 @@ function Keyboard({
       onClick={() => play(k.mark)}
     >
       {k.mark && (
-        <span class={markClass(k.mark, toneColours)}>{label(k.mark)}</span>
+        <span class={markClass(k.mark, toneColours)}>
+          {arpeggioAt.get(k.midi) ?? label(k.mark)}
+        </span>
       )}
     </button>
   )
@@ -512,6 +551,7 @@ function Fretboard({
   labels,
   toneColours,
   shape,
+  arpeggio,
 }: {
   guitar: Guitar
   keyValue: Key
@@ -519,6 +559,7 @@ function Fretboard({
   labels: Labels
   toneColours: boolean
   shape?: (number | null)[]
+  arpeggio?: ArpeggioShow
 }) {
   const strings = guitar.strings
   const grid = fretboardGrid(guitar, mark)
@@ -527,6 +568,19 @@ function Fretboard({
   )
   const frets = grid[0].map((f) => f.fret)
   const label = (m: Mark) => markLabel(m, labels, toneColours)
+  // The arpeggio's spots, with their labels; and the one sounding.
+  const at = (s: number, f: number) => `${s}:${f}`
+  const arpeggioAt = new Map(
+    arpeggio?.spots?.map((s, i) => [
+      at(s.string, s.fret),
+      arpeggio.notes[i].label,
+    ]),
+  )
+  const soundingSpot =
+    arpeggio?.sounding === undefined
+      ? undefined
+      : arpeggio.spots?.[arpeggio.sounding]
+  const sounding = soundingSpot && at(soundingSpot.string, soundingSpot.fret)
   return (
     <div class="scroll">
       <div
@@ -548,12 +602,21 @@ function Fretboard({
                 spot.fret === 0 ? 'open' : '',
                 spot.behindCapo ? 'behind-capo' : '',
                 guitar.capo > 0 && spot.fret === guitar.capo ? 'capo' : '',
-                shape?.[spot.string] === spot.fret ? 'in-shape' : '',
+                shape?.[spot.string] === spot.fret ||
+                arpeggioAt.has(at(spot.string, spot.fret))
+                  ? 'in-shape'
+                  : '',
                 shape &&
                 spot.mark?.chordTone &&
                 shape[spot.string] !== spot.fret
                   ? 'off-shape'
                   : '',
+                arpeggio &&
+                spot.mark?.chordTone &&
+                !arpeggioAt.has(at(spot.string, spot.fret))
+                  ? 'off-shape'
+                  : '',
+                at(spot.string, spot.fret) === sounding ? 'sounding' : '',
               ].join(' ')}
               disabled={!spot.mark}
               aria-label={
@@ -572,7 +635,8 @@ function Fretboard({
                       : '')
                   }
                 >
-                  {label(spot.mark)}
+                  {arpeggioAt.get(at(spot.string, spot.fret)) ??
+                    label(spot.mark)}
                 </span>
               )}
               {!spot.mark && guitar.capo > 0 && spot.fret === guitar.capo && (

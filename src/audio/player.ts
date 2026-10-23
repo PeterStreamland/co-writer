@@ -57,3 +57,12 @@ export async function playChord(
     piano.triggerAttackRelease(notes.map(frequency), seconds, now)
   }
 }
+
+// Plays one note of a line or arpeggio, letting the notes before it ring
+// on (no release of the others).
+export async function playNote(note: Note, seconds: number): Promise<void> {
+  await Tone.start()
+  const piano = sampler()
+  await Tone.loaded()
+  piano.triggerAttackRelease(frequency(note), seconds, Tone.now())
+}

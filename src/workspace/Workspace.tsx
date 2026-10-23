@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import {
+  barLength,
   chordSymbol,
   formatNote,
+  lengthLabel,
+  meterOfBar,
   chordKey,
   inversions,
   keyName as nameOfKey,
@@ -41,6 +44,11 @@ import { NO_CHORD, nextLastChord, type LastChord } from './last-chord'
 import { SidePanel } from './SidePanel'
 import { SuggestPanel } from './SuggestPanel'
 import { VoicePanel } from './VoicePanel'
+import {
+  ArpeggioPanel,
+  type ArpeggioOnShow,
+  type ArpeggioSource,
+} from './ArpeggioPanel'
 import { addLensVoicings } from './lens-columns'
 import { StyleBlendControl } from './StyleBlendControl'
 import { loadStyles } from './style-editor'
@@ -57,6 +65,7 @@ import {
   setLengthAt,
   timingOf,
   keyAfter,
+  keyAt,
   pathNodes,
   selectNode,
   switchAt,
@@ -520,6 +529,45 @@ export function Workspace() {
       }}
     />
   )
+  // The Arpeggio tab (Phase 6 task 2): every chord of the progression, in
+  // its key and for its length, then the current chord if it isn't one of
+  // them, for a bar. What it shows lights the instrument while it is open.
+  const arpeggioSources = useMemo<ArpeggioSource[]>(() => {
+    const sources = path.map((n, i) => {
+      const length = n.length ?? timing[i].length
+      const lengthText = lengthLabel(meterOfBar(time, timing[i].bar), length)
+      return {
+        chord: n.chord,
+        key: keyAt(progression, i, key),
+        length,
+        label: `${i + 1}. ${chordSymbol(n.chord)} · bar ${timing[i].bar}`,
+        lengthText,
+      }
+    })
+    if (freeChord) {
+      sources.push({
+        chord: freeChord,
+        key: suggestKey,
+        length: barLength(time.meter),
+        label: `${chordSymbol(freeChord)} (not in the progression)`,
+        lengthText: '1 bar',
+      })
+    }
+    return sources
+  }, [progression, timing, key, freeChord && chordKey(freeChord), suggestKey])
+  const [arpeggioShow, setArpeggioShow] = useState<ArpeggioOnShow>()
+  const arpeggioOn = tab === 'arpeggio' ? arpeggioShow : undefined
+  const arpeggio = (
+    <ArpeggioPanel
+      sources={arpeggioSources}
+      start={freeChord ? arpeggioSources.length - 1 : Math.max(0, selected)}
+      instrument={instrument}
+      guitar={guitar}
+      bpm={bpm}
+      meter={time.meter}
+      onShow={setArpeggioShow}
+    />
+  )
   // The chord box beside the side panel (David's layout); on a phone it
   // stays beside the instrument, as the side panel is a sheet there.
   const shapeList = {
@@ -573,8 +621,9 @@ export function Workspace() {
           <InstrumentView
             addable={narrow}
             value={key}
-            chord={shown}
+            chord={arpeggioOn?.chord ?? shown}
             played={playing.notes}
+            arpeggio={arpeggioOn}
             instrument={instrument}
             onInstrumentChange={setInstrument}
             settings={settings}
@@ -597,11 +646,12 @@ export function Workspace() {
           {strip}
         </main>
         <SidePanel
-          aside={!narrow && tab !== 'voice' && box}
+          aside={!narrow && tab !== 'voice' && tab !== 'arpeggio' && box}
           tabs={[
             { id: 'explore', label: 'Explore', content: explore },
             { id: 'suggest', label: 'Suggest', content: suggest },
             { id: 'voice', label: 'Voice', content: voice },
+            { id: 'arpeggio', label: 'Arpeggio', content: arpeggio },
           ]}
           open={sheetOpen}
           onOpenChange={setSheetOpen}
