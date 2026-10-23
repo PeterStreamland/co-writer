@@ -748,6 +748,7 @@ export function Workspace() {
           <PartRows
             rows={rows}
             path={path}
+            bars={timing.map((t) => t.bar)}
             sounding={along?.source === rows ? alongAt : undefined}
             onMute={(id, muted) =>
               change(setPartMuted(progression, id, muted), selected)

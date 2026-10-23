@@ -1160,3 +1160,11 @@ Each bar box in the Lines and Arpeggio tabs gains a **+** that adds just that ba
 - **Silencing a bar:** in a row, each bar that plays shows what it plays when it has its own setting, and a small **×** to silence it. Undo brings it back.
 - **The model:** a row (`Part`) now has an optional `recipe` for every chord plus `cells`, each chord's own recipe (or null for silence), keyed by chord node, and a `kind`. Rows saved before this still load.
 - **Lining up rows bar by bar under the chords** joins Phase 7 as task 6, with freezing a row into notes (David's request).
+
+**Rows show bars as boxes (David's request, same day).** Each bar of a row is now a box like the Lines and Arpeggio tabs':
+
+- "C · bar 1", and what the bar plays when it has its own setting.
+- Its notes as chips labelled by interval, coloured by tag for lines (with the red underline outside the key) and by tone for arpeggios.
+- The × to silence it.
+
+Bars a row doesn't play show as faint "silent" boxes, so every row reads bar by bar across the progression.

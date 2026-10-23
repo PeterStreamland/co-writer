@@ -2224,36 +2224,6 @@ body:has(.workspace) #app {
   padding: 0.1rem 0.5rem;
 }
 
-.part-chords {
-  list-style: none;
-  display: flex;
-  gap: 0.6rem;
-  overflow-x: auto;
-  padding: 0.25rem 0 0;
-  margin: 0;
-}
-
-.part-chords li {
-  display: flex;
-  flex-direction: column;
-  flex: none;
-  font-size: 0.8rem;
-}
-
-.part-notes {
-  display: flex;
-  gap: 0.2rem;
-}
-
-.part-notes span {
-  padding: 0 0.15rem;
-  border-radius: 3px;
-}
-
-.part-notes .sounding {
-  background: color-mix(in srgb, #f59e0b 35%, transparent);
-}
-
 button.add-row {
   color: var(--accent);
   border-style: dashed;
@@ -2265,12 +2235,6 @@ button.add-bar {
   color: var(--accent);
   border-style: dashed;
   font-weight: 700;
-}
-
-.part-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
 }
 
 .part-cell {
@@ -2293,4 +2257,36 @@ button.clear-bar {
   align-items: center;
   justify-content: space-between;
   gap: 0.4rem;
+}
+
+/* Rows show each bar in a box, as the Lines and Arpeggio tabs do. Their
+   notes take the Lines tab's tag colours and the arpeggio tone colours. */
+.part-rows {
+  --tag-chord-tone: #2563eb;
+  --tag-passing: #16a34a;
+  --tag-neighbour: #0d9488;
+  --tag-approach: #ea580c;
+  --tag-pedal: #6b7280;
+  --tag-chromatic: #dc2626;
+}
+
+.part-chords.line-chords {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+
+.part-chords .line-chord {
+  flex: none;
+}
+
+.part-chords .line-chord.silent {
+  opacity: 0.5;
+}
+
+.part-chords .line-note {
+  cursor: default;
+}
+
+.part-chords .line-note.sounding {
+  background: color-mix(in srgb, #f59e0b 35%, transparent);
 }
