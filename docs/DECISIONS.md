@@ -1183,3 +1183,36 @@ The theory reviewer checked Phase 6 against SPEC and found lines spelling notes 
 - **Sus names:** an extended sus4 chord is named with sus4 at the end, so G7sus4 at the 13th is G13sus4.
 
 Still to do for the gate: David's Phase 6 play-test, then the `v0.6-lines` tag.
+
+## 2026-10-23 — Editing lines (David's request)
+
+David asked for ways to vary how many notes a bar a line plays, to see other notes that could go in a note's place (as chord suggestions do), and to add extra and bridging notes. It joins Phase 6 as task 6, before the gate (David's choice), and Phase 7 can build its melody editing and frozen rows on it. The theory is in `src/theory/line-edits.ts`, its weights and wording in `line-edits-data.ts`, and the densities in `lines-data.ts`.
+
+- **Notes a bar, for the whole line and bar by bar (David's choice):** the Lines tab offers "As the line plays" (each mode as before), One a chord, Strong beats, Every beat and Twice a beat (three times in a dotted beat, so 6/8 runs in quavers). Each bar has − and + with its note count, which step to the next level with fewer or more notes.
+  - A mode fills the slots of its level as it always does: walking walks in 8ths, passing lines get more room to pass. A note a mode holds (a root, a pedal, a guide tone) is struck again on each slot, so roots at Every beat pump crotchets.
+  - Lines still land on a chord tone at each change, and fill each chord exactly, at every level, in every mode (tested).
+- **Notes in a note's place:** tap a note and up to eight others come as ranked Suggestions, each with its tags and why.
+  - They are within a 5th of the note.
+  - Chord tones rank first where the chord changes and on strong beats.
+  - Next come notes that step between their neighbours or lead by a semitone into the next note, the nearer the better.
+  - Notes outside the key rank lower, and are spelled toward the note they move to (A♭ coming down to G).
+  - A note that would stop the line landing on its chord at a change says so. Choosing one plays it and puts it in.
+- **Adding notes after a note,** sharing its time evenly, never shorter than a semiquaver. The choices:
+  - a passing note by scale step to the next note;
+  - an approach note a semitone into it;
+  - another tone of the chord (not the next note itself);
+  - a scale or chromatic run of two or three notes into it;
+  - the note struck again.
+  - **Take it out** lets the note before hold on, or the next take its place at the start of the bar; a bar's only note stays.
+- **Edited bars keep their notes (David's choice).** An edited bar is marked "edited", and ↺ gives it back to the line ("Undo all edits" does every bar).
+  - Its notes are stored with their spelling and where each starts in the chord. Each lasts to the next, so the bar always fills its chord: if the chord gets shorter, notes past its end go, and if it gets longer, the last note holds on.
+  - Every note is tagged again against its chord and its neighbours: chord tone, neighbour, passing or approach. A note that is none of these is "your own", a new tag in purple. A note outside the key is still tagged chromatic.
+  - If an edited bar's first note isn't one of its chord's notes (after a chord change, say), the bar says so in red.
+  - While a bar is edited, − and + are off: tap notes to add or take them out instead.
+- **Each line keeps its own edits** (by mode, and the Wildcard's roll), so trying another mode and coming back finds them. They last while the app is open. Adding the line as a row saves them with the progression, so saving, undo and branches cover them.
+- **Rows:**
+  - A line recipe can now carry a density, and a bar of a row can carry edited notes.
+  - **+ Add as a row** stores the line's density, and every bar with its own setting as a cell of the row.
+  - A bar's **+ Row** (it was a bare +, renamed so it isn't confused with the new note +) adds the bar with its notes a bar and any edits.
+  - Rows name it: "Walking, twice a beat", "Walking, edited". SPEC 12's data model is updated.
+- **Limits:** a line that leads into an edited bar still aims for the chord's tone, not the edited first note. Editing notes in a row itself, rather than in the Lines tab, waits for Phase 7's frozen rows.

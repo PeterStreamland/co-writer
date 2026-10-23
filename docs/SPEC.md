@@ -358,11 +358,20 @@ type Progression = {
 type Part = {
   id: string
   anchor: string // shows while this chord node is on the active path
-  recipe:
-    | { kind: 'line'; mode: string; roll: number }
-    | { kind: 'arpeggio'; settings: ArpeggioSettings; from?: number }
+  kind?: 'line' | 'arpeggio'
+  recipe?: PartRecipe // plays over every chord without a cell
+  cells?: Record<string, PartRecipe | null> // a chord node's own bar; null is silent
   muted?: boolean
 }
+type PartRecipe =
+  | {
+      kind: 'line'
+      mode: string
+      roll: number
+      density?: 'held' | 'strong' | 'beats' | 'split' // notes a bar (2026-10-23)
+      notes?: { note: Note; at: Dur }[] // a bar edited by hand, from the chord's start
+    }
+  | { kind: 'arpeggio'; settings: ArpeggioSettings; from?: number }
 type MelodyNote = { note: Note; onset?: Dur; length?: Dur }
 type StyleBlend = { a: string; b?: string; mix: number } // mix 0–1, in 0.25 steps
 type Section = {

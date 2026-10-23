@@ -8,7 +8,7 @@
 import { ownTones, type ArpeggioTone } from './arpeggio'
 import { chordSymbol } from './chord'
 import type { ChordName } from './chord-symbol'
-import { addDur, compareDur, subDur, type Dur } from './duration'
+import { addDur, compareDur, dur, subDur, timesDur, type Dur } from './duration'
 import {
   degreeLabel,
   parseInterval,
@@ -17,7 +17,12 @@ import {
   type Interval,
 } from './interval'
 import { seededRandom, voiceProgression } from './lens'
-import { LINE_MODES, type LineMode, type LineModeId } from './lines-data'
+import {
+  LINE_MODES,
+  type LineDensity,
+  type LineMode,
+  type LineModeId,
+} from './lines-data'
 import type { BeatStrength, Placement } from './meter'
 import {
   LETTERS,
@@ -35,11 +40,24 @@ import { scaleNotes, type Key } from './scale'
 
 export * from './lines-data'
 
+// 'free' marks a note you chose that is none of the others (an edit).
 export type LineTag =
-  'chord-tone' | 'passing' | 'neighbour' | 'approach' | 'pedal' | 'chromatic'
+  | 'chord-tone'
+  | 'passing'
+  | 'neighbour'
+  | 'approach'
+  | 'pedal'
+  | 'free'
+  | 'chromatic'
 
-// A chord of the line: what it is, its key, and where it falls in the bars.
-export type LineStep = { chord: ChordName; key: Key; placed: Placement }
+// A chord of the line: what it is, its key, where it falls in the bars,
+// and how many notes the line plays in it (unset: as the mode plays).
+export type LineStep = {
+  chord: ChordName
+  key: Key
+  placed: Placement
+  density?: LineDensity
+}
 
 // A note of a line: spelled with its octave, when it starts and how long it
 // lasts (fractions of a whole note from the start of the progression), the
@@ -61,21 +79,43 @@ export type Line = { mode: LineMode; notes: LineNote[] }
 const SEMITONE = parseInterval('m2') as Interval
 const WHOLE_TONE = parseInterval('M2') as Interval
 
-type Slot = { at: Dur; length: Dur; strength: BeatStrength | 'off' }
+export type Slot = { at: Dur; length: Dur; strength: BeatStrength | 'off' }
 
 // A chord's slots: its start, then each beat inside it, each lasting to the
-// next or to the chord's end.
-function slotsOf(placed: Placement): Slot[] {
+// next or to the chord's end. A density keeps only the start (held) or the
+// strong beats, or splits each beat in two, or a dotted beat in three.
+export function slotsOf(placed: Placement, density?: LineDensity): Slot[] {
   const end = addDur(placed.start, placed.length)
-  const inner = placed.beats.filter((b) => compareDur(b.at, placed.start) > 0)
+  const inner = placed.beats.filter(
+    (b) =>
+      compareDur(b.at, placed.start) > 0 &&
+      (density !== 'strong' || isStrong(b.strength)),
+  )
   const starts = [
     { at: placed.start, strength: placed.accent },
-    ...inner.map((b) => ({ at: b.at, strength: b.strength })),
+    ...(density === 'held'
+      ? []
+      : inner.map((b) => ({ at: b.at, strength: b.strength }))),
   ]
-  return starts.map((s, i) => ({
+  const slots: Slot[] = starts.map((s, i) => ({
     ...s,
     length: subDur(starts[i + 1]?.at ?? end, s.at),
   }))
+  if (density !== 'split') return slots
+  return slots.flatMap((s) => {
+    const parts = s.length.n % 3 === 0 ? 3 : 2
+    const part = dur(s.length.n, s.length.d * parts)
+    return Array.from({ length: parts }, (_, k) => ({
+      at: addDur(s.at, timesDur(part, k)),
+      length: part,
+      strength: k === 0 ? s.strength : ('off' as const),
+    }))
+  })
+}
+
+// A downbeat or a strong beat.
+function isStrong(strength: BeatStrength | 'off'): boolean {
+  return strength === 'downbeat' || strength === 'strong'
 }
 
 const pitch = (n: Note) => midiNumber(n) as number
@@ -94,7 +134,7 @@ function place(spelling: Note, near: number, [low, high]: number[]): Note {
 }
 
 // The chord's tones up to the 7th (a 6th, 2nd or 4th where it has one).
-function tonesOf(chord: ChordName): ArpeggioTone[] {
+export function tonesOf(chord: ChordName): ArpeggioTone[] {
   return ownTones(chord).filter((t) => t.number <= 7)
 }
 
@@ -126,7 +166,7 @@ const ORDINALS: Record<number, string> = {
 
 // Whether the key has the note as spelled (SPEC 4: notes keep their
 // spelling, so E♯ isn't in C major though F is).
-function inKey(key: Key, note: Note): boolean {
+export function inKey(key: Key, note: Note): boolean {
   return scaleNotes(key.tonic, key.mode).some(
     (n) => n.letter === note.letter && n.accidental === note.accidental,
   )
@@ -135,7 +175,7 @@ function inKey(key: Key, note: Note): boolean {
 // A pitch in a line, spelled: as the key spells it if the key has it,
 // else as a natural, else raised going up and lowered coming down (C♯ on
 // the way up to D, D♭ on the way down to C).
-function spellPitch(key: Key, midi: number, rising: boolean): Note {
+export function spellPitch(key: Key, midi: number, rising: boolean): Note {
   const pc = mod(midi, 12)
   const scale = scaleNotes(key.tonic, key.mode).find(
     (n) => pitchClass(n) === pc,
@@ -162,7 +202,26 @@ function lineNote(
   index: number,
   note: Note,
   slots: Slot[],
-  kind: Exclude<LineTag, 'chord-tone' | 'chromatic'> | 'tone',
+  kind: NoteKind,
+  why = '',
+): LineNote {
+  const first = slots[0]
+  const last = slots[slots.length - 1]
+  const length = subDur(addDur(last.at, last.length), first.at)
+  return noteOver(step, index, note, first.at, length, kind, why)
+}
+
+export type NoteKind = Exclude<LineTag, 'chord-tone' | 'chromatic'> | 'tone'
+
+// A note of the line from `onset` for `length`, tagged and explained as
+// lineNote says.
+export function noteOver(
+  step: LineStep,
+  index: number,
+  note: Note,
+  onset: Dur,
+  length: Dur,
+  kind: NoteKind,
   why = '',
 ): LineNote {
   const { chord, key } = step
@@ -181,13 +240,11 @@ function lineNote(
     tags.push('chromatic')
     parts.push(`${name(note)} is outside ${keyName(key)}: a chromatic note.`)
   }
-  const first = slots[0]
-  const last = slots[slots.length - 1]
   return {
     note,
     midi: pitch(note),
-    onset: first.at,
-    length: subDur(addDur(last.at, last.length), first.at),
+    onset,
+    length,
     step: index,
     tags,
     label: own ? own.label : degreeLabel(chord.root, note),
@@ -220,7 +277,7 @@ export function approachNote(
 // A step above a target, in the octave above it: the key's note on the
 // next letter up, unless that is more than a whole tone away (B over A♭ in
 // C major), when the whole tone (B♭) is the step.
-function stepAbove(key: Key, target: Note): Note {
+export function stepAbove(key: Key, target: Note): Note {
   const letter = LETTERS[mod(letterIndex(target.letter) + 1, 7)]
   const scale = scaleNotes(key.tonic, key.mode).find((n) => n.letter === letter)
   const near =
@@ -258,7 +315,7 @@ export function passingNotes(
   return notes
 }
 
-function rangeOf(mode: LineMode): number[] {
+export function rangeOf(mode: LineMode): number[] {
   return mode.range.map((n) => pitch(parseNote(n) as Note))
 }
 
@@ -280,7 +337,26 @@ export function lineFor(
       : mode.group === 'inner'
         ? innerLine(id, steps, range)
         : betweenLine(id, steps, range, random)
-  return { mode, notes }
+  return { mode, notes: restrike(notes, steps) }
+}
+
+// With a density set, a note held over several slots is struck again on
+// each (a root a beat, roots in 8ths), so the chord plays as many notes as
+// asked.
+function restrike(notes: LineNote[], steps: LineStep[]): LineNote[] {
+  return notes.flatMap((n) => {
+    const step = steps[n.step]
+    if (!step.density) return [n]
+    const end = addDur(n.onset, n.length)
+    const starts = slotsOf(step.placed, step.density)
+      .map((s) => s.at)
+      .filter((at) => compareDur(at, n.onset) >= 0 && compareDur(at, end) < 0)
+    return starts.map((at, k) => ({
+      ...n,
+      onset: at,
+      length: subDur(starts[k + 1] ?? end, at),
+    }))
+  })
 }
 
 // A seed from the progression: its chords and where they fall.
@@ -311,7 +387,7 @@ function bassLine(
   const middle = (range[0] + range[1]) / 2
   let last = range[0]
   steps.forEach((step, i) => {
-    const slots = slotsOf(step.placed)
+    const slots = slotsOf(step.placed, step.density)
     const next = steps[(i + 1) % steps.length]
     const symbol = chordSymbol(step.chord)
     if (id === 'pedal') {
@@ -359,7 +435,7 @@ function bassLine(
       return
     }
     if (id === 'root-fifth') {
-      let split = slots.findIndex((s, k) => k > 0 && s.strength !== 'weak')
+      let split = slots.findIndex((s, k) => k > 0 && isStrong(s.strength))
       if (split < 0) split = Math.ceil(slots.length / 2)
       const fifth = place(toneNumbered(step.chord, 5), pitch(root), range)
       notes.push(lineNote(step, i, root, slots.slice(0, split), 'tone'))
@@ -414,7 +490,7 @@ function innerLine(
         (a, b) => pitch(a) - pitch(b),
       )
       const note = sorted[Math.min(part, sorted.length - 1)]
-      return lineNote(step, i, note, slotsOf(step.placed), 'tone')
+      return lineNote(step, i, note, slotsOf(step.placed, step.density), 'tone')
     })
   }
   // Guide tones: the first chord's 3rd or 7th, then each chord's 3rd or 7th,
@@ -435,7 +511,7 @@ function innerLine(
       )
     }
     previous = note
-    return lineNote(step, i, note, slotsOf(step.placed), 'tone')
+    return lineNote(step, i, note, slotsOf(step.placed, step.density), 'tone')
   })
 }
 
@@ -451,7 +527,7 @@ function betweenLine(
   // lowest octave; each chord after starts on the tone the last led into.
   let start = nearestTone(steps[0].chord, range[0] + 6, range)
   steps.forEach((step, i) => {
-    const slots = slotsOf(step.placed)
+    const slots = slotsOf(step.placed, step.density)
     const next = steps[(i + 1) % steps.length]
     const id = wild
       ? WILD_MOVES[Math.floor(random() * WILD_MOVES.length)]
@@ -462,7 +538,7 @@ function betweenLine(
     const strong =
       id === 'enclosure'
         ? [0]
-        : slots.flatMap((s, k) => (k === 0 || s.strength !== 'weak' ? [k] : []))
+        : slots.flatMap((s, k) => (k === 0 || isStrong(s.strength) ? [k] : []))
     let held: Slot[] = []
     strong.forEach((from, j) => {
       const to = strong[j + 1] ?? slots.length

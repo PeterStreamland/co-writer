@@ -7,11 +7,14 @@
 import {
   ARPEGGIO_PATTERNS,
   ARPEGGIO_RATES,
+  LINE_DENSITIES,
   LINE_MODES,
   addDur,
   lineFor,
   lineSeed,
   seededRandom,
+  withBars,
+  type BarNote,
   type Key,
   type LineModeId,
   type LineNote,
@@ -30,9 +33,14 @@ import { lineSteps } from './lines-view'
 export function recipeLabel(recipe: PartRecipe): string {
   if (recipe.kind === 'line') {
     const label = LINE_MODES.find((m) => m.id === recipe.mode)?.label ?? ''
-    return recipe.mode === 'wildcard' && recipe.roll > 0
-      ? `${label} (roll ${recipe.roll + 1})`
-      : label
+    const density = LINE_DENSITIES.find((d) => d.id === recipe.density)
+    return [
+      recipe.mode === 'wildcard' && recipe.roll > 0
+        ? `${label} (roll ${recipe.roll + 1})`
+        : label,
+      ...(density && !recipe.notes ? [density.label.toLowerCase()] : []),
+      ...(recipe.notes ? ['edited'] : []),
+    ].join(', ')
   }
   const { choice, pattern, rate } = recipe.settings
   const what = ARPEGGIO_CHOICES.find((c) => c.id === choice)?.label ?? choice
@@ -67,42 +75,23 @@ export function partNotes(
   guitar?: Guitar,
 ): AlongNote[] {
   const nodes = pathNodes(progression)
-  const steps = lineSteps(progression, sectionKey, timing)
-  // Each line recipe's line over the whole progression, worked out once.
-  const lines = new Map<string, LineNote[]>()
-  const lineNotes = (mode: LineModeId, roll: number) => {
-    const id = `${mode} ${roll}`
-    if (!lines.has(id)) {
-      lines.set(
-        id,
-        lineFor(mode, steps, seededRandom(lineSeed(steps) + roll)).notes,
-      )
-    }
-    return lines.get(id) as LineNote[]
+  if (partKind(part) === 'line') {
+    return rowLine(part, progression, sectionKey, timing).map((note, ref) => ({
+      step: note.step,
+      onset: note.onset,
+      length: note.length,
+      note: note.note,
+      ref,
+      label: note.label,
+      look: [
+        `tag-${note.tags[0]}`,
+        note.tags.includes('chromatic') ? 'chromatic' : '',
+      ].join(' '),
+    }))
   }
   return nodes.flatMap((n, i): AlongNote[] => {
     const recipe = recipeAt(part, n.id)
-    if (!recipe) return []
-    if (recipe.kind === 'line') {
-      return lineNotes(recipe.mode, recipe.roll).flatMap((note, ref) =>
-        note.step === i
-          ? [
-              {
-                step: i,
-                onset: note.onset,
-                length: note.length,
-                note: note.note,
-                ref,
-                label: note.label,
-                look: [
-                  `tag-${note.tags[0]}`,
-                  note.tags.includes('chromatic') ? 'chromatic' : '',
-                ].join(' '),
-              },
-            ]
-          : [],
-      )
-    }
+    if (!recipe || recipe.kind !== 'arpeggio') return []
     const placed = timing[i]
     const onGuitar = recipe.from !== undefined && guitar !== undefined
     const plan = planArpeggio(
@@ -134,4 +123,44 @@ export function partNotes(
       look: `role-${roleOf(voice.notes[e.index].number)}`,
     }))
   })
+}
+
+// A line row's notes: each bar the line of its recipe's mode, with as many
+// notes as the recipe sets, or the notes it keeps if edited by hand. Lines
+// of a mode are worked out once, over the whole progression.
+function rowLine(
+  part: Part,
+  progression: Progression,
+  sectionKey: Key,
+  timing: Placement[],
+): LineNote[] {
+  const nodes = pathNodes(progression)
+  const recipes = nodes.map((n) => {
+    const r = recipeAt(part, n.id)
+    return r?.kind === 'line' ? r : undefined
+  })
+  const steps = lineSteps(progression, sectionKey, timing).map((s, i) => ({
+    ...s,
+    density: recipes[i]?.density,
+  }))
+  const lines = new Map<string, LineNote[]>()
+  const lineNotes = (mode: LineModeId, roll: number) => {
+    const id = `${mode} ${roll}`
+    if (!lines.has(id)) {
+      const seed = seededRandom(lineSeed(steps) + roll)
+      lines.set(id, lineFor(mode, steps, seed).notes)
+    }
+    return lines.get(id) as LineNote[]
+  }
+  const played = recipes.flatMap((r, i) =>
+    r && !r.notes
+      ? lineNotes(r.mode, r.roll).filter((note) => note.step === i)
+      : [],
+  )
+  const bars: Record<number, BarNote[]> = {}
+  recipes.forEach((r, i) => {
+    if (r?.notes) bars[i] = r.notes
+  })
+  const silent = new Set(recipes.flatMap((r, i) => (r ? [] : [i])))
+  return withBars(played, steps, bars).filter((note) => !silent.has(note.step))
 }

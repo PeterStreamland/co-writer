@@ -6,7 +6,13 @@
 // them: each is anchored to the last chord of the active path when it was
 // added, and shows while that chord is on the active path. Every function
 // returns a new progression and leaves its input alone.
-import type { LineModeId } from '../theory'
+import {
+  LETTERS,
+  LINE_DENSITIES,
+  type BarNote,
+  type LineDensity,
+  type LineModeId,
+} from '../theory'
 import type { Progression } from './progression'
 
 export type GuitarMode = 'position' | 'run'
@@ -21,8 +27,16 @@ export type ArpeggioSettings = {
   guitar: GuitarMode
 }
 
+// A line recipe may set how many notes a bar (David's request), and a
+// bar of its own may keep notes edited by hand, which it plays as they are.
 export type PartRecipe =
-  | { kind: 'line'; mode: LineModeId; roll: number }
+  | {
+      kind: 'line'
+      mode: LineModeId
+      roll: number
+      density?: LineDensity
+      notes?: BarNote[]
+    }
   // On guitar in one position, `from` is the fret the position sits near.
   | { kind: 'arpeggio'; settings: ArpeggioSettings; from?: number }
 
@@ -55,11 +69,17 @@ function nextPartId(p: Progression): string {
   return `r${Math.max(0, ...numbers) + 1}`
 }
 
-// Adds a row for the active path's chords; none without chords.
-export function addPart(p: Progression, recipe: PartRecipe): Progression {
+// Adds a row for the active path's chords, with any bars of its own; none
+// without chords.
+export function addPart(
+  p: Progression,
+  recipe: PartRecipe,
+  cells?: Record<string, PartRecipe>,
+): Progression {
   const anchor = p.activePath.at(-1)
   if (!anchor) return p
   const part: Part = { id: nextPartId(p), anchor, kind: recipe.kind, recipe }
+  if (cells && Object.keys(cells).length) part.cells = { ...cells }
   return { ...p, parts: [...(p.parts ?? []), part] }
 }
 
@@ -149,10 +169,34 @@ export function isPart(value: unknown, nodes: string[]): value is Part {
 function isRecipe(value: unknown): value is PartRecipe {
   const recipe = value as PartRecipe | undefined
   if (recipe?.kind === 'line') {
-    return typeof recipe.mode === 'string' && typeof recipe.roll === 'number'
+    return (
+      typeof recipe.mode === 'string' &&
+      typeof recipe.roll === 'number' &&
+      (recipe.density === undefined ||
+        LINE_DENSITIES.some((d) => d.id === recipe.density)) &&
+      (recipe.notes === undefined ||
+        (Array.isArray(recipe.notes) &&
+          recipe.notes.length > 0 &&
+          recipe.notes.every(isBarNote)))
+    )
   }
   if (recipe?.kind === 'arpeggio') {
     return typeof recipe.settings?.choice === 'string'
   }
   return false
+}
+
+function isBarNote(value: unknown): value is BarNote {
+  const b = value as BarNote | undefined
+  return (
+    typeof b === 'object' &&
+    b !== null &&
+    (LETTERS as readonly string[]).includes(b.note?.letter) &&
+    Number.isInteger(b.note.accidental) &&
+    Number.isInteger(b.note.octave) &&
+    Number.isInteger(b.at?.n) &&
+    Number.isInteger(b.at?.d) &&
+    b.at.n >= 0 &&
+    b.at.d > 0
+  )
 }

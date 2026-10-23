@@ -218,6 +218,7 @@ Goal: lines within and between chords, chosen by mode.
 3. Line modes: inner-voice lines (from Phase 5); bass lines (root, root–5th, approach notes, walking, pedal); passing and approach notes between chords (scale steps, chromatic, enclosures). ✅
 4. Each line is a Suggestion, tagged chord tone, passing, neighbour or approach, with ⓘ. ✅
 5. Chords and lines play back together. ✅ A Wildcard line joins the line modes (added 2026-10-23, David's idea).
+6. Editing lines (added 2026-10-23, David's request): how many notes a bar, for the whole line and bar by bar; tap a note for notes to play in its place, ranked like chord suggestions; add passing, approach and other notes after it, or take it out. An edited bar keeps its notes when its chord changes. ✅
 
 - [x] Lines land on a chord tone at each chord change unless tagged otherwise
 - [x] Every note outside the scale is tagged and explained
