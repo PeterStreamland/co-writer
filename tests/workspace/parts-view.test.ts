@@ -223,3 +223,56 @@ describe('rows built bar by bar', () => {
     expect(notes(q).filter((n) => n.step === 3)).toHaveLength(1)
   })
 })
+
+describe('edited rows (David’s request)', () => {
+  const p = build('C', 'Am', 'F', 'G')
+  const [n1, n2] = p.activePath
+  const notes = (q: Progression) =>
+    partNotes(partsShown(q)[0], q, C, timingOf(q, time), guitar)
+  const bar = [
+    { note: parseNote('C3')!, at: dur(0, 1) },
+    { note: parseNote('D3')!, at: dur(1, 2) },
+  ]
+
+  it('plays as many notes a bar as its recipe sets', () => {
+    const q = addPart(p, {
+      kind: 'line',
+      mode: 'roots',
+      roll: 0,
+      density: 'split',
+    })
+    expect(notes(q).filter((n) => n.step === 0)).toHaveLength(8)
+    const r = addCell(q, n2, {
+      kind: 'line',
+      mode: 'roots',
+      roll: 0,
+      density: 'held',
+    })
+    expect(notes(r).filter((n) => n.step === 1)).toHaveLength(1)
+    expect(notes(r).filter((n) => n.step === 2)).toHaveLength(8)
+  })
+
+  it('plays an edited bar as it was edited, tagged afresh', () => {
+    const q = addPart(
+      p,
+      { kind: 'line', mode: 'roots', roll: 0 },
+      { [n1]: { kind: 'line', mode: 'roots', roll: 0, notes: bar } },
+    )
+    const first = notes(q).filter((n) => n.step === 0)
+    expect(first.map((n) => n.note)).toEqual(bar.map((b) => b.note))
+    expect(first[1].onset).toEqual(dur(1, 2))
+    expect(first[1].look).toMatch(/tag-/)
+    expect(notes(q).filter((n) => n.step === 1)).toHaveLength(1)
+    // Each note's ref is its place in the row.
+    expect(notes(q).map((n) => n.ref)).toEqual(notes(q).map((_, i) => i))
+  })
+
+  it('names densities and edits', () => {
+    expect(
+      recipeLabel({ kind: 'line', mode: 'walking', roll: 0, density: 'split' }),
+    ).toBe('Walking, twice a beat')
+    expect(
+      recipeLabel({ kind: 'line', mode: 'walking', roll: 0, notes: bar }),
+    ).toBe('Walking, edited')
+  })
+})

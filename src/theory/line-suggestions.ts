@@ -64,6 +64,7 @@ const TAG_WORDS: Record<LineTag, [string, string]> = {
   neighbour: ['neighbour note', 'neighbour notes'],
   approach: ['approach note', 'approach notes'],
   pedal: ['pedal note', 'pedal notes'],
+  free: ['note of your own', 'notes of your own'],
   chromatic: ['note outside the key', 'notes outside the key'],
 }
 

@@ -153,3 +153,63 @@ describe('bars added one at a time', () => {
     ).toBe(false)
   })
 })
+
+describe('edited bars in rows (David’s request)', () => {
+  const bar = [
+    { note: { letter: 'C', accidental: 0, octave: 3 }, at: { n: 0, d: 1 } },
+    { note: { letter: 'D', accidental: 0, octave: 3 }, at: { n: 1, d: 2 } },
+  ] as const
+  const edited: PartRecipe = {
+    kind: 'line',
+    mode: 'walking',
+    roll: 0,
+    density: 'split',
+    notes: bar.map((b) => ({ note: { ...b.note }, at: { ...b.at } })),
+  }
+
+  it('adds a row with bars of its own', () => {
+    const p = build('C', 'Am')
+    const q = addPart(
+      p,
+      { ...WALKING, density: 'beats' },
+      {
+        [p.activePath[1]]: edited,
+      },
+    )
+    const [row] = partsShown(q)
+    expect(recipeAt(row, p.activePath[0])).toMatchObject({ density: 'beats' })
+    expect(recipeAt(row, p.activePath[1])).toEqual(edited)
+    expect(addPart(p, WALKING, {}).parts![0].cells).toBeUndefined()
+  })
+
+  it('saves and reads back densities and notes, rejecting broken ones', () => {
+    const p = build('C', 'Am')
+    const q = addCell(p, p.activePath[0], edited)
+    expect(isProgression(JSON.parse(JSON.stringify(q)))).toBe(true)
+    const broken = (recipe: unknown) =>
+      isProgression({
+        ...p,
+        parts: [{ id: 'r1', anchor: p.activePath[1], recipe }],
+      })
+    expect(broken({ ...WALKING, density: 'lots' })).toBe(false)
+    expect(broken({ ...WALKING, notes: [] })).toBe(false)
+    expect(
+      broken({
+        ...WALKING,
+        notes: [{ note: { letter: 'H' }, at: { n: 0, d: 1 } }],
+      }),
+    ).toBe(false)
+    expect(
+      broken({
+        ...WALKING,
+        notes: [{ note: { letter: 'C', accidental: 0 }, at: { n: 0, d: 1 } }],
+      }),
+    ).toBe(false)
+    expect(
+      broken({
+        ...WALKING,
+        notes: [{ ...edited.notes![0], at: { n: -1, d: 4 } }],
+      }),
+    ).toBe(false)
+  })
+})

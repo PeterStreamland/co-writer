@@ -140,3 +140,16 @@ export const LINE_MODES: LineMode[] = [
     range: MIDDLE,
   },
 ]
+
+// How many notes a line plays in a chord (David's request, 2026-10-23):
+// left unset, each mode plays as it always has; a level sets the slots it
+// plays on, from one note a chord to two (or, in a dotted beat, three) a
+// beat, and a held note is struck again on each slot it covers.
+export type LineDensity = 'held' | 'strong' | 'beats' | 'split'
+
+export const LINE_DENSITIES: { id: LineDensity; label: string }[] = [
+  { id: 'held', label: 'One a chord' },
+  { id: 'strong', label: 'Strong beats' },
+  { id: 'beats', label: 'Every beat' },
+  { id: 'split', label: 'Twice a beat' },
+]
