@@ -105,6 +105,9 @@ describe('guitar lens exit criteria (PLAN Phase 5)', () => {
         expect(voiced).toBeLessThan(baseline)
       }
     },
+    // Voicing 19 progressions on two tunings takes about 4 s on its own,
+    // more when the whole suite runs at once.
+    30_000,
   )
 })
 
