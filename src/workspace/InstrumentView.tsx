@@ -153,12 +153,7 @@ export function InstrumentView({
   const setStrings = (strings: '6' | '7') => change({ strings })
   const setCapo = (capo: number) => change({ capo })
   const setLastFret = (lastFret: number) => change({ lastFret })
-  const mark = noteMarker(
-    value,
-    chord,
-    played,
-    arpeggio?.notes.map((n) => n.note),
-  )
+  const mark = noteMarker(value, chord, played, arpeggio?.notes)
   const toneColours = labels === 'chord-tones' && chord !== undefined
   const guitar = guitarFrom(settings)
   const shape = chord && !arpeggio ? shapes.list[shapes.at] : undefined

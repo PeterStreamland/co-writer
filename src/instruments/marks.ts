@@ -13,7 +13,7 @@ import {
   type Key,
   type Note,
 } from '../theory'
-import { chordTones, type ChordTone } from './chord-tones'
+import { chordTones, roleOf, type ChordTone } from './chord-tones'
 
 export type Mark = {
   note: Note // spelled, with the octave that sounds the pitch
@@ -29,22 +29,31 @@ export type Mark = {
 // A function from MIDI number to its mark, or undefined for a pitch that is
 // in neither the scale nor the current chord and isn't being played. A pitch
 // in the scale takes the scale's spelling; a chord tone outside the scale
-// takes the chord's, and a played note outside both its own. Extra notes
-// (an arpeggio's extensions) count as tones of the chord.
+// takes the chord's, and a played note outside both its own. Extra tones
+// (an arpeggio's added 7th, 9th, 11th or 13th) count as tones of the chord,
+// labelled and coloured by their interval.
 export function noteMarker(
   key: Key,
   chord?: ChordName,
   played: Note[] = [],
-  extra: Note[] = [],
+  extra: { note: Note; label: string; number: number }[] = [],
 ): (midi: number) => Mark | undefined {
   const scale = scaleNotes(key.tonic, key.mode)
   const tones = chord ? chordNotes(chord) : []
   if (chord?.bass) tones.push(chord.bass)
-  tones.push(...extra)
+  tones.push(...extra.map((t) => t.note))
   const rootPitch = pitchClass(key.tonic)
   const scalePitches = new Set(scale.map(pitchClass))
   const tonePitches = new Set(tones.map(pitchClass))
   const toneOf = chord ? chordTones(chord) : new Map<number, ChordTone>()
+  for (const t of extra) {
+    if (toneOf.has(pitchClass(t.note))) continue
+    toneOf.set(pitchClass(t.note), {
+      label: t.label,
+      role: roleOf(t.number),
+      note: t.note,
+    })
+  }
   const playedAt = new Map(
     played.map((n) => [
       midiNumber(n),
