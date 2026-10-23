@@ -6,7 +6,7 @@ export type Tab = { id: string; label: string; content: ComponentChildren }
 // The side panel (SPEC 2): one tab per tool, under the instrument view at
 // full width (David's choice). On a phone it is a sheet along the bottom of
 // the screen that opens and closes, so the instrument view stays in sight
-// above it. Explore, Suggest and Voice are the tabs so far; the rest arrive
+// above it. Explore, Suggest, Voice and Arpeggio are the tabs so far; the rest arrive
 // with their phases.
 export function SidePanel({
   tabs,

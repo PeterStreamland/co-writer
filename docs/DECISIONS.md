@@ -1029,3 +1029,31 @@ Phase 6 task 1 is done: time signatures, strong and weak beats, and chord length
 ## 2026-10-23 — Beat and bar lights (David's request)
 
 Two lights sit at the start of the strip's toolbar and flash in time while the progression plays, so the timing can be seen as well as heard. The beat light is amber and flashes on every counted beat; weak beats flash less brightly than the downbeat and strong beats. The bar light is red and flashes on the first beat of each bar, so in 6/8 the beat light flashes twice a bar and in 7/8 (2+2+3) three times, unevenly. They follow bar-level meter changes. When nothing plays, both stay dim. This is not a click: SPEC 5 keeps playback free of a metronome.
+
+## 2026-10-23 — The Arpeggio tab (Phase 6 task 2)
+
+The Arpeggio tab sits beside Voice. It arpeggiates any chord of the progression, or the current chord, and adds nothing to the progression. The theory is in `src/theory/arpeggio.ts`, the choices as data in `arpeggio-data.ts`, the guitar fretting in `src/instruments/arpeggio-guitar.ts`, and the golden tones in `tests/fixtures/arpeggios.ts`. The fourth Phase 6 exit criterion is proven by `tests/workspace/arpeggio-view.test.ts`, over 26 chords in four keys, with every choice, pattern, rate and four lengths.
+
+- **Which notes (my calls, as the spec leaves them open):**
+  - A chord's own tones always stay.
+  - Any 7th, 9th, 11th or 13th the chord lacks comes from the key, stacked in 3rds on its root: the key's note six, one, three or five letters up. So in C, G gives G7, C gives Cmaj7 and F gives Fmaj13♯11. Chromatic chords work the same way: E is E7 (V/vi) and A♭ is A♭maj7 (♭VI).
+  - **An added note a semitone above a chord tone is left out:** the 11th over a major 3rd, and a ♭9 or ♭13 over a minor or major chord. These are the arranger's avoid notes, the same rule the experimental lenses use. The tab names each note it leaves out and why ("F (11), a semitone above the 3rd").
+  - **A dominant 7th keeps its ♭9 and ♭13**, as they are its colours: E in A minor goes up to E7♭9♭13.
+  - A 6th stands in for the 7th (C6 stays a 6/9 chord), and sus chords keep their 2nd or 4th.
+  - Keys of fewer than seven notes (pentatonics) fall back to a ♭7, 9, 11 and 13.
+- **Lens colours:** the Open and Jazz lenses colour chords (Cadd9, Cmaj7), so the tab offers "Open colours" and "Jazz colours" as well as Triad to 13th. The other lenses don't recolour chords.
+- **Range:**
+  - From the root up 1, 2 or 3 octaves, ending on the root at the top, with every tone in every octave.
+  - So a 9th sounds a 2nd above the root in each octave, but is still labelled 9.
+  - The default start is the root in octave 3 on keyboard, and the lowest root the guitar reaches.
+- **Patterns:** up, down, up and down, down and up, broken (1–3, 2–4… of the arpeggio's notes) up or down, and in threes (1–2–3, 2–3–4…) up or down.
+- **Rate:** 8ths, 8th triplets or 16ths.
+- **Fitting the time:**
+  - The pattern repeats from the start until it fills the chord's length. Every note starts on the rate's grid.
+  - The last note is cut short when the length isn't a whole number of notes (triplets in 7/8).
+  - The current chord, when it isn't in the progression, gets one bar.
+- **On guitar:**
+  - **One position:** every note within a 4-fret span (open strings in the open position), climbing string by string. ‹ › steps through every position that fits.
+  - **Across the neck:** a run of two or three notes a string that moves up the neck as it climbs.
+  - If a range doesn't fit, the tab says so and suggests fewer octaves or another start.
+- **Hearing it:** Play plays the chord's arpeggio at the tempo, and Play through every chord steps through the progression. The note sounding glows amber on the instrument, as the beat light does. Every note in the arpeggio is ringed and labelled R, 3, 5, ♭7, 9, and so on. While the tab is open, the chord box beside the instrument is hidden.
