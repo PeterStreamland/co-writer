@@ -96,6 +96,30 @@ describe('keyboard view', () => {
       'B 7 seventh',
     ])
   })
+
+  it('colours the 11th and 13th too (Dm as Dm13, F as Fmaj13♯11)', () => {
+    const C = key('C', 'major')
+    const roles = (symbol: string) => {
+      const chord = parseChordSymbol(symbol)!
+      const { tones } = arpeggioTones(chord, C, 'thirteenth')
+      const mark = noteMarker(C, chord, [], tones)
+      return pianoKeys(60, 71, mark)
+        .filter((k) => k.mark?.tone)
+        .map((k) => `${k.mark!.tone!.label} ${k.mark!.tone!.role}`)
+    }
+    expect(roles('Dm')).toEqual([
+      '♭7 seventh',
+      'R root',
+      '9 extension',
+      '♭3 third',
+      '11 extension',
+      '5 fifth',
+      '13 extension',
+    ])
+    expect(roles('F')).toEqual(
+      expect.arrayContaining(['♯11 extension', '13 extension', '9 extension']),
+    )
+  })
 })
 
 describe('fretboard view', () => {
