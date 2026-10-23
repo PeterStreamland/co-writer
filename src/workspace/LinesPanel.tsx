@@ -6,6 +6,7 @@ import {
   lineSuggestions,
   subDur,
   type Key,
+  type Line,
   type Meter,
   type Placement,
 } from '../theory'
@@ -28,8 +29,10 @@ import {
 // shows its first line of explanation, with ⓘ for the theory and what moved
 // its ranking, and its notes chord by chord, every note tagged and
 // explained, laid on the beats. Tap a chord to light its notes on the
-// instrument; tap a note to see why it's there. Play plays the line alone
-// at the tempo; playing it with the chords comes next (task 5).
+// instrument; tap a note to see why it's there. Play with chords plays the
+// progression with the line over it (task 5), lights and all; the line can
+// also play alone. The Wildcard (David's request) comes last: a line chance
+// builds afresh on every roll of Another.
 export function LinesPanel({
   progression,
   sectionKey,
@@ -37,6 +40,10 @@ export function LinesPanel({
   bpm,
   meter,
   onShow,
+  withChords,
+  withChordsNote,
+  onPlayWithChords,
+  onStop,
 }: {
   progression: Progression
   sectionKey: Key
@@ -44,6 +51,12 @@ export function LinesPanel({
   bpm: number
   meter: Meter
   onShow: (show: ArpeggioOnShow | undefined) => void
+  // The line playing with the progression's chords (task 5), if any, and
+  // the note of it sounding; starting and stopping that playback.
+  withChords?: Line
+  withChordsNote?: number
+  onPlayWithChords: (line: Line) => void
+  onStop: () => void
 }) {
   const [modeId, setModeId] = useState(loadLineMode)
   useEffect(() => saveLineMode(modeId), [modeId])
@@ -51,15 +64,21 @@ export function LinesPanel({
     () => lineSteps(progression, sectionKey, timing),
     [progression, sectionKey, timing],
   )
-  const suggestions = useMemo(() => lineSuggestions(steps), [steps])
+  // The Wildcard's roll: 0 repeats for the same chords; Another adds one.
+  const [roll, setRoll] = useState(0)
+  useEffect(() => setRoll(0), [steps])
+  const suggestions = useMemo(() => lineSuggestions(steps, roll), [steps, roll])
   const chosen = suggestions.find((s) => s.candidate.mode.id === modeId)
   const line = chosen?.candidate
   const [infoOpen, toggleInfo] = useToggle()
   const [focus, setFocus] = useState(0)
   const [picked, setPicked] = useState<number>()
-  // The note sounding while the line plays, by its index in the line.
-  const [playing, setPlaying] = useState<number>()
+  // The note sounding while the line plays, alone or with the chords, by
+  // its index in the line.
+  const [alone, setAlone] = useState<number>()
   const [on, setOn] = useState(false)
+  const together = line !== undefined && withChords === line
+  const playing = together ? withChordsNote : alone
   useEffect(() => {
     setOn(false)
     setPicked(undefined)
@@ -98,14 +117,14 @@ export function LinesPanel({
   // Plays every note of the line in time.
   useEffect(() => {
     if (!on || !line) {
-      setPlaying(undefined)
+      setAlone(undefined)
       return
     }
     const start = steps[0].placed.start
     const timers = line.notes.map((n, i) =>
       setTimeout(
         () => {
-          setPlaying(i)
+          setAlone(i)
           void playNote(n.note, secondsOf(n.length, bpm, meter))
         },
         secondsOf(subDur(n.onset, start), bpm, meter) * 1000,
@@ -133,7 +152,7 @@ export function LinesPanel({
     <section class="lines" aria-label="Lines">
       <div class="line-suggestions">
         {LINE_GROUPS.map((g) => (
-          <div key={g.id} class="line-group">
+          <div key={g.id} class={`line-group ${g.id}`}>
             <span class="muted">{g.label}:</span>
             {suggestions
               .filter((s) => s.tags[0] === g.id)
@@ -148,6 +167,19 @@ export function LinesPanel({
                   {s.candidate.mode.label}
                 </button>
               ))}
+            {g.id === 'wildcard' && (
+              <button
+                type="button"
+                class="another"
+                title="Roll a new Wildcard line"
+                onClick={() => {
+                  setRoll(roll + 1)
+                  setModeId('wildcard')
+                }}
+              >
+                🎲 Another
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -171,14 +203,27 @@ export function LinesPanel({
         </div>
       )}
       <div class="lines-bar">
-        {on ? (
-          <button type="button" class="play" onClick={() => setOn(false)}>
+        {on || together ? (
+          <button
+            type="button"
+            class="play"
+            onClick={() => (together ? onStop() : setOn(false))}
+          >
             ■ Stop
           </button>
         ) : (
-          <button type="button" class="play" onClick={() => setOn(true)}>
-            ▶ Play line
-          </button>
+          <>
+            <button
+              type="button"
+              class="play"
+              onClick={() => onPlayWithChords(line)}
+            >
+              ▶ Play with chords
+            </button>
+            <button type="button" onClick={() => setOn(true)}>
+              ▶ Line alone
+            </button>
+          </>
         )}
       </div>
       <ol class="line-chords">

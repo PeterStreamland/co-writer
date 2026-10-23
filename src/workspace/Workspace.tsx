@@ -9,12 +9,14 @@ import {
   inversions,
   keyName as nameOfKey,
   midiNumber,
+  subDur,
   type ChordName,
   type Key,
+  type Line,
   type NextChordSuggestion,
   type StyleBlend,
 } from '../theory'
-import { playChord, preparePiano } from '../audio/player'
+import { playChord, playNote, preparePiano } from '../audio/player'
 import { useMidi } from '../midi/useMidi'
 import { IDLE, nextRecorder } from '../midi/record'
 import { findFingerings } from '../instruments/fingering'
@@ -298,10 +300,10 @@ export function Workspace() {
   // Plays a chord as the instrument view will show it: the top guitar shape
   // strummed (SPEC 5), or the keyboard's voicing. False when the guitar has
   // no shape for it.
-  function playNow(c: ChordName, seconds?: number): boolean {
+  function playNow(c: ChordName, seconds?: number, keep = false): boolean {
     if (instrument === 'guitar') {
       const top = shapesOf(c)[0]
-      if (top) strum(top, seconds)
+      if (top) strum(top, seconds, keep)
       return Boolean(top)
     }
     const choices = voicingChoices(c, pianoFilters)
@@ -309,7 +311,7 @@ export function Workspace() {
       choices.find(
         (v) => v.id === voicingPick.id && v.inversion === voicingPick.inversion,
       ) ?? choices[0]
-    void playChord(voicing.notes, { seconds })
+    void playChord(voicing.notes, { seconds, keep })
     return true
   }
   // Previewing a suggestion plays the last chord, then the suggestion.
@@ -407,21 +409,28 @@ export function Workspace() {
   }
   // Plays a progression chord in the shape it was added in, or as the
   // instrument view would play it.
-  function playNode(n: ChordNode, seconds?: number) {
+  function playNode(n: ChordNode, seconds?: number, keep = false) {
     if (!n.voicing) {
-      playNow(n.chord, seconds)
+      playNow(n.chord, seconds, keep)
       return
     }
     void playChord(n.voicing.notes, {
       strum: n.voicing.instrument === 'guitar',
       seconds,
+      keep,
     })
   }
+  // A line from the Lines tab playing with the progression (Phase 6 task
+  // 5), and the note of it sounding.
+  const [withLine, setWithLine] = useState<Line>()
+  const [lineNote, setLineNote] = useState<number>()
   // Plays the progression from the first chord, one chord at a time.
   useEffect(() => {
     if (playingAt === undefined) {
       setPlayingChord(undefined)
       setPulse(undefined)
+      setWithLine(undefined)
+      setLineNote(undefined)
       return
     }
     const n = path[playingAt]
@@ -433,7 +442,28 @@ export function Workspace() {
     const seconds = secondsOf(timing[playingAt].length, bpm, time.meter)
     setPlayingChord(n.chord)
     showNode(n)
-    playNode(n, seconds)
+    playNode(n, seconds, withLine !== undefined)
+    // A line playing along sounds its notes over this chord.
+    const lineTimers = (withLine?.notes ?? []).flatMap((note, i) =>
+      note.step !== playingAt
+        ? []
+        : [
+            setTimeout(
+              () => {
+                setLineNote(i)
+                void playNote(
+                  note.note,
+                  secondsOf(note.length, bpm, time.meter),
+                )
+              },
+              secondsOf(
+                subDur(note.onset, timing[playingAt].start),
+                bpm,
+                time.meter,
+              ) * 1000,
+            ),
+          ],
+    )
     const timer = setTimeout(
       () =>
         setPlayingAt(playingAt + 1 < path.length ? playingAt + 1 : undefined),
@@ -454,6 +484,7 @@ export function Workspace() {
     return () => {
       clearTimeout(timer)
       flashes.forEach(clearTimeout)
+      lineTimers.forEach(clearTimeout)
     }
   }, [playingAt])
   // Any change to the progression or its time stops playback.
@@ -570,6 +601,13 @@ export function Workspace() {
       bpm={bpm}
       meter={time.meter}
       onShow={setArpeggioShow}
+      withChords={withLine}
+      withChordsNote={lineNote}
+      onPlayWithChords={(line) => {
+        setWithLine(line)
+        setPlayingAt(0)
+      }}
+      onStop={() => setPlayingAt(undefined)}
     />
   )
   const arpeggio = (

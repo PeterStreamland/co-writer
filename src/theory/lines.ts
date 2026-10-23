@@ -16,7 +16,7 @@ import {
   transposeDown,
   type Interval,
 } from './interval'
-import { voiceProgression } from './lens'
+import { seededRandom, voiceProgression } from './lens'
 import { LINE_MODES, type LineMode, type LineModeId } from './lines-data'
 import type { BeatStrength, Placement } from './meter'
 import {
@@ -236,7 +236,13 @@ function rangeOf(mode: LineMode): number[] {
 
 // The line for a mode over the progression's chords. The last chord leads
 // back to the first, as the progression repeats.
-export function lineFor(id: LineModeId, steps: LineStep[]): Line {
+// The Wildcard rolls with `random`; by default a seed from the chords
+// themselves, so the same progression gives the same roll.
+export function lineFor(
+  id: LineModeId,
+  steps: LineStep[],
+  random: () => number = seededRandom(lineSeed(steps)),
+): Line {
   const mode = LINE_MODES.find((m) => m.id === id)
   if (!mode) throw new Error(`unknown line mode ${id}`)
   const range = rangeOf(mode)
@@ -245,9 +251,28 @@ export function lineFor(id: LineModeId, steps: LineStep[]): Line {
       ? bassLine(id, steps, range)
       : mode.group === 'inner'
         ? innerLine(id, steps, range)
-        : betweenLine(id, steps, range)
+        : betweenLine(id, steps, range, random)
   return { mode, notes }
 }
+
+// A seed from the progression: its chords and where they fall.
+export function lineSeed(steps: LineStep[]): number {
+  const text = steps
+    .map(
+      (s) => `${chordSymbol(s.chord)}@${s.placed.start.n}/${s.placed.start.d}`,
+    )
+    .join(' ')
+  let hash = 2166136261
+  for (let i = 0; i < text.length; i++) {
+    hash = Math.imul(hash ^ text.charCodeAt(i), 16777619)
+  }
+  return hash >>> 0
+}
+
+// The moves the Wildcard picks from, chord by chord.
+const WILD_MOVES: LineModeId[] = ['scale-steps', 'chromatic', 'enclosure']
+// How many of the best-fitting tones it may aim for.
+const WILD_CHOICE = 3
 
 function bassLine(
   id: LineModeId,
@@ -383,10 +408,12 @@ function innerLine(
 }
 
 function betweenLine(
-  id: LineModeId,
+  mode: LineModeId,
   steps: LineStep[],
   range: number[],
+  random: () => number,
 ): LineNote[] {
+  const wild = mode === 'wildcard'
   const notes: LineNote[] = []
   // The line starts on the first chord's tone nearest the middle of its
   // lowest octave; each chord after starts on the tone the last led into.
@@ -394,6 +421,9 @@ function betweenLine(
   steps.forEach((step, i) => {
     const slots = slotsOf(step.placed)
     const next = steps[(i + 1) % steps.length]
+    const id = wild
+      ? WILD_MOVES[Math.floor(random() * WILD_MOVES.length)]
+      : mode
     // Scale steps and chromatic lines put a chord tone on every strong beat
     // and pass between them on the weak beats, the last stretch leading
     // into the next chord. An enclosure takes the chord's last beats.
@@ -412,6 +442,7 @@ function betweenLine(
         toward,
         to - from - 1,
         range,
+        wild ? random : undefined,
       )
       held.push(...slots.slice(from, to - path.length))
       const leads = path.length > 0 || pitch(target) !== pitch(start)
@@ -489,6 +520,7 @@ function leadInto(
   next: ChordName,
   room: number,
   range: number[],
+  random?: () => number,
 ): { target: Note; path: Note[] } {
   const targets: Note[] = []
   for (const t of tonesOf(next)) {
@@ -500,7 +532,11 @@ function leadInto(
   }
   const distance = (t: Note) => Math.abs(pitch(t) - pitch(start))
   if (id === 'enclosure') {
-    const target = targets.reduce((a, b) => (distance(b) < distance(a) ? b : a))
+    // The nearest tone, or by chance one of the nearest few.
+    const near = [...targets].sort((a, b) => distance(a) - distance(b))
+    const target = random
+      ? near[Math.floor(random() * Math.min(WILD_CHOICE, near.length))]
+      : near[0]
     // When the held note is already the step above, it is the enclosure's
     // upper half; only the semitone below follows.
     const [above, below] = enclosureOf(key, target)
@@ -508,7 +544,7 @@ function leadInto(
     const path = room >= 2 ? [...upper, below] : room === 1 ? [below] : []
     return { target, path: path.filter((n) => pitch(n) !== pitch(start)) }
   }
-  let best: { target: Note; path: Note[]; score: number } | undefined
+  const fits: { target: Note; path: Note[]; score: number }[] = []
   for (const target of targets) {
     const path =
       pitch(target) === pitch(start)
@@ -533,7 +569,12 @@ function leadInto(
       distance(target) * 0.1 +
       stay +
       Math.max(0, drift - 5)
-    if (!best || score < best.score) best = { target, path, score }
+    fits.push({ target, path, score })
   }
-  return best ?? { target: place(next.root, pitch(start), range), path: [] }
+  // The best fit, or by chance one of the best few.
+  fits.sort((a, b) => a.score - b.score)
+  const chosen = random
+    ? fits[Math.floor(random() * Math.min(WILD_CHOICE, fits.length))]
+    : fits[0]
+  return chosen ?? { target: place(next.root, pitch(start), range), path: [] }
 }

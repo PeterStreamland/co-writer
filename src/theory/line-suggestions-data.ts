@@ -27,6 +27,8 @@ export const LINE_EXPLANATIONS: Record<LineModeId, string> = {
     '{passing} and {neighbours} slide by semitone around the chord tones, {chromatic} outside {key}.',
   enclosure:
     'Each change is closed in on from above and below: {approaches}, {chromatic} outside {key}.',
+  wildcard:
+    'Chance picked the move into each chord: {passing}, {neighbours} and {approaches}, {chromatic} outside {key}.',
 }
 
 export type LineScoring = {
@@ -42,7 +44,7 @@ export type LineScoring = {
 
 export const LINE_SCORING: LineScoring = {
   strongChordTones: 3,
-  leap: { bass: 0.05, inner: 0.3, between: 0.3 },
+  leap: { bass: 0.05, inner: 0.3, between: 0.3, wildcard: 0.3 },
   outside: 2,
 }
 
