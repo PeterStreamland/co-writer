@@ -180,13 +180,32 @@ export function Workspace() {
   const [betweenAt, setBetweenAt] = useState<number>()
   const between =
     betweenAt === selected && selected + 1 < path.length ? betweenAt : undefined
-  const nextChord = between === undefined ? undefined : path[between + 1].chord
-  const previous = [
-    ...chordsUpTo(progression, selected),
-    ...(freeChord && between === undefined ? [freeChord] : []),
-  ]
+  // A chord's place (David's request): tapping a chord in the strip offers
+  // chords for its place, until something else is chosen.
+  const [placeAt, setPlaceAt] = useState<number>()
+  const place =
+    placeAt === selected && selected >= 0 && between === undefined && !freeChord
+      ? placeAt
+      : undefined
+  const nextChord =
+    between !== undefined
+      ? path[between + 1].chord
+      : place !== undefined
+        ? path[place + 1]?.chord
+        : undefined
+  const previous =
+    place !== undefined
+      ? chordsUpTo(progression, place - 1)
+      : [
+          ...chordsUpTo(progression, selected),
+          ...(freeChord && between === undefined ? [freeChord] : []),
+        ]
   const [tab, setTab] = useState('explore')
-  const suggestKey = keyAfter(progression, selected, key)
+  const suggestKey = keyAfter(
+    progression,
+    place !== undefined ? place - 1 : selected,
+    key,
+  )
   // A change to the progression, selecting a slot in the new path.
   function change(next: Progression, select: number) {
     setHistory(record(history, next))
@@ -329,6 +348,17 @@ export function Workspace() {
   // Previewing a suggestion plays the last chord, then the suggestion.
   function previewSuggestion(s: NextChordSuggestion) {
     setPreview(s)
+    // In a chord's place: the chord before, the suggestion, the chord after.
+    if (place !== undefined) {
+      const before = path[place - 1]
+      const after = path[place + 1]
+      if (before) playNode(before)
+      setTimeout(() => playNow(s.candidate), before ? PREVIEW_GAP_MS : 0)
+      if (after) {
+        setTimeout(() => playNode(after), (before ? 2 : 1) * PREVIEW_GAP_MS)
+      }
+      return
+    }
     const last = previous.at(-1)
     if (!last) {
       playNow(s.candidate)
@@ -348,6 +378,15 @@ export function Workspace() {
   // progression, mid-strip it becomes an alternative at the next slot. A
   // pivot asks whether to carry on in its new key (SPEC 6.4).
   function acceptSuggestion(s: NextChordSuggestion) {
+    // In a chord's place it becomes an alternative there, the old chord one
+    // ‹ › away (David's choice), and the place stays open to try more.
+    if (place !== undefined) {
+      change(addAfter(progression, place - 1, s.candidate), place)
+      setPlaceAt(place)
+      setPreview(undefined)
+      playNow(s.candidate)
+      return
+    }
     if (between !== undefined) {
       insertPassing(between, s.candidate)
       setPreview(undefined)
@@ -508,6 +547,7 @@ export function Workspace() {
   function selectSlot(index: number) {
     setSelectedAt(index)
     setBetweenAt(undefined)
+    setPlaceAt(index)
     setChord(path[index].chord)
     showNode(path[index])
     playNode(path[index])
@@ -565,7 +605,11 @@ export function Workspace() {
       keyValue={suggestKey}
       previous={previous}
       next={nextChord}
-      onLeave={() => setBetweenAt(undefined)}
+      current={place !== undefined ? path[place].chord : undefined}
+      onLeave={() => {
+        setBetweenAt(undefined)
+        setPlaceAt(undefined)
+      }}
       weights={weights}
       preview={preview}
       onPreview={previewSuggestion}

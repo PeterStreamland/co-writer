@@ -6,6 +6,7 @@ import {
   chordSymbol,
   keyName,
   rankNextChords,
+  rankInPlace,
   rankPassingChords,
   romanNumeral,
   type ChordName,
@@ -26,6 +27,7 @@ export function SuggestPanel({
   keyValue,
   previous,
   next,
+  current,
   onLeave,
   weights,
   preview,
@@ -37,6 +39,9 @@ export function SuggestPanel({
   // With a next chord, the panel offers passing chords to put between the
   // last chord and it (SPEC 6.7); onLeave goes back to what comes next.
   next?: ChordName
+  // With a current chord, the panel offers chords for its place, after the
+  // previous chords and leading into the next (David's request).
+  current?: ChordName
   onLeave?: () => void
   weights: StyleWeights | undefined
   preview: NextChordSuggestion | undefined
@@ -46,16 +51,25 @@ export function SuggestPanel({
   const [another, setAnother] = useState(0)
   const history = previous.map(chordKey).join(' ')
   const target = next && chordKey(next)
-  useEffect(() => setAnother(0), [keyValue, history, target, weights])
+  const replacing = current && chordKey(current)
+  useEffect(
+    () => setAnother(0),
+    [keyValue, history, target, replacing, weights],
+  )
   const ranked = useMemo(
     () =>
-      next
-        ? rankPassingChords(
-            { key: keyValue, previous, next, weights },
+      current
+        ? rankInPlace(
+            { key: keyValue, previous, current, next, weights },
             { another },
           )
-        : rankNextChords({ key: keyValue, previous, weights }, { another }),
-    [keyValue, history, target, weights, another],
+        : next
+          ? rankPassingChords(
+              { key: keyValue, previous, next, weights },
+              { another },
+            )
+          : rankNextChords({ key: keyValue, previous, weights }, { another }),
+    [keyValue, history, target, replacing, weights, another],
   )
   const chord = previous.at(-1)
   // The suggestion whose ⓘ panel is open, if any.
@@ -120,7 +134,18 @@ export function SuggestPanel({
 
   return (
     <section class="suggest">
-      {next && chord ? (
+      {current ? (
+        <>
+          <h2>In place of {chordSymbol(current)}</h2>
+          <p class="muted">
+            {placeText(previous.at(-1), next)} + makes it an alternative here; ‹
+            › on the chord switches back.{' '}
+            <button type="button" class="leave" onClick={onLeave}>
+              What comes after {chordSymbol(current)}
+            </button>
+          </p>
+        </>
+      ) : next && chord ? (
         <>
           <h2>
             Between {chordSymbol(chord)} and {chordSymbol(next)}
@@ -166,4 +191,18 @@ export function SuggestPanel({
       )}
     </section>
   )
+}
+
+// What a chord's place sits between, and what a tap plays.
+function placeText(before?: ChordName, after?: ChordName): string {
+  if (before && after) {
+    return `Chords that could follow ${chordSymbol(before)} and lead into ${chordSymbol(after)}: tap one to hear all three;`
+  }
+  if (before) {
+    return `Chords that could follow ${chordSymbol(before)}: tap one to hear both;`
+  }
+  if (after) {
+    return `Chords that could start the progression and lead into ${chordSymbol(after)}: tap one to hear both;`
+  }
+  return 'Chords to start with: tap one to hear it;'
 }

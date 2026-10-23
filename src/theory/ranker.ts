@@ -26,6 +26,12 @@ export type SuggestionGroup = {
   suggestions: NextChordSuggestion[]
 }
 
+// Another's step, and which candidates to keep (all, by default).
+export type RankOptions = {
+  another?: number
+  keep?: (s: NextChordSuggestion) => boolean
+}
+
 export type RankedChords = {
   // The suggestions shown, in rank order, and the same grouped by category,
   // groups in the order of their best suggestion.
@@ -237,10 +243,12 @@ export function presentRanked(
 // wraps round.
 export function rankNextChords(
   context: NextChordContext,
-  options: { another?: number } = {},
+  options: RankOptions = {},
 ): RankedChords {
   const sorted = sortSuggestions(
-    nextChordCandidates(context).map((s) => withContext(context, s)),
+    nextChordCandidates(context)
+      .map((s) => withContext(context, s))
+      .filter(options.keep ?? (() => true)),
     chordKey,
   ) as NextChordSuggestion[]
   return presentRanked(sorted, seedOf(context), options.another)
