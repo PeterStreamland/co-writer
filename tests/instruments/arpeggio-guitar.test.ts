@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   arpeggioPositions,
   arpeggioRun,
+  positionBox,
   type Spot,
 } from '../../src/instruments/arpeggio-guitar'
 import { DEFAULT_SPAN } from '../../src/instruments/fingering'
@@ -115,5 +116,54 @@ describe('arpeggios as a run across the neck', () => {
 
   it('is undefined when a note is off the neck', () => {
     expect(arpeggioRun(standard, midis('C', 'C1', 1))).toBeUndefined()
+  })
+})
+
+describe('an arpeggio position as a box', () => {
+  const tones = (chord: string, low: string) =>
+    arpeggioNotes(
+      arpeggioTones(parseChordSymbol(chord)!, C_MAJOR, 'triad').tones,
+      parseNote(low)!,
+      2,
+    )
+
+  it('draws C in 8th position from its lowest fret, every note a dot', () => {
+    const notes = tones('C', 'C3')
+    const spots = arpeggioPositions(
+      standard,
+      notes.map((n) => n.midi),
+    ).find((p) => p.from === 7)!.spots
+    const box = positionBox(standard, spots, notes)
+    expect([box.first, box.rows, box.top]).toEqual([7, 4, 'none'])
+    expect(box.dots.map((d) => `${d.string}:${d.row} ${d.label}`)).toEqual([
+      '0:2 R',
+      '1:1 3',
+      '1:4 5',
+      '2:4 R',
+      '3:3 3',
+      '4:2 5',
+      '5:2 R',
+    ])
+    expect(box.dots.map((d) => d.role)).toEqual([
+      'root',
+      'third',
+      'fifth',
+      'root',
+      'third',
+      'fifth',
+      'root',
+    ])
+  })
+
+  it('draws the nut and open strings in the open position', () => {
+    const notes = tones('E', 'E2')
+    const spots = arpeggioPositions(
+      standard,
+      notes.map((n) => n.midi),
+    )[0].spots
+    const box = positionBox(standard, spots, notes)
+    expect(box.top).toBe('nut')
+    expect(box.first).toBe(1)
+    expect(box.dots[0]).toMatchObject({ string: 0, open: true, label: 'R' })
   })
 })

@@ -181,11 +181,12 @@ export function strum(shape: Fingering, seconds?: number) {
   void playChord(notes, { strum: true, seconds })
 }
 
-const GAP = 16 // between strings
-const ROW = 20 // per fret
-const LEFT = 26 // room for the first fret's number
-const TOP = 18 // room for open and muted marks
-const RADIUS = 7
+// The box's geometry, shared with the arpeggio position box.
+export const GAP = 16 // between strings
+export const ROW = 20 // per fret
+export const LEFT = 26 // room for the first fret's number
+export const TOP = 18 // room for open and muted marks
+export const RADIUS = 7
 
 // The box as SVG: strings upright, low string on the left; frets across,
 // with the nut or capo drawn thick at the top; dots coloured and labelled by

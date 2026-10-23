@@ -4,6 +4,8 @@
 // across the neck, two or three notes a string, moving up as it climbs.
 // The notes come lowest first; a descending pattern plays the same spots
 // back down. Pure: no UI, audio or DOM imports.
+import { BOX_FRETS } from './chord-box'
+import type { ToneRole } from './chord-tones'
 import { DEFAULT_SPAN } from './fingering'
 import { fretMidi, playableFrets, type Guitar } from './guitar'
 
@@ -143,4 +145,58 @@ function moveCost(before: Step, spot: Spot, count: number): number | undefined {
     SKIP * (spot.string - string - 1) +
     (before.count === 1 ? LONE : 0)
   )
+}
+
+// An arpeggio position drawn as a chord box (David's request): the frets it
+// covers, nut or capo at the top near the open position, and a dot for each
+// note, labelled and coloured by its tone. Unlike a chord shape, a string
+// can carry several dots.
+export type PositionDot = {
+  string: number
+  fret: number
+  row?: number // 1 for the box's first fret row; unset when open
+  open: boolean
+  label: string
+  role: ToneRole
+}
+
+export type PositionBox = {
+  first: number
+  rows: number
+  top: 'nut' | 'capo' | 'none'
+  strings: number
+  dots: PositionDot[]
+}
+
+const ROLES: Record<number, ToneRole> = {
+  1: 'root',
+  3: 'third',
+  5: 'fifth',
+  7: 'seventh',
+}
+
+export function positionBox(
+  guitar: Guitar,
+  spots: Spot[],
+  tones: { label: string; number: number }[],
+): PositionBox {
+  const open = guitar.capo
+  const fretted = spots.map((s) => s.fret).filter((f) => f > open)
+  const low = fretted.length ? Math.min(...fretted) : open + 1
+  const high = fretted.length ? Math.max(...fretted) : open + 1
+  const home = high <= open + BOX_FRETS
+  const first = home ? open + 1 : low
+  return {
+    first,
+    rows: Math.max(BOX_FRETS, high - first + 1),
+    top: home ? (open === 0 ? 'nut' : 'capo') : 'none',
+    strings: guitar.strings.length,
+    dots: spots.map((spot, i) => ({
+      ...spot,
+      row: spot.fret === open ? undefined : spot.fret - first + 1,
+      open: spot.fret === open,
+      label: tones[i].label,
+      role: ROLES[tones[i].number] ?? 'extension',
+    })),
+  }
 }

@@ -101,17 +101,27 @@ export function ArpeggioPanel({
     }
     const showing = playing && plans[playing.at] ? plans[playing.at] : plan
     const showAt = playing ? playing.at : index
+    const shownAt = showAt === index ? positionAt : 0
     onShow({
       chord: sources[showAt].chord,
+      name: showing.name,
       notes: showing.notes.map((n) => ({
         note: n.note,
         midi: n.midi,
         label: n.label,
+        number: n.number,
       })),
-      spots: onGuitar
-        ? spotsOf(showing, showAt === index ? positionAt : 0)
-        : undefined,
+      spots: onGuitar ? spotsOf(showing, shownAt) : undefined,
       sounding: playing?.note,
+      guitar: onGuitar
+        ? {
+            mode: settings.guitar,
+            positions: showing.positions,
+            at: Math.min(shownAt, Math.max(0, showing.positions.length - 1)),
+            onAt: setPositionAt,
+            onOnePosition: () => change({ guitar: 'position' }),
+          }
+        : undefined,
     })
   }, [plan, playing, positionAt, settings.guitar, onGuitar])
   useEffect(() => () => onShow(undefined), [])

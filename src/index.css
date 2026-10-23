@@ -1974,3 +1974,10 @@ body:has(.workspace) #app {
   box-shadow: 0 0 0 1px #f59e0b;
   background: color-mix(in srgb, #f59e0b 15%, transparent);
 }
+
+/* The arpeggio position box: the note sounding glows amber, as on the
+   neck. */
+.arpeggio-box .box-diagram .sounding {
+  stroke: #f59e0b;
+  stroke-width: 3;
+}
