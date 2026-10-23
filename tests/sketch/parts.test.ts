@@ -192,6 +192,10 @@ describe('edited bars in rows (David’s request)', () => {
         parts: [{ id: 'r1', anchor: p.activePath[1], recipe }],
       })
     expect(broken({ ...WALKING, density: 'lots' })).toBe(false)
+    expect(broken({ ...WALKING, count: 17 })).toBe(false)
+    expect(broken({ ...WALKING, count: 0 })).toBe(false)
+    expect(broken({ ...WALKING, seed: 1.5 })).toBe(false)
+    expect(broken({ ...WALKING, count: 16, seed: 3 })).toBe(true)
     expect(broken({ ...WALKING, notes: [] })).toBe(false)
     expect(
       broken({

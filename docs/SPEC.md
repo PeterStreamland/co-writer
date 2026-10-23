@@ -369,6 +369,8 @@ type PartRecipe =
       mode: string
       roll: number
       density?: 'held' | 'strong' | 'beats' | 'split' // notes a bar (2026-10-23)
+      count?: number // a bar's own number of notes, 1–16
+      seed?: number // a bar's refreshes
       notes?: { note: Note; at: Dur }[] // a bar edited by hand, from the chord's start
     }
   | { kind: 'arpeggio'; settings: ArpeggioSettings; from?: number }

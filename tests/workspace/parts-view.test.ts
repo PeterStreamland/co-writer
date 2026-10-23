@@ -267,6 +267,27 @@ describe('edited rows (David’s request)', () => {
     expect(notes(q).map((n) => n.ref)).toEqual(notes(q).map((_, i) => i))
   })
 
+  it('plays a bar’s own count and refresh as the tab did', () => {
+    const q = addPart(
+      p,
+      { kind: 'line', mode: 'walking', roll: 0 },
+      {
+        [n1]: { kind: 'line', mode: 'walking', roll: 0, count: 6, seed: 2 },
+      },
+    )
+    expect(notes(q).filter((n) => n.step === 0)).toHaveLength(6)
+    expect(notes(q).filter((n) => n.step === 1)).toHaveLength(4)
+    expect(
+      recipeLabel({
+        kind: 'line',
+        mode: 'walking',
+        roll: 0,
+        count: 6,
+        seed: 2,
+      }),
+    ).toBe('Walking, 6 notes, refreshed')
+  })
+
   it('names densities and edits', () => {
     expect(
       recipeLabel({ kind: 'line', mode: 'walking', roll: 0, density: 'split' }),

@@ -47,7 +47,7 @@ import { SuggestPanel } from './SuggestPanel'
 import { VoicePanel } from './VoicePanel'
 import { ArpeggioBox } from './ArpeggioBox'
 import { LinesPanel } from './LinesPanel'
-import type { LineEdits } from './lines-view'
+import type { LineBars, LineEdits } from './lines-view'
 import type { Along, AlongNote } from './along'
 import { PartRows, type PartView } from './PartRows'
 import { partLabel, partNotes } from './parts-view'
@@ -645,6 +645,8 @@ export function Workspace() {
   // The Lines tab's bars of their own, by line (David's request), kept
   // while the tab is closed.
   const [lineEdits, setLineEdits] = useState<Record<string, LineEdits>>({})
+  // Each bar's notes and refreshes, whatever the line (David's request).
+  const [lineBars, setLineBars] = useState<LineBars>({})
   // + on one bar adds just that bar to a row (David's request).
   const addBar = (step: number, recipe: PartRecipe) =>
     change(addCell(progression, path[step].id, recipe), selected)
@@ -669,6 +671,8 @@ export function Workspace() {
       onAddBar={addBar}
       edits={lineEdits}
       onEdits={setLineEdits}
+      bars={lineBars}
+      onBars={setLineBars}
     />
   )
   const arpeggio = (
