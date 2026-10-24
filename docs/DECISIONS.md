@@ -1748,3 +1748,73 @@ Write a phrase in the Melody tab has three new controls (`PHRASE_SIZES`, `PHRASE
 
 - **Where it fits:** bars still end at their barline, so the last even or mixed note is cut short if needed. A set number of notes in a varied or mixed rhythm lasts as long as its notes do. Into a bar, it takes the place of the notes it covers.
 - **Every rule still holds** (the Phase 7 exit criterion): tested over every golden melody in `tests/fixtures/phrases.ts`, in every size and rhythm, with 1, 7 and 16 notes, four takes each.
+
+## 2026-10-24 — A Counterpoint tab (Phase 7 task 18, David's choices)
+
+A **Counterpoint** tab sits beside Harmony. It writes a line against the melody in any of the five species, above or below, in strict or freer rules. The theory is in `src/theory/counterpoint.ts`, with the species, rules, weights and wording as data in `counterpoint-data.ts`. The golden cases are in `tests/fixtures/counterpoint.ts`.
+
+- **Built on PR #102:** this task needs the Harmony tab and separate rows from tasks 12–16, which were waiting to be merged, so its branch starts from that pull request. Merge #102 first.
+- **Species fit the melody note by note (David's choice):** against each melody note the line plays:
+  - **1 · Note against note:** one note;
+  - **2 · Two against one:** two;
+  - **3 · Four against one:** four;
+  - **4 · Tied across the beat:** a note that starts halfway through and is held over into the next melody note, after a rest at the start;
+  - **5 · Free (florid):** a mix of these, varied note by note.
+
+  The last melody note always gets one note of its own. A note too short to split (pieces under a semiquaver) gets fewer notes; quavers in third species get two each (my choice). Where the melody rests, the line rests too.
+
+- **Strict or freer (David's choice: freer leans on the chords):**
+  - **Strict** is two-voice textbook counterpoint against the melody.
+  - **Freer** allows:
+    - a passing dissonance against a melody note that starts off the beat;
+    - neighbour notes in second species;
+    - repeated notes, hidden 5ths and octaves, and any consonance to start;
+    - more than three 3rds or 6ths in a row;
+    - any 6th as a leap;
+    - the chord's own notes.
+
+    It prefers chord tones on the beat. A cadence and a unison or octave at the end are strongly preferred, not required.
+- **The rules every line is checked against** (`CP_RULES`):
+  - **Consonance on the beat:** unisons, 3rds, 5ths, 6ths, octaves and their compounds are consonant; a 4th counts as a dissonance.
+  - **Dissonances:** a suspension (above 7–6, 4–3 or 9–8, below 2–3) falls a step to a consonance. A note held over the beat starts as a consonance. Any other dissonance comes off the beat, reached and left by step (passing, or stepping back). In strict second species it can only pass.
+  - **Motion:** no parallel or consecutive 5ths or octaves, in either mode. Strict also bans 5ths or octaves on successive beats in second and third species, and hidden 5ths and octaves (a leap into one with the melody moving the same way).
+  - **The line's own moves:**
+    - no augmented or diminished leaps, 7ths, or leaps over an octave; strict leaps a 6th only when it is minor and rising;
+    - a leap of a 5th or more turns back;
+    - strict has no repeated notes from second species on.
+  - **Shape:**
+    - strict keeps unisons for the ends and allows no more than three 3rds or 6ths in a row on the beat;
+    - the line stays on its side of the melody, within a 12th.
+  - **The ends (strict):**
+    - start on a unison, an octave, or a 5th above;
+    - end on a unison or octave;
+    - step into the end against the melody's step, with one voice moving by a semitone. The leading note is raised for it where the key has none (C♯ in D Dorian), and that's the only note outside the key strict allows.
+- **Each break is explained:**
+  - the note is outlined in red on the card and on its row;
+  - the card lists each break in plain words;
+  - ⓘ says why each note is there.
+
+  A line always comes out. The search weighs every break heavily, so it only breaks a rule when the melody leaves no way round, for example when it ends on a leap.
+
+- **What's proven:** against six textbook cantus firmi (D Dorian, E Phrygian, F Lydian, G Mixolydian, A Aeolian, C Ionian), every species, both sides and both modes give a line that keeps every rule and ends on a cadence. That is 120 lines. Against four melodies with rhythm (4/4 with a held note, a minor key with a rest, 3/4, 6/8 in quavers), every line stays on its side within a 12th and never has parallel 5ths or octaves, and any break is tagged and explained.
+- **On a row of its own (as a harmony):**
+  - **+** keeps a line. It sits under the harmony rows, lights as it plays, and plays with ▶ Play, Play melody and Play with chords.
+  - Tap a note to hear it, move it an octave, take it out or play another note in its place. **Play instead** lists the notes that break no more rules first.
+  - Your notes are purple and are checked again: a break they make is outlined and explained.
+  - An edit stays while the melody note under it is unchanged.
+  - **Clear chords** keeps the lines; **Clear everything** clears them. They are saved with the song (`counterpoints` and `counterpointEdits` on the progression).
+- **The leading note** is raised only where the key's own note a letter below the melody's last is a whole step below it (C♯ in D Dorian, G♯ in A Aeolian, F♯ in G Mixolydian), never in Phrygian.
+- **Checked by the theory reviewer:** every golden line was confirmed by hand. The review found gaps, now fixed and tested:
+  - a hidden 5th or octave below the melody, where the melody is the upper voice that leaps, wasn't caught;
+  - a 2nd above held over and falling into a unison passed as a suspension (strict allows only a 9–8);
+  - a melody rising a whole step to its last note, with the line falling a whole step, was called a cadence;
+  - some break wording.
+- **Open, for David to decide (not built):**
+  - 5ths or octaves on successive off-beats in fourth species (for example C–C then D–D across a suspension that rises). Many texts count them as consecutive octaves. Adding the rule would change a golden case.
+  - The nota cambiata in third species, and the raised 6th before the raised 7th in Dorian and Aeolian (6–7–8 rising into the cadence). Both are textbook; for now strict flags them.
+  - A diminished 5th moving to a perfect 5th (unequal 5ths), which some strict texts forbid.
+  - Repeated notes in first species: strict allows them but weighs against them. Two golden lines repeat a note once each.
+- **Left out as not reliable enough to test:**
+  - a chromatic step inside the line (other than the leading note);
+  - lines in more than two voices.
+- **Search:** a deterministic beam search, so the same melody always gives the same line. It looks one note ahead at the end so the cadence is never cut off. A line is worked out once per melody and kept, so rows don't search again while they play.

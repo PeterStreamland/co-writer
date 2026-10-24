@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  counterpoint,
   dur,
   formatNote,
   harmonise,
@@ -10,6 +11,8 @@ import {
   type HarmonyContext,
 } from '../../src/theory'
 import {
+  counterpointLine,
+  counterpointRows,
   harmonyLook,
   harmonyRows,
   melodyAlong,
@@ -164,5 +167,76 @@ describe('notes bar by bar', () => {
     const bars = notesByBar([note('C4', at(3, 4)), note('D4', at(11, 4))], time)
     expect(bars.map((b) => b.bar)).toEqual([2, 4])
     expect(notesByBar([], time)).toEqual([])
+  })
+})
+
+describe('counterpoint lines as rows', () => {
+  const key = { tonic: parseNote('C')!, mode: 'major' }
+  const time = { meter: { num: 4, den: 4 } }
+  const timing = layOut([undefined, undefined], time)
+  const ctx: HarmonyContext = {
+    melody: typeMelody('E4 F4 G4 A4 G4 F4 E4 D4 C4', dur(1, 4)).notes,
+    key,
+    chords: ['C', 'G7'].map((s, i) => ({
+      chord: parseChordSymbol(s)!,
+      key,
+      start: timing[i].start,
+      length: timing[i].length,
+    })),
+    time,
+  }
+
+  it('makes a row for each line kept, and none for an unknown id', () => {
+    const rows = counterpointRows(
+      ['2-below-strict', 'no-such', '1-above-freer'],
+      ctx,
+      timing,
+    )
+    expect(rows.map((r) => r.id)).toEqual(['2-below-strict', '1-above-freer'])
+    expect(rows[0].label).toBe('Counterpoint: Two against one, below, strict')
+    expect(rows[0].notes.map((n) => n.note)).toEqual(
+      counterpoint(ctx, {
+        species: 2,
+        side: 'below',
+        mode: 'strict',
+      }).notes.map((n) => n.note),
+    )
+    // Notes past the last chord play only without the chords.
+    expect(rows[1].along.length).toBeGreaterThan(0)
+    for (const n of rows[1].along) {
+      expect(n.note).toEqual(rows[1].notes[n.ref].note)
+    }
+  })
+
+  it('works a line out once for the same melody', () => {
+    const o = { species: 3, side: 'above', mode: 'strict' } as const
+    expect(counterpointLine(ctx, o)).toBe(counterpointLine(ctx, o))
+  })
+
+  it('shows your own notes in a row, and counts them', () => {
+    const line = counterpointLine(ctx, {
+      species: 1,
+      side: 'below',
+      mode: 'strict',
+    }).notes
+    const edits = {
+      '1-below-strict': [
+        {
+          at: line[2].onset,
+          under: ctx.melody[2].note,
+          note: parseNote('C3')!,
+        },
+      ],
+    }
+    const [row] = counterpointRows(['1-below-strict'], ctx, timing, edits)
+    expect(row.edited).toBe(1)
+    expect(row.notes[2].edited).toBe(true)
+    expect(formatNote(row.notes[2].note)).toBe('C3')
+  })
+
+  it('has no rows without a melody', () => {
+    expect(
+      counterpointRows(['1-below-strict'], { ...ctx, melody: [] }, timing),
+    ).toEqual([])
   })
 })

@@ -35,6 +35,10 @@ export function HarmonyRows({
   alternatives,
   onEdit,
   onRestore,
+  name = 'harmony',
+  label = 'Harmonies',
+  subtitle = 'follows the melody',
+  tagText = HARMONY_TAG_TEXT,
 }: {
   rows: HarmonyRow[]
   time: MeterMap
@@ -56,13 +60,18 @@ export function HarmonyRows({
   onEdit: (id: string, place: number, note?: Note) => void
   // The harmony's own note again, under one melody note or under all.
   onRestore: (id: string, place?: number) => void
+  // The rows' wording: counterpoint lines use the same rows (task 18).
+  name?: string // "harmony", "line"
+  label?: string
+  subtitle?: string
+  tagText?: Record<string, string>
 }) {
   // The note tapped, by its place in the melody, so it stays picked as
   // it's changed.
   const [picked, setPicked] = useState<{ id: string; place: number }>()
   if (rows.length === 0) return null
   return (
-    <section class="part-rows" aria-label="Harmonies">
+    <section class="part-rows" aria-label={label}>
       {rows.map((row) => {
         const strips = melodyStrips(row.notes, time, barCount)
         const mine = picked?.id === row.id ? picked.place : undefined
@@ -74,11 +83,11 @@ export function HarmonyRows({
           <div key={row.id} class="part-row harmony-row">
             <div class="part-head">
               <strong>♫ {row.label}</strong>
-              <span class="muted">follows the melody</span>
+              <span class="muted">{subtitle}</span>
               {row.edited > 0 && (
                 <button
                   type="button"
-                  title="Put back every note the harmony worked out (Undo brings your notes back)"
+                  title={`Put back every note the ${name} worked out (Undo brings your notes back)`}
                   onClick={() => {
                     onRestore(row.id)
                     setPicked(undefined)
@@ -89,8 +98,8 @@ export function HarmonyRows({
               )}
               <button
                 type="button"
-                aria-label={`Stop the harmony ${row.label}`}
-                title="Stop this harmony playing (Undo brings it back)"
+                aria-label={`Stop the ${name} ${row.label}`}
+                title={`Stop this ${name} playing (Undo brings it back)`}
                 onClick={() => onRemove(row.id)}
               >
                 ×
@@ -141,6 +150,7 @@ export function HarmonyRows({
                               'lane-note',
                               'harmony-note',
                               n.tags.includes('chromatic') ? 'chromatic' : '',
+                              n.tags.includes('break') ? 'break' : '',
                               n.edited ? 'edited' : '',
                               g.tiedIn ? 'tied-in' : '',
                               g.tiedOut ? 'tied-out' : '',
@@ -228,7 +238,7 @@ export function HarmonyRows({
                       {formatNote(o.candidate.note)}{' '}
                       <span class="muted">
                         {o.tags
-                          .map((t) => HARMONY_TAG_TEXT[t])
+                          .map((t) => tagText[t])
                           .filter(Boolean)
                           .join(', ')}
                       </span>
@@ -250,10 +260,10 @@ export function HarmonyRows({
                   {chosen.edited && (
                     <button
                       type="button"
-                      title="The note the harmony worked out here"
+                      title={`The note the ${name} worked out here`}
                       onClick={() => onRestore(row.id, chosen.place)}
                     >
-                      ↺ The harmony’s own note
+                      ↺ The {name}’s own note
                     </button>
                   )}
                 </div>

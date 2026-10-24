@@ -6,12 +6,19 @@ import {
   addDur,
   barPosition,
   compareDur,
+  counterpoint,
+  counterpointLabel,
+  counterpointOptions,
+  editCounterpoint,
+  pruneCounterpointEdits,
   editHarmony,
   harmonise,
   harmonyKind,
   melodyRange,
   pruneHarmonyEdits,
   midiNumber,
+  type CounterpointLine,
+  type CounterpointOptions,
   type HarmonyContext,
   type HarmonyEdit,
   type PlacedHarmonyNote,
@@ -83,6 +90,55 @@ export function harmonyRows(
         label: kind.label,
         notes,
         along: melodyAlong(notes, timing, harmonyLook(id)),
+        edited: own.length,
+      },
+    ]
+  })
+}
+
+// A counterpoint line against the melody (PLAN Phase 7 task 18), worked
+// out once for each melody, key, chords and meter: the search takes a
+// moment, and rows redraw while they play.
+const lines = new Map<string, CounterpointLine>()
+const LINES_KEPT = 40
+
+export function counterpointLine(
+  ctx: HarmonyContext,
+  o: CounterpointOptions,
+): CounterpointLine {
+  const key = JSON.stringify([o, ctx.melody, ctx.key, ctx.chords, ctx.time])
+  let line = lines.get(key)
+  if (!line) {
+    line = counterpoint(ctx, o)
+    if (lines.size >= LINES_KEPT) lines.delete(lines.keys().next().value!)
+    lines.set(key, line)
+  }
+  return line
+}
+
+// The counterpoint lines kept, each on a row of its own like a harmony,
+// with your notes on it (as task 17).
+export const COUNTERPOINT_LOOK = 'counterpoint'
+
+export function counterpointRows(
+  ids: string[],
+  ctx: HarmonyContext,
+  timing: Placement[],
+  edits: Record<string, HarmonyEdit[]> = {},
+): HarmonyRow[] {
+  if (!ctx.melody.length) return []
+  return ids.flatMap((id) => {
+    const o = counterpointOptions(id)
+    if (!o) return []
+    const line = counterpointLine(ctx, o).notes
+    const own = pruneCounterpointEdits(ctx.melody, edits[id] ?? [], line)
+    const notes = editCounterpoint(ctx, o, line, own)
+    return [
+      {
+        id,
+        label: `Counterpoint: ${counterpointLabel(o)}`,
+        notes,
+        along: melodyAlong(notes, timing, `${COUNTERPOINT_LOOK}-${id}`),
         edited: own.length,
       },
     ]
