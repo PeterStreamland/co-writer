@@ -14,6 +14,7 @@ import {
   parseChordSymbol,
   parseNote,
   patternCycle,
+  withGaps,
   pitchClass,
   ratioOf,
   type ArpeggioPattern,
@@ -188,6 +189,25 @@ describe('arpeggio patterns', () => {
     expect(patternCycle(4, pattern(id))).toEqual(cycle)
   })
 
+  // More patterns (David's request, 2026-10-24).
+  it.each([
+    // Four notes at a time, each group starting a note higher.
+    ['fours-up', 5, [0, 1, 2, 3, 1, 2, 3, 4]],
+    ['fours-down', 5, [4, 3, 2, 1, 3, 2, 1, 0]],
+    // Turns: up two and back one (1–2–3–2, 2–3–4–3…).
+    ['turns-up', 4, [0, 1, 2, 1, 1, 2, 3, 2]],
+    ['turns-down', 4, [3, 2, 1, 2, 2, 1, 0, 1]],
+    // Alberti: low, high, middle, high on the lowest three notes.
+    ['alberti', 4, [0, 2, 1, 2]],
+    // A pedal on the lowest note between each of the others.
+    ['pedal', 4, [0, 1, 0, 2, 0, 3]],
+    // Lowest, highest, then working inwards.
+    ['outside-in', 4, [0, 3, 1, 2]],
+    ['outside-in', 5, [0, 4, 1, 3, 2]],
+  ])('%s over %i notes is %o', (id, count, cycle) => {
+    expect(patternCycle(count as number, pattern(id as string))).toEqual(cycle)
+  })
+
   it('falls back to the plain direction when there are too few notes', () => {
     expect(patternCycle(2, pattern('threes-up'))).toEqual([0, 1])
   })
@@ -271,5 +291,29 @@ describe('arpeggio names and tensions (Phase 6 gate review)', () => {
       expect(below, `${name} is a whole tone above a chord tone`).toBe(true)
     }
     expect(left.map((t) => formatNote(t.note, { ascii: true }))).toContain('C')
+  })
+})
+
+describe('rests and holds in a bar (David’s request)', () => {
+  const events = arpeggioRhythm(4, pattern('up'), dur(1, 4), dur(1, 1))
+  it('a rest leaves a silence; the other notes keep their places', () => {
+    const out = withGaps(events, { 1: 'rest' })
+    expect(out.map((e) => e.index)).toEqual([0, 2, 3])
+    expect(out[0].length).toEqual(dur(1, 4))
+    expect(out[1].onset).toEqual(dur(1, 2))
+  })
+  it('a hold strikes no new note: the note before rings on', () => {
+    const out = withGaps(events, { 1: 'hold', 2: 'hold' })
+    expect(out.map((e) => e.index)).toEqual([0, 3])
+    expect(out[0].length).toEqual(dur(3, 4))
+  })
+  it('a hold after a rest stays silent', () => {
+    const out = withGaps(events, { 1: 'rest', 2: 'hold' })
+    expect(out.map((e) => e.index)).toEqual([0, 3])
+    expect(out[0].length).toEqual(dur(1, 4))
+  })
+  it('keeps each note’s place in the pattern', () => {
+    const out = withGaps(events, { 0: 'rest' })
+    expect(out.map((e) => e.event)).toEqual([1, 2, 3])
   })
 })

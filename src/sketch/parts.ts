@@ -10,6 +10,7 @@ import {
   LETTERS,
   LINE_DENSITIES,
   MOST_NOTES,
+  type ArpeggioGap,
   type BarNote,
   type LineDensity,
   type LineModeId,
@@ -42,7 +43,14 @@ export type PartRecipe =
       notes?: BarNote[]
     }
   // On guitar in one position, `from` is the fret the position sits near.
-  | { kind: 'arpeggio'; settings: ArpeggioSettings; from?: number }
+  | {
+      kind: 'arpeggio'
+      settings: ArpeggioSettings
+      from?: number
+      // Notes of the bar's pattern resting or held, by their place in it
+      // (David's request, 2026-10-24).
+      gaps?: Record<number, ArpeggioGap>
+    }
 
 // A row plays its recipe over every chord, except where a bar has its own
 // (David's request: + on a single bar): a cell keyed by the chord's node
@@ -241,7 +249,16 @@ function isRecipe(value: unknown): value is PartRecipe {
     )
   }
   if (recipe?.kind === 'arpeggio') {
-    return typeof recipe.settings?.choice === 'string'
+    return (
+      typeof recipe.settings?.choice === 'string' &&
+      (recipe.gaps === undefined ||
+        (typeof recipe.gaps === 'object' &&
+          recipe.gaps !== null &&
+          Object.entries(recipe.gaps).every(
+            ([k, g]) =>
+              Number.isInteger(Number(k)) && (g === 'rest' || g === 'hold'),
+          )))
+    )
   }
   return false
 }

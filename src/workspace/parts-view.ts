@@ -14,6 +14,7 @@ import {
   lineSeed,
   seededRandom,
   withBars,
+  withGaps,
   type BarNote,
   type Key,
   type LineModeId,
@@ -59,7 +60,14 @@ export function recipeLabel(recipe: PartRecipe): string {
   const how = ARPEGGIO_PATTERNS.find((p) => p.id === pattern)?.label ?? pattern
   const speed = ARPEGGIO_RATES.find((r) => r.id === rate)?.label ?? rate
   const where = recipe.from !== undefined ? `, around fret ${recipe.from}` : ''
-  return `${what} arpeggios, ${how.toLowerCase()}, ${speed}${where}`
+  const gaps = Object.values(recipe.gaps ?? {})
+  const rests = gaps.filter((g) => g === 'rest').length
+  const holds = gaps.length - rests
+  const extra = [
+    rests ? `${rests} rest${rests === 1 ? '' : 's'}` : '',
+    holds ? `${holds} held` : '',
+  ].filter(Boolean)
+  return `${what} arpeggios, ${how.toLowerCase()}, ${speed}${where}${extra.map((x) => `, ${x}`).join('')}`
 }
 
 // How a row reads: its recipe, noting any bars of its own, or for a row
@@ -144,7 +152,7 @@ function unshiftedNotes(
       )
       voice = voiceOf(plan, 'position', nearest)
     }
-    return voice.events.map((e) => ({
+    return withGaps(voice.events, recipe.gaps).map((e) => ({
       step: i,
       onset: addDur(placed.start, e.onset),
       length: e.length,

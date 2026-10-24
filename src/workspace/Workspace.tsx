@@ -21,7 +21,13 @@ import {
   appendNote,
   NOTE_VALUES,
   degreeLabel,
+  countUnit,
+  holdOver,
+  rankNoteInPlace,
+  restBefore,
+  silenceNote,
   spellTapped,
+  swapMelodyNote,
 } from '../theory'
 import { OCTAVE_LIMIT, shiftNotes, shiftShape } from '../instruments/octave'
 import { playChord, playNote, preparePiano } from '../audio/player'
@@ -62,7 +68,7 @@ import type { Along, AlongNote } from './along'
 import { PartRows, type PartView } from './PartRows'
 import { MelodyLane } from './MelodyLane'
 import { MelodyPanel, type MelodyEntry, type MelodyLight } from './MelodyPanel'
-import { MELODY_LOOK, melodyAlong } from './melody-view'
+import { MELODY_LOOK, melodyAlong, rangeFromSetting } from './melody-view'
 import { partLabel, partNotes } from './parts-view'
 import {
   addCell,
@@ -700,6 +706,30 @@ export function Workspace() {
   const lastPlaced = timing.at(-1)
   const sectionEnd = lastPlaced && addDur(lastPlaced.start, lastPlaced.length)
   const melodySounding = alongAt?.look === MELODY_LOOK ? alongAt.ref : soloAt
+  // Tapping a note in the lane (David's request) offers notes for its
+  // place and ways to leave a gap there.
+  const melodyChords = path.map((n, i) => ({
+    chord: n.chord,
+    key: keyAt(progression, i, key),
+    start: timing[i].start,
+    length: timing[i].length,
+  }))
+  const [laneAt, setLaneAt] = useState<number>()
+  const laneSelected =
+    laneAt !== undefined && laneAt < melody.length ? laneAt : undefined
+  const laneOptions =
+    laneSelected === undefined
+      ? []
+      : rankNoteInPlace(
+          {
+            melody,
+            key,
+            chords: melodyChords,
+            time,
+            range: rangeFromSetting(progression.melodyRange),
+          },
+          laneSelected,
+        )
   const melodyPanel = (
     <MelodyPanel
       melody={melody}
@@ -731,12 +761,7 @@ export function Workspace() {
       }}
       onRecordStart={() => setRecording(false)}
       onLight={setMelodyLight}
-      chords={path.map((n, i) => ({
-        chord: n.chord,
-        key: keyAt(progression, i, key),
-        start: timing[i].start,
-        length: timing[i].length,
-      }))}
+      chords={melodyChords}
       rangeSetting={progression.melodyRange}
       onRangeSetting={(melodyRange) =>
         setHistory((h) => record(h, { ...h.present, melodyRange }))
@@ -1049,6 +1074,37 @@ export function Workspace() {
             onOpen={() => {
               setTab('melody')
               setSheetOpen(true)
+            }}
+            selected={laneSelected}
+            onSelect={(i) => {
+              setLaneAt(i)
+              if (i !== undefined) {
+                const m = melody[i]
+                void playNote(m.note, secondsOf(m.length, bpm, time.meter))
+              }
+            }}
+            options={laneOptions}
+            onSwap={(note) => {
+              if (laneSelected === undefined) return
+              const m = melody[laneSelected]
+              setMelody(swapMelodyNote(melody, laneSelected, note))
+              void playNote(note, secondsOf(m.length, bpm, time.meter))
+            }}
+            onSilence={() => {
+              if (laneSelected === undefined) return
+              setMelody(silenceNote(melody, laneSelected))
+              setLaneAt(undefined)
+            }}
+            onHold={() => {
+              if (laneSelected === undefined) return
+              setMelody(holdOver(melody, laneSelected))
+              setLaneAt(undefined)
+            }}
+            onRestBefore={() => {
+              if (laneSelected === undefined) return
+              setMelody(
+                restBefore(melody, laneSelected, countUnit(time.meter).length),
+              )
             }}
           />
           <PartRows

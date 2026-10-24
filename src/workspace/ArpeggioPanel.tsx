@@ -3,6 +3,9 @@ import {
   ARPEGGIO_PATTERNS,
   ARPEGGIO_RATES,
   addDur,
+  durEquals,
+  withGaps,
+  type ArpeggioGap,
   chordSymbol,
   formatNote,
   type ChordName,
@@ -85,7 +88,7 @@ export function ArpeggioPanel({
   onPlayAlong: (notes: Along) => void
   onStop: () => void
   // Adds these arpeggios as a row under the progression.
-  onAddRow: (recipe: PartRecipe) => void
+  onAddRow: (recipe: PartRecipe, cells?: Record<number, PartRecipe>) => void
   // Adds one chord's arpeggio to a row.
   onAddBar: (step: number, recipe: PartRecipe) => void
 }) {
@@ -98,18 +101,52 @@ export function ArpeggioPanel({
   const index = Math.min(Math.max(0, at), sources.length - 1)
   const source = sources[index]
   const onGuitar = instrument === 'guitar'
+  // Each bar can have its own pattern (David's request), by its place in
+  // the list; the rest follow the tab's.
+  const [barPatterns, setBarPatterns] = useState<Record<number, string>>({})
+  // Each bar's rests and holds (David's request): a note of the pattern
+  // tapped once is held (no new note; the one before rings on), twice is a
+  // rest, three times plays again.
+  const [barGaps, setBarGaps] = useState<
+    Record<number, Record<number, ArpeggioGap>>
+  >({})
+  // A chord added or taken out moves the bars along, so they start over.
+  useEffect(() => {
+    setBarPatterns({})
+    setBarGaps({})
+  }, [sources.length])
+  const cycleGap = (i: number, k: number) => {
+    const own = { ...barGaps[i] }
+    const now = own[k]
+    if (!now) own[k] = 'hold'
+    else if (now === 'hold') own[k] = 'rest'
+    else delete own[k]
+    setBarGaps({ ...barGaps, [i]: own })
+  }
+  // The recipe a bar's + and a row keep: its pattern, rests and holds.
+  const recipeAt = (i: number, from: number | undefined): PartRecipe => {
+    const gaps = barGaps[i]
+    return {
+      kind: 'arpeggio',
+      settings: settingsAt(i),
+      from,
+      ...(gaps && Object.keys(gaps).length ? { gaps } : {}),
+    }
+  }
+  const settingsAt = (i: number): ArpeggioSettings =>
+    barPatterns[i] ? { ...settings, pattern: barPatterns[i] } : settings
   const plans = useMemo(
     () =>
-      sources.map((s) =>
+      sources.map((s, i) =>
         planArpeggio(
           s.chord,
           s.key,
-          settings,
+          settingsAt(i),
           s.length,
           onGuitar ? guitar : undefined,
         ),
       ),
-    [sources, settings, onGuitar, guitar],
+    [sources, settings, barPatterns, onGuitar, guitar],
   )
   const plan = plans[index] as ArpeggioPlan | undefined
   const [positionAt, setPositionAt] = useState(0)
@@ -130,15 +167,34 @@ export function ArpeggioPanel({
     )
     return voiceOf(p, mode, nearest)
   }
+  // A bar's notes as they play, with its rests and holds.
+  const eventsAt = (i: number) => withGaps(voiceAt(i).events, barGaps[i])
+  // Which note of a bar's pattern starts at a moment of the progression.
+  const eventAt = (i: number, onset: Dur) => {
+    const start = sources[i].start
+    if (!start) return undefined
+    return eventsAt(i).find((e) => durEquals(addDur(start, e.onset), onset))
+      ?.event
+  }
   // The note sounding while the arpeggio plays: which chord, which note.
-  const [ownPlaying, setPlaying] = useState<{ at: number; note: number }>()
+  // `event` is the note's place in the bar's pattern, so only the note on
+  // the beat lights, not every one of the same pitch (David's report).
+  const [ownPlaying, setPlaying] = useState<{
+    at: number
+    note: number
+    event?: number
+  }>()
   // Playing with the chords, the workspace says which note sounds.
   const together = along?.source === plans
   const alongSource =
     together && alongAt ? sources.findIndex((s) => s.step === alongAt.step) : -1
   const playing = together
     ? alongSource >= 0
-      ? { at: alongSource, note: alongAt!.ref }
+      ? {
+          at: alongSource,
+          note: alongAt!.ref,
+          event: eventAt(alongSource, alongAt!.onset),
+        }
       : undefined
     : ownPlaying
   useEffect(() => {
@@ -189,17 +245,17 @@ export function ArpeggioPanel({
     let offset = 0
     for (const i of through) {
       const voice = voiceAt(i)
-      for (const e of voice.events) {
+      eventsAt(i).forEach((e) => {
         const ms = (offset + secondsOf(e.onset, bpm, meter)) * 1000
         const seconds = secondsOf(e.length, bpm, meter)
         timers.push(
           setTimeout(() => {
             setAt(i)
-            setPlaying({ at: i, note: e.index })
+            setPlaying({ at: i, note: e.index, event: e.event })
             void playNote(voice.notes[e.index].note, seconds * 1.5)
           }, ms),
         )
-      }
+      })
       offset += secondsOf(sources[i].length, bpm, meter)
     }
     timers.push(
@@ -220,7 +276,7 @@ export function ArpeggioPanel({
         const step = s.step
         const start = s.start
         const voice = voiceAt(i)
-        return voice.events.map((e) => ({
+        return eventsAt(i).map((e) => ({
           step,
           onset: addDur(start, e.onset),
           length: e.length,
@@ -414,14 +470,33 @@ export function ArpeggioPanel({
                 class="add-row"
                 title="Add these arpeggios as a row under the progression"
                 onClick={() =>
-                  onAddRow({
-                    kind: 'arpeggio',
-                    settings,
-                    from:
-                      mode === 'position'
-                        ? plan.positions[positionAt]?.from
-                        : undefined,
-                  })
+                  onAddRow(
+                    {
+                      kind: 'arpeggio',
+                      settings,
+                      from:
+                        mode === 'position'
+                          ? plan.positions[positionAt]?.from
+                          : undefined,
+                    },
+                    // Bars with their own pattern, rests or holds go in as
+                    // their own.
+                    Object.fromEntries(
+                      sources.flatMap((s, i) =>
+                        (barPatterns[i] || barGaps[i]) && s.step !== undefined
+                          ? [
+                              [
+                                s.step,
+                                recipeAt(
+                                  i,
+                                  mode === 'position' ? here : undefined,
+                                ),
+                              ],
+                            ]
+                          : [],
+                      ),
+                    ),
+                  )
                 }
               >
                 + Add as a row
@@ -430,7 +505,8 @@ export function ArpeggioPanel({
           </>
         )}
         <span class="muted">
-          {voice.events.length} notes over {source.lengthText}
+          {eventsAt(index).length} notes over {source.lengthText}. Tap a note to
+          hold the one before over it, again for a rest.
         </span>
       </div>
       <p class="arpeggio-heading">
@@ -455,7 +531,14 @@ export function ArpeggioPanel({
                   type="button"
                   class="line-chord-name"
                   aria-pressed={i === index}
-                  onClick={() => setAt(i)}
+                  title="Play this bar's arpeggio"
+                  onClick={() => {
+                    // Tapping a bar plays it, as other boxes do (David's
+                    // request); while playing with the chords it just
+                    // shows it.
+                    setAt(i)
+                    if (!together) setThrough([i])
+                  }}
                 >
                   {chordSymbol(s.chord)}
                   <span class="muted">
@@ -471,11 +554,10 @@ export function ArpeggioPanel({
                     aria-label={`Add the arpeggio over ${chordSymbol(s.chord)} in bar ${s.bar} to a row`}
                     title="Add this bar's arpeggio to a row"
                     onClick={() =>
-                      onAddBar(s.step as number, {
-                        kind: 'arpeggio',
-                        settings,
-                        from: mode === 'position' ? here : undefined,
-                      })
+                      onAddBar(
+                        s.step as number,
+                        recipeAt(i, mode === 'position' ? here : undefined),
+                      )
                     }
                   >
                     +
@@ -483,23 +565,62 @@ export function ArpeggioPanel({
                 )}
               </div>
               <span class="arpeggio-of muted">{plans[i].name}</span>
+              <select
+                class="bar-pattern"
+                aria-label={`Pattern for ${chordSymbol(s.chord)}${s.bar !== undefined ? ` in bar ${s.bar}` : ''}`}
+                value={barPatterns[i] ?? ''}
+                onChange={(e) => {
+                  const id = e.currentTarget.value
+                  const next = { ...barPatterns }
+                  if (id) next[i] = id
+                  else delete next[i]
+                  setBarPatterns(next)
+                }}
+              >
+                <option value="">Pattern as above</option>
+                {ARPEGGIO_PATTERNS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
               <span class="line-notes">
                 {v.events.map((e, k) => {
                   const n = v.notes[e.index]
+                  const gap = barGaps[i]?.[k]
                   return (
-                    <span
+                    <button
+                      type="button"
                       key={k}
                       class={[
                         'line-note',
                         `role-${roleOf(n.number)}`,
-                        playing?.at === i && playing.note === e.index
+                        gap ? `gap-${gap}` : '',
+                        playing?.at === i && playing.event === k
                           ? 'sounding'
                           : '',
                       ].join(' ')}
+                      title={
+                        gap === 'hold'
+                          ? 'Held: the note before rings on. Tap for a rest.'
+                          : gap === 'rest'
+                            ? 'A rest. Tap to play the note again.'
+                            : 'Tap to hold the note before over this one (no new note), again for a rest.'
+                      }
+                      aria-label={`${formatNote(n.note)}${gap === 'hold' ? ', held over' : gap === 'rest' ? ', a rest' : ''}`}
+                      onClick={() => cycleGap(i, k)}
                     >
-                      <span class="label">{n.label}</span>
-                      <span class="name">{formatNote(n.note)}</span>
-                    </span>
+                      <span class="label">
+                        {gap === 'hold' ? '–' : gap === 'rest' ? '𝄽' : n.label}
+                      </span>
+                      <span class="name">
+                        {gap === 'hold'
+                          ? 'held'
+                          : gap === 'rest'
+                            ? 'rest'
+                            : formatNote(n.note)}
+                      </span>
+                    </button>
                   )
                 })}
               </span>

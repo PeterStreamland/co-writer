@@ -2177,7 +2177,7 @@ body:has(.workspace) #app {
 }
 
 .arpeggio-chords .line-note {
-  cursor: default;
+  cursor: pointer;
 }
 
 .line-note.role-root {
@@ -2595,4 +2595,37 @@ button.remove-note {
 .next-why {
   flex-basis: 100%;
   font-size: 0.8rem;
+}
+
+/* Rests and holds in an arpeggio bar (David's request). */
+.line-note.gap-hold,
+.line-note.gap-rest {
+  border-style: dashed;
+  opacity: 0.55;
+}
+
+.bar-pattern {
+  font-size: 0.75rem;
+  max-width: 100%;
+  margin: 0.15rem 0;
+}
+
+/* The melody lane: a tapped note, and what could go in its place. */
+.melody-lane .line-note {
+  cursor: pointer;
+}
+
+.melody-lane .line-note.selected {
+  outline: 2px solid var(--accent);
+}
+
+.lane-place {
+  margin-top: 0.5rem;
+}
+
+.lane-place .place-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0.3rem 0;
 }

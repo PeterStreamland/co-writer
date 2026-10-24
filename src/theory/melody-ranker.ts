@@ -11,9 +11,14 @@ import { intervalWords } from './insight'
 import { degreeLabel, degreeName, intervalBetween } from './interval'
 import {
   MELODY_CONTEXT,
+  IN_PLACE,
+  IN_PLACE_TEXT,
   MELODY_RANKING as R,
   type MelodyCategory,
 } from './melody-ranker-data'
+import { subDur } from './duration'
+import { melodyEnd } from './melody'
+import { BIG_LEAP } from './next-note-data'
 import {
   rankNextNotes,
   type NextNoteContext,
@@ -191,4 +196,54 @@ function moveWords(from: Note, to: Note): string {
           : `${octaves} octaves`
         : `${within} and an octave`
   return `${up ? 'Up' : 'Down'} ${words} from ${formatNote(from)}.`
+}
+
+// Notes that could take a note's place (David's request): what could
+// follow the notes before it, at its start and for its length, re-scored
+// by how each leads into the note after. The note itself isn't offered.
+export function rankNoteInPlace(
+  ctx: Omit<NextNoteContext, 'length' | 'gap'>,
+  index: number,
+): NextNoteSuggestion[] {
+  const target = ctx.melody[index]
+  if (!target) return []
+  const before = ctx.melody.slice(0, index)
+  const after = ctx.melody[index + 1]
+  const own = midiOf(target.note)
+  return rankNextNotes({
+    ...ctx,
+    melody: before,
+    length: target.length,
+    gap: subDur(target.onset, melodyEnd(before)),
+  })
+    .filter((s) => midiOf(s.candidate.note) !== own)
+    .map((s) => {
+      if (!after) return withContext(s)
+      const size = Math.abs(midiOf(after.note) - midiOf(s.candidate.note))
+      const next = formatNote(after.note)
+      const fill = (t: string) => t.replace('{next}', next)
+      if (size > 0 && size <= 2) {
+        return withContext({
+          ...s,
+          score: Math.round((s.score + IN_PLACE.stepInto) * 1000) / 1000,
+          ruleIds: [...s.ruleIds, 'melody-step-into'],
+          explanation: `${s.explanation} ${fill(IN_PLACE_TEXT.stepInto)}`,
+        })
+      }
+      if (size >= BIG_LEAP) {
+        return withContext({
+          ...s,
+          score: Math.round((s.score + IN_PLACE.leapInto) * 1000) / 1000,
+          ruleIds: [...s.ruleIds, 'melody-leap-into'],
+          explanation: `${s.explanation} ${fill(IN_PLACE_TEXT.leapInto)}`,
+        })
+      }
+      return withContext(s)
+    })
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        midiOf(a.candidate.note) - midiOf(b.candidate.note),
+    )
+    .slice(0, IN_PLACE.shown)
 }

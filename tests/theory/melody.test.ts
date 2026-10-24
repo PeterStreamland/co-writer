@@ -10,7 +10,11 @@ import {
   parseMeter,
   parseNote,
   quantise,
+  holdOver,
   removeLast,
+  restBefore,
+  silenceNote,
+  swapMelodyNote,
   spellTapped,
   typeMelody,
   valueFraction,
@@ -177,5 +181,47 @@ describe('bars', () => {
     expect(valueFraction(dur(2, 1))).toBe('2')
     expect(valueName(dur(1, 2))).toBe('minim')
     expect(valueName(dur(5, 16))).toBe('5/16')
+  })
+})
+
+describe('silences (David’s request)', () => {
+  const melody = () => typeMelody('C4 D E F', dur(1, 4)).notes
+  it('silences a note, leaving the others where they are', () => {
+    const m = silenceNote(melody(), 1)
+    expect(m.map((n) => formatNote(n.note))).toEqual(['C4', 'E4', 'F4'])
+    expect(m[1].onset).toEqual(dur(1, 2))
+  })
+  it('puts a rest before a note, moving it and the rest later', () => {
+    const m = restBefore(melody(), 2, dur(1, 4))
+    expect(m.map((n) => n.onset)).toEqual([
+      dur(0, 1),
+      dur(1, 4),
+      dur(3, 4),
+      dur(1, 1),
+    ])
+  })
+  it('swaps a note for another in its place', () => {
+    const m = swapMelodyNote(melody(), 1, parseNote('B3')!)
+    expect(formatNote(m[1].note)).toBe('B3')
+    expect(m[1].onset).toEqual(dur(1, 4))
+    expect(m[1].length).toEqual(dur(1, 4))
+  })
+})
+
+describe('holds (David’s request)', () => {
+  it('holds the note before through a note’s place: no new note there', () => {
+    const m = holdOver(typeMelody('C4 D E F', dur(1, 4)).notes, 2)
+    expect(m.map((n) => formatNote(n.note))).toEqual(['C4', 'D4', 'F4'])
+    expect(m[1].length).toEqual(dur(1, 2))
+    expect(m[2].onset).toEqual(dur(3, 4))
+  })
+  it('after a rest, the note before rings on to the end of the held note', () => {
+    const m = holdOver(typeMelody('C4 r E', dur(1, 4)).notes, 1)
+    expect(m).toHaveLength(1)
+    expect(m[0].length).toEqual(dur(3, 4))
+  })
+  it('the first note has nothing to hold, so it falls silent', () => {
+    const m = holdOver(typeMelody('C4 D', dur(1, 4)).notes, 0)
+    expect(m.map((n) => formatNote(n.note))).toEqual(['D4'])
   })
 })

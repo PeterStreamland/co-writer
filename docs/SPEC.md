@@ -378,7 +378,12 @@ type PartRecipe =
       seed?: number // a bar's refreshes
       notes?: { note: Note; at: Dur }[] // a bar edited by hand, from the chord's start
     }
-  | { kind: 'arpeggio'; settings: ArpeggioSettings; from?: number }
+  | {
+      kind: 'arpeggio'
+      settings: ArpeggioSettings
+      from?: number
+      gaps?: Record<number, 'rest' | 'hold'>
+    } // rests and holds by place in the bar's pattern (2026-10-24)
 type MelodyNote = { note: Note; onset?: Dur; length?: Dur }
 type StyleBlend = { a: string; b?: string; mix: number } // mix 0–1, in 0.25 steps
 type Section = {

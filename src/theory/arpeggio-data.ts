@@ -66,11 +66,16 @@ export const BORROW_ORDER: { major: string[]; minor: string[] } = {
 
 export type PatternDirection = 'up' | 'down' | 'up-down' | 'down-up'
 
+// Most patterns walk the notes in a direction, playing `group` from each
+// step (broken 3rds are [0, 2]). A few have their own shape: Alberti stays
+// on the lowest three notes, a pedal returns to the lowest note between
+// each of the others, and outside-in alternates the ends working inwards.
 export type ArpeggioPattern = {
   id: string
   label: string
   direction: PatternDirection
   group: number[]
+  shape?: 'alberti' | 'pedal' | 'outside-in'
 }
 
 export const ARPEGGIO_PATTERNS: ArpeggioPattern[] = [
@@ -101,6 +106,52 @@ export const ARPEGGIO_PATTERNS: ArpeggioPattern[] = [
     label: 'In threes, down',
     direction: 'down',
     group: [0, 1, 2],
+  },
+  // More patterns (David's request, 2026-10-24).
+  {
+    id: 'fours-up',
+    label: 'In fours, up (1–2–3–4, 2–3–4–5…)',
+    direction: 'up',
+    group: [0, 1, 2, 3],
+  },
+  {
+    id: 'fours-down',
+    label: 'In fours, down',
+    direction: 'down',
+    group: [0, 1, 2, 3],
+  },
+  {
+    id: 'turns-up',
+    label: 'Turns, up (1–2–3–2, 2–3–4–3…)',
+    direction: 'up',
+    group: [0, 1, 2, 1],
+  },
+  {
+    id: 'turns-down',
+    label: 'Turns, down',
+    direction: 'down',
+    group: [0, 1, 2, 1],
+  },
+  {
+    id: 'alberti',
+    label: 'Alberti (low–high–middle–high)',
+    direction: 'up',
+    group: [0, 2, 1, 2],
+    shape: 'alberti',
+  },
+  {
+    id: 'pedal',
+    label: 'Pedal on the lowest note (1–2–1–3…)',
+    direction: 'up',
+    group: [0],
+    shape: 'pedal',
+  },
+  {
+    id: 'outside-in',
+    label: 'Outside in (lowest, highest, inwards)',
+    direction: 'up',
+    group: [0],
+    shape: 'outside-in',
   },
 ]
 

@@ -10,11 +10,13 @@ import {
   parseChordSymbol,
   parseNote,
   rankMelody,
+  rankNoteInPlace,
   typeMelody,
   type Key,
   type NextNoteContext,
 } from '../../src/theory'
 import { noteInsights } from '../fixtures/note-insights'
+import { inPlace } from '../fixtures/notes-in-place'
 
 const FOUR = { meter: { num: 4, den: 4 } }
 
@@ -139,6 +141,30 @@ describe('a next note’s ⓘ reading', () => {
       )
       expect(insight.reading).toBe(f.reading)
       expect(insight.move).toBe(f.move)
+    })
+  }
+})
+
+describe('notes for a note’s place (David’s request)', () => {
+  for (const f of inPlace) {
+    it(f.name, () => {
+      const ctx = context(f.melody, f.chords)
+      const target = ctx.melody[f.index]
+      const options = rankNoteInPlace(ctx, f.index)
+      const names = options.map(name)
+      if (f.top) expect(names[0]).toBe(f.top)
+      for (const [a, b] of f.above ?? []) {
+        expect(names).toContain(a)
+        const ib = names.indexOf(b)
+        if (ib >= 0) expect(names.indexOf(a)).toBeLessThan(ib)
+      }
+      for (const s of options) {
+        expect(s.candidate.onset).toEqual(target.onset)
+        expect(s.candidate.length).toEqual(target.length)
+        expect(midiNumber(s.candidate.note)).not.toBe(midiNumber(target.note))
+      }
+      expect(options.length).toBeGreaterThan(0)
+      expect(options.length).toBeLessThanOrEqual(8)
     })
   }
 })
