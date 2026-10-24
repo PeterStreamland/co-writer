@@ -1469,3 +1469,10 @@ Two of David's ideas join Phase 7 as tasks 8 and 9, each with an exit criterion:
 - **Inversions before octaves (task 9).** ▲ ▼ on a chord will step through its inversions before moving it a whole octave: C, C/E, C/G, then C an octave up.
   - On guitar each step takes the nearest playable shape of that inversion, as octave moves do now.
   - **David asked** that it is always clear which kind of step a chord has had: an inversion or a perfect-octave move. So the chord shows labels such as "1st inversion", "+1 octave", or both.
+
+## 2026-10-24 — A melody note's length, and a rest after it (David's requests)
+
+Tapping a note in the melody lane now also offers:
+
+- **Length:** every note value, from a semiquaver to a semibreve with dotted values and the quaver triplet, the note's own highlighted. Choosing one changes the note, and the notes after it move along by the difference. So the rest of the melody keeps its rhythm and its rests, and a longer note pushes on into the next bar (`setNoteLength` in `src/theory/melody.ts`). Holds past a shortened end go.
+- **A beat's rest after it,** beside "A beat's rest before it": the notes after it move a beat later. After the last note there is nothing to move, so the next note added comes a beat later instead (the Melody tab says so).

@@ -316,3 +316,25 @@ export function holdOver(melody: MelodyNote[], index: number): MelodyNote[] {
     return [m]
   })
 }
+
+// A note made longer or shorter (David's request): the notes after it
+// move along by the difference, so the rest of the melody keeps its
+// rhythm and its rests. Holds past the new end go.
+export function setNoteLength(
+  melody: MelodyNote[],
+  index: number,
+  length: Dur,
+): MelodyNote[] {
+  const target = melody[index]
+  if (!target) return melody
+  const shift = subDur(length, target.length)
+  return melody.map((m, i) => {
+    if (i < index) return m
+    if (i > index) return { ...m, onset: addDur(m.onset, shift) }
+    const changed: MelodyNote = { ...m, length }
+    const holds = (m.holds ?? []).filter((h) => compareDur(h, length) < 0)
+    if (holds.length) changed.holds = holds
+    else delete changed.holds
+    return changed
+  })
+}

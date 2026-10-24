@@ -2764,3 +2764,21 @@ button.remove-note {
 .lane-empty {
   border: 1px dashed color-mix(in srgb, var(--muted) 45%, transparent);
 }
+
+.lane-length {
+  min-width: 2.2rem;
+  padding: 0.1rem 0.3rem;
+  line-height: 1.1;
+}
+
+.lane-length small {
+  display: block;
+  font-size: 0.6rem;
+  color: var(--muted);
+}
+
+.lane-length[aria-pressed='true'] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+  font-weight: 700;
+}

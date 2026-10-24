@@ -13,6 +13,7 @@ import {
   holdOver,
   removeLast,
   restBefore,
+  setNoteLength,
   silenceNote,
   swapMelodyNote,
   spellTapped,
@@ -230,5 +231,37 @@ describe('holds (David’s request)', () => {
   it('the first note has nothing to hold, so it falls silent', () => {
     const m = holdOver(typeMelody('C4 D', dur(1, 4)).notes, 0)
     expect(m.map((n) => formatNote(n.note))).toEqual(['D4'])
+  })
+})
+
+describe('changing a note’s length (David’s request)', () => {
+  const melody = () => typeMelody('C4 D E F', dur(1, 4)).notes
+  it('a longer note moves the notes after it later', () => {
+    const m = setNoteLength(melody(), 1, dur(1, 2))
+    expect(m[1].length).toEqual(dur(1, 2))
+    expect(m.map((n) => n.onset)).toEqual([
+      dur(0, 1),
+      dur(1, 4),
+      dur(3, 4),
+      dur(1, 1),
+    ])
+  })
+  it('a shorter note brings the notes after it earlier', () => {
+    const m = setNoteLength(melody(), 0, dur(1, 8))
+    expect(m.map((n) => n.onset)).toEqual([
+      dur(0, 1),
+      dur(1, 8),
+      dur(3, 8),
+      dur(5, 8),
+    ])
+  })
+  it('keeps rests after it as they were, moved along', () => {
+    const m = setNoteLength(typeMelody('C4 r E', dur(1, 4)).notes, 0, dur(1, 2))
+    expect(m[1].onset).toEqual(dur(3, 4))
+  })
+  it('drops holds that fall past a shortened end', () => {
+    const held = holdOver(melody(), 2) // D held over E's place
+    const m = setNoteLength(held, 1, dur(1, 4))
+    expect(m[1].holds).toBeUndefined()
   })
 })

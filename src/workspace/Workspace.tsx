@@ -28,6 +28,7 @@ import {
   holdOver,
   rankNoteInPlace,
   restBefore,
+  setNoteLength,
   silenceNote,
   spellTapped,
   swapMelodyNote,
@@ -1169,6 +1170,24 @@ export function Workspace() {
                 melody.map((m, ref) => ({ ...m, ref, look: MELODY_LOOK })),
               )
             }
+            onRestAfter={() => {
+              if (laneSelected === undefined) return
+              const beat = countUnit(time.meter).length
+              if (laneSelected === melody.length - 1) {
+                // Nothing after it to move: the next note added waits.
+                setMelodyEntry((e) => ({ ...e, gap: addDur(e.gap, beat) }))
+                return
+              }
+              setMelody(restBefore(melody, laneSelected + 1, beat))
+            }}
+            onLength={(length) => {
+              if (laneSelected === undefined) return
+              setMelody(setNoteLength(melody, laneSelected, length))
+              void playNote(
+                melody[laneSelected].note,
+                secondsOf(length, bpm, time.meter),
+              )
+            }}
             onRestBefore={() => {
               if (laneSelected === undefined) return
               setMelody(
