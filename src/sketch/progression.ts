@@ -65,6 +65,9 @@ export type Progression = {
   // Its range (SPEC 7.3): a preset's id, or 'custom' with its own notes.
   // Tenor when unset.
   melodyRange?: MelodyRangeSetting
+  // Harmonies that play with the melody (SPEC 7.4), by HARMONY_KINDS id:
+  // each follows the melody as it changes.
+  harmonies?: string[]
 }
 
 export type MelodyRangeSetting = { preset: string; low?: Note; high?: Note }
@@ -475,7 +478,10 @@ export function isProgression(value: unknown): value is Progression {
       (Array.isArray(p.parts) && p.parts.every((r) => isPart(r, ids)))) &&
     (p.melody === undefined ||
       (Array.isArray(p.melody) && p.melody.every(isMelodyNote))) &&
-    (p.melodyRange === undefined || isRangeSetting(p.melodyRange))
+    (p.melodyRange === undefined || isRangeSetting(p.melodyRange)) &&
+    (p.harmonies === undefined ||
+      (Array.isArray(p.harmonies) &&
+        p.harmonies.every((h) => typeof h === 'string')))
   )
 }
 

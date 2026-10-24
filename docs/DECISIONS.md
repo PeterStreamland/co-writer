@@ -1476,3 +1476,20 @@ Tapping a note in the melody lane now also offers:
 
 - **Length:** every note value, from a semiquaver to a semibreve with dotted values and the quaver triplet, the note's own highlighted. Choosing one changes the note, and the notes after it move along by the difference. So the rest of the melody keeps its rhythm and its rests, and a longer note pushes on into the next bar (`setNoteLength` in `src/theory/melody.ts`). Holds past a shortened end go.
 - **A beat's rest after it,** beside "A beat's rest before it": the notes after it move a beat later. After the last note there is nothing to move, so the next note added comes a beat later instead (the Melody tab says so).
+
+## 2026-10-24 — Harmonies and a countermelody for the melody (Phase 7 task 5)
+
+The Melody tab has a new **Harmony** section. The theory is in `src/theory/harmony.ts`, its intervals, weights and wording in `harmony-data.ts`, and the hand-worked cases in `tests/fixtures/harmonies.ts`.
+
+- **What's offered (SPEC 7.4):** 3rds above first, then 6ths below, then a countermelody and 3rds below. Behind "More harmonies…": 6ths above, 4ths and 5ths above and below, octaves above and below, and power 5ths and 4ths below for riffs. 2nds and 7ths aren't offered, as a line of them only clashes.
+- **Diatonic harmonies** move with the melody note for note, counted in the key's letters: a 3rd above C in C major is E, above D it is F. A chromatic melody note is harmonised from its letter, so the harmony stays in the key (A a 3rd above F♯ in C).
+- **Chord-aware:**
+  - On a strong beat, when the melody is a tone of the chord but the strict interval isn't, the harmony moves a step to a chord tone, away from the melody first (G under C: B becomes C, a 4th above). It never moves to a 2nd, 7th or tritone from the melody. Tagged **bent**.
+  - When the melody note isn't a chord tone itself, the harmony moves with it unbent, so the two resolve together. Tagged **passing**.
+  - Over a chromatic chord the harmony takes the chord's own note: G♯ over E7 in C, not G. Tagged **chromatic**.
+  - A key with no note on the letter (C major pentatonic has no F) moves a step to a note it has, tagged **bent**.
+- **Power 5ths and 4ths and octaves** are exact intervals, as a power chord is, so they can leave the key (B♭ a 5th below F in C). Each such note is tagged **chromatic**.
+- **The countermelody** sits under the melody, note against note, from the key's notes and the chord's own. It starts on a chord tone a 6th or more below, then picks each note by score: contrary motion, chord tones on strong beats, steps, 3rds and 6ths with the melody. It never moves in parallel 5ths or octaves with it, and stays within two octaves below.
+- **Playing them (my choice; easy to change):** + on a harmony plays it with the melody from then on: with ▶ Play melody, with the chords, with ▶ Play on the strip, and in a lane bar's ▶. Several can play at once (3rds above and 6ths below make three parts). The progression saves which are on, not their notes, so each harmony follows the melody as it changes, as rows follow the chords (`harmonies` on the progression; SPEC 12 updated). ✓ stops one. Tapping a card plays it with the melody once, and ⓘ explains it note by note.
+- **Not yet:** harmonies don't show in the melody lane, and can't be edited note by note. Both fit task 6's work on the lane and on freezing rows into notes.
+- **Exit criterion:** "Twin-harmony lines stay diatonic unless tagged" is tested across 16 keys and modes (major, minors, modes, pentatonics, blues), random melodies with notes outside the key, and chords that aren't in the key. Every harmony note is in the key or tagged chromatic.

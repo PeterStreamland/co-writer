@@ -15,10 +15,13 @@ import type { MelodyRangeSetting } from '../sketch/progression'
 import type { AlongNote } from './along'
 
 export const MELODY_LOOK = 'melody'
+// Harmonies of the melody (SPEC 7.4) play along the same way.
+export const HARMONY_LOOK = 'harmony'
 
 export function melodyAlong(
   melody: MelodyNote[],
   timing: Placement[],
+  look = MELODY_LOOK,
 ): AlongNote[] {
   return melody.flatMap((m, ref) => {
     const step = timing.findIndex(
@@ -35,7 +38,7 @@ export function melodyAlong(
             length: m.length,
             note: m.note,
             ref,
-            look: MELODY_LOOK,
+            look,
           },
         ]
   })
