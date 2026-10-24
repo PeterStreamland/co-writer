@@ -17,6 +17,7 @@ import {
   type Note,
 } from '../theory'
 import { melodyStrips, type Strip } from './melody-strips'
+import type { RowChoice } from './AddBarButton'
 
 // How wide a bar of 4/4 is; other bars are in proportion to their length.
 export const BAR_REM = 18
@@ -50,6 +51,8 @@ export function MelodyLane({
   barCount,
   onPlayBar,
   onClearBar,
+  rowNames,
+  onClear,
   activeBar,
   onActivate,
 }: {
@@ -84,6 +87,11 @@ export function MelodyLane({
   onActivate: (bar: number) => void
   // Clears a bar (David's request): its melody, its rows, or both.
   onClearBar: (start: Dur, length: Dur, what: BarClear) => void
+  // The rows under the lane, so a bar of one can be cleared on its own
+  // (Phase 7 task 12).
+  rowNames: RowChoice[]
+  // Clears the whole melody, and only the melody (Phase 7 task 12).
+  onClear: () => void
 }) {
   const [clearing, setClearing] = useState<number>()
   const strips = melodyStrips(melody, time, barCount)
@@ -108,6 +116,19 @@ export function MelodyLane({
           <button type="button" onClick={onOpen}>
             {melody.length ? 'Edit' : 'Add a melody'}
           </button>
+          {melody.length > 0 && (
+            <button
+              type="button"
+              aria-label="Clear the melody"
+              title="Clear the melody; its harmonies follow it, and the chords and rows stay (Undo brings it back)"
+              onClick={() => {
+                onSelect(undefined)
+                onClear()
+              }}
+            >
+              × Clear
+            </button>
+          )}
         </div>
         {melody.length === 0 && (
           <p class="muted">
@@ -151,7 +172,7 @@ export function MelodyLane({
                       class="lane-clear"
                       aria-expanded={clearing === strip.bar}
                       aria-label={`Clear bar ${strip.bar}`}
-                      title={`Clear bar ${strip.bar}: its melody, its rows or both`}
+                      title={`Clear bar ${strip.bar}: its melody, a row, or everything in it`}
                       onClick={() =>
                         setClearing(
                           clearing === strip.bar ? undefined : strip.bar,
@@ -167,10 +188,10 @@ export function MelodyLane({
                       role="group"
                       aria-label={`Clear bar ${strip.bar}`}
                     >
-                      {CLEAR_CHOICES.map((c) => (
+                      {clearChoices(rowNames).map((c) => (
                         <button
                           type="button"
-                          key={c.what}
+                          key={c.label}
                           title={c.title}
                           onClick={() => {
                             onClearBar(strip.start, strip.length, c.what)
@@ -359,24 +380,39 @@ const TAG_WORDS: Record<string, string> = {
   tendency: 'resolves',
 }
 
-// What clearing a bar can take out (David's request); the chords stay, as
-// taking one out moves every bar after it (its ✕ on the strip does that).
-export type BarClear = 'all' | 'melody' | 'rows'
+// What clearing a bar can take out (David's request): everything, its
+// melody, every row, or one row alone (Phase 7 task 12). The chords stay,
+// as taking one out moves every bar after it (its ✕ on the strip does
+// that).
+export type BarClear = 'all' | 'melody' | 'rows' | { row: string }
 
-const CLEAR_CHOICES: { what: BarClear; label: string; title: string }[] = [
-  {
-    what: 'all',
-    label: 'Everything in it',
-    title: 'Its melody notes and every row in it; the chords stay',
-  },
-  {
-    what: 'melody',
-    label: 'Melody',
-    title: 'Its melody notes; the notes after stay where they are',
-  },
-  {
-    what: 'rows',
-    label: 'Rows',
-    title: 'Every row goes silent over the chords in this bar',
-  },
-]
+function clearChoices(
+  rows: RowChoice[],
+): { what: BarClear; label: string; title: string }[] {
+  return [
+    {
+      what: 'all',
+      label: 'Everything in it',
+      title: 'Its melody notes and every row in it; the chords stay',
+    },
+    {
+      what: 'melody',
+      label: 'Melody',
+      title: 'Its melody notes; the notes after stay where they are',
+    },
+    ...rows.map((r) => ({
+      what: { row: r.id },
+      label: r.label,
+      title: `${r.label} goes silent over the chords in this bar; the other rows play on`,
+    })),
+    ...(rows.length > 1
+      ? [
+          {
+            what: 'rows' as const,
+            label: 'Every row',
+            title: 'Every row goes silent over the chords in this bar',
+          },
+        ]
+      : []),
+  ]
+}

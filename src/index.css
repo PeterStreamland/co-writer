@@ -2258,6 +2258,7 @@ button.add-bar {
 
 .bar-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 0.4rem;
@@ -2743,6 +2744,11 @@ button.octave-step {
 .lane-clear-menu button {
   padding: 0 0.4rem;
   font-size: 0.72rem;
+}
+
+/* A bar's + asks which row on a line of its own (Phase 7 task 12). */
+.add-bar-menu {
+  flex-basis: 100%;
 }
 
 .lane-play {

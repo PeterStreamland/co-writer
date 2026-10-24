@@ -96,6 +96,18 @@ export function partLabel(part: Part): string {
     : 'Arpeggios, bar by bar'
 }
 
+// Every row's name, with rows of the same name numbered, so menus that
+// pick a row tell them apart (Phase 7 task 12).
+export function partLabels(parts: Part[]): string[] {
+  const seen = new Map<string, number>()
+  return parts.map((part) => {
+    const label = partLabel(part)
+    const n = (seen.get(label) ?? 0) + 1
+    seen.set(label, n)
+    return n === 1 ? label : `${label} (${n})`
+  })
+}
+
 // The row's notes over the progression's active path, each with the chord
 // it sounds over and where it falls: each chord plays what the row has for
 // it, a bar of its own or the row's recipe; a silent bar plays nothing.

@@ -87,6 +87,7 @@ import type { Along, AlongNote } from './along'
 import { PartRows, type PartView } from './PartRows'
 import { HarmonyRows } from './HarmonyRows'
 import { MelodyLane } from './MelodyLane'
+import type { RowChoice } from './AddBarButton'
 import { MelodyPanel, type MelodyEntry, type MelodyLight } from './MelodyPanel'
 import {
   MELODY_LOOK,
@@ -95,11 +96,12 @@ import {
   melodyAlong,
   rangeFromSetting,
 } from './melody-view'
-import { freezeRow, frozenLine, partLabel, partNotes } from './parts-view'
+import { freezeRow, frozenLine, partLabels, partNotes } from './parts-view'
 import { melodyStrips } from './melody-strips'
 import { Timeline } from './Timeline'
 import {
   addCell,
+  partKind,
   addPart,
   clearCell,
   partsShown,
@@ -1195,15 +1197,15 @@ export function Workspace() {
   }, [progression, timing, key, freeChord && chordKey(freeChord), suggestKey])
   // The rows of lines and arpeggios under the strip (David's request): the
   // branch's rows, each played over the chords as they are now.
-  const rows = useMemo<PartView[]>(
-    () =>
-      partsShown(progression).map((part) => ({
-        part,
-        label: partLabel(part),
-        notes: partNotes(part, progression, key, timing, guitar),
-      })),
-    [progression, key, timing, guitar],
-  )
+  const rows = useMemo<PartView[]>(() => {
+    const shown = partsShown(progression)
+    const labels = partLabels(shown)
+    return shown.map((part, i) => ({
+      part,
+      label: labels[i],
+      notes: partNotes(part, progression, key, timing, guitar),
+    }))
+  }, [progression, key, timing, guitar])
   const addRow = (recipe: PartRecipe, cells?: Record<number, PartRecipe>) =>
     change(
       addPart(
@@ -1224,9 +1226,15 @@ export function Workspace() {
   const [lineEdits, setLineEdits] = useState<Record<string, LineEdits>>({})
   // Each bar's notes and refreshes, whatever the line (David's request).
   const [lineBars, setLineBars] = useState<LineBars>({})
-  // + on one bar adds just that bar to a row (David's request).
-  const addBar = (step: number, recipe: PartRecipe) =>
-    change(addCell(progression, path[step].id, recipe), selected)
+  // + on one bar adds just that bar to a row (David's request): the one
+  // picked, or a new row (Phase 7 task 12).
+  const addBar = (step: number, recipe: PartRecipe, into: string) =>
+    change(addCell(progression, path[step].id, recipe, into), selected)
+  // The rows of a kind a bar can go into; a frozen row takes none.
+  const rowsOf = (kind: PartRecipe['kind']): RowChoice[] =>
+    rows
+      .filter((r) => partKind(r.part) === kind)
+      .map((r) => ({ id: r.part.id, label: r.label }))
   const [arpeggioShow, setArpeggioShow] = useState<ArpeggioOnShow>()
   // The Arpeggio and Lines tabs light their notes on the instrument while
   // open.
@@ -1262,6 +1270,7 @@ export function Workspace() {
       onStop={() => setPlayingAt(undefined)}
       onAddRow={addRow}
       onAddBar={addBar}
+      rowsOf={rowsOf('line')}
       edits={lineEdits}
       onEdits={setLineEdits}
       bars={lineBars}
@@ -1283,6 +1292,7 @@ export function Workspace() {
       onStop={() => setPlayingAt(undefined)}
       onAddRow={addRow}
       onAddBar={addBar}
+      rowsOf={rowsOf('arpeggio')}
     />
   )
   // The chord box beside the side panel (David's layout); on a phone it
@@ -1402,10 +1412,16 @@ export function Workspace() {
               }}
               chords={rowChords}
               barCount={laneBars}
+              rowNames={rows.map((r) => ({ id: r.part.id, label: r.label }))}
+              onClear={() => {
+                setMelody([])
+                setMelodyEntry((e) => ({ ...e, gap: ZERO }))
+              }}
               onClearBar={(start, length, what) => {
                 const end = addDur(start, length)
                 let next = progression
-                if (what !== 'rows') {
+                const row = typeof what === 'object' ? what.row : undefined
+                if (what === 'all' || what === 'melody') {
                   const cleared = clearSpan(melody, start, end)
                   next = { ...next, melody: cleared }
                   if (!cleared.length) delete next.melody
@@ -1422,7 +1438,11 @@ export function Workspace() {
                         ) > 0,
                     )
                     .map((n) => n.id)
-                  next = silenceAll(next, nodes)
+                  next = silenceAll(
+                    next,
+                    nodes,
+                    row === undefined ? undefined : [row],
+                  )
                 }
                 setLaneAt(undefined)
                 change(next, selected)

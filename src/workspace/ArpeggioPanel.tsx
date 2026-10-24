@@ -32,6 +32,7 @@ import {
   type ArpeggioPlan,
   type ArpeggioSettings,
 } from './arpeggio-view'
+import { AddBarButton, type RowChoice } from './AddBarButton'
 
 // A chord the tab can arpeggiate: from the progression, in its key and for
 // its length there, or the current chord for a bar.
@@ -72,6 +73,7 @@ export function ArpeggioPanel({
   onStop,
   onAddRow,
   onAddBar,
+  rowsOf,
 }: {
   sources: ArpeggioSource[]
   // The source to begin on (the selected or current chord).
@@ -90,7 +92,10 @@ export function ArpeggioPanel({
   // Adds these arpeggios as a row under the progression.
   onAddRow: (recipe: PartRecipe, cells?: Record<number, PartRecipe>) => void
   // Adds one chord's arpeggio to a row.
-  onAddBar: (step: number, recipe: PartRecipe) => void
+  // Adds one bar to a row: the row's id, or 'new'.
+  onAddBar: (step: number, recipe: PartRecipe, into: string) => void
+  // The rows of this tab's kind a bar can go into.
+  rowsOf: RowChoice[]
 }) {
   const [settings, setSettings] = useState(loadArpeggio)
   useEffect(() => saveArpeggio(settings), [settings])
@@ -548,20 +553,18 @@ export function ArpeggioPanel({
                   </span>
                 </button>
                 {s.step !== undefined && (
-                  <button
-                    type="button"
-                    class="add-bar"
-                    aria-label={`Add the arpeggio over ${chordSymbol(s.chord)} in bar ${s.bar} to a row`}
-                    title="Add this bar's arpeggio to a row"
-                    onClick={() =>
+                  <AddBarButton
+                    rows={rowsOf}
+                    text="+"
+                    label={`the arpeggio over ${chordSymbol(s.chord)} in bar ${s.bar}`}
+                    onAdd={(into) =>
                       onAddBar(
                         s.step as number,
                         recipeAt(i, mode === 'position' ? here : undefined),
+                        into,
                       )
                     }
-                  >
-                    +
-                  </button>
+                  />
                 )}
               </div>
               <span class="arpeggio-of muted">{plans[i].name}</span>
