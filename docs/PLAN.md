@@ -236,14 +236,14 @@ Goal: enter a few notes and get next-note options; add harmonies and countermelo
 
 1. Melody entry: click on the fretboard or keyboard, type note names, or play it on your MIDI keyboard, with rough timing snapped to the beat grid. ✅
 2. Next-note generator: scale membership, chord tones on strong beats, mostly steps, a change of direction after a leap, tendency notes (7 to 1, 4 to 3), range and contour limits. ✅
-3. Motif awareness: offer a repeat, a sequence (transposed repeat) or a varied repeat of an earlier motif.
+3. Motif awareness: offer a repeat, a sequence (transposed repeat) or a varied repeat of an earlier motif. ✅
 4. The same next-token interface as Phase 4.
 5. Melody-based lines: diatonic 3rds and 6ths (twin-guitar harmony) and a contrary-motion countermelody.
 6. The rows under the progression and the melody lane line up bar by bar under the chords, and a row can be frozen into notes to edit by hand (added 2026-10-23, David's request).
 7. Generate a phrase: one button that writes the next few notes, or a bar or two, by choosing from the next-note suggestions with a little chance, following every next-note rule; another press gives another take, and the phrase can be kept, trimmed or undone (added 2026-10-23, David's request).
 
 - [ ] Every suggestion stays in range and is tagged (chord tone, passing, neighbour, leap, chromatic)
-- [ ] A motif option appears whenever the melody contains a motif
+- [x] A motif option appears whenever the melody contains a motif
 - [ ] Twin-harmony lines stay diatonic unless tagged
 - [ ] A generated phrase follows every next-note rule: in range, chord tones on strong beats, and a change of direction after a leap
 

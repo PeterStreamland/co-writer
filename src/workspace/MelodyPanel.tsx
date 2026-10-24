@@ -8,7 +8,13 @@ import {
   beatsOf,
   RANGE_PRESETS,
   formatNote,
+  mainMotif,
   melodyEnd,
+  motifLabel,
+  motifOptions,
+  motifText,
+  motifsIn,
+  subDur,
   nextNotes,
   parseNote,
   meterOfBar,
@@ -47,7 +53,8 @@ type Phase = 'idle' | 'count-in' | 'recording'
 // by typing note names, or by recording on MIDI after a one-bar count-in,
 // snapped to the grid. The melody shows in the lane under the strip. Next
 // note (task 2, SPEC 7.3) lists what could come next within the melody's
-// range, best first, each tagged and explained.
+// range, best first, each tagged and explained; Motif (task 3) offers a
+// motif of the melody again in the next free bar.
 export function MelodyPanel({
   melody,
   onChange,
@@ -112,6 +119,31 @@ export function MelodyPanel({
     onChange([...melody, note])
     set({ gap: ZERO })
     void playNote(note.note, secondsOf(note.length, bpm, time.meter))
+  }
+  // Motif options (Phase 7 task 3): the motif that comes back most, or a
+  // bar you pick, again in the next free bar as a repeat, a sequence, with
+  // a changed ending or upside down. Tap one to add it; ▶ to hear it.
+  const motifs = motifsIn(melody, time)
+  const [motifBar, setMotifBar] = useState<number>()
+  const motif =
+    motifs.find((m) => m.bar === motifBar) ?? mainMotif(melody, time)
+  const motifChoices = motifOptions(
+    { melody, key: keyValue, chords, time, range, gap: entry.gap },
+    motif,
+  )
+  const hear = (notes: MelodyNote[]) => {
+    const first = notes[0]?.onset ?? ZERO
+    notes.forEach((n) =>
+      window.setTimeout(
+        () => void playNote(n.note, secondsOf(n.length, bpm, time.meter)),
+        secondsOf(subDur(n.onset, first), bpm, time.meter) * 1000,
+      ),
+    )
+  }
+  const addMotif = (notes: MelodyNote[]) => {
+    onChange([...melody, ...notes])
+    set({ gap: ZERO })
+    hear(notes)
   }
   const [text, setText] = useState('')
   const [unknown, setUnknown] = useState<string[]>([])
@@ -373,6 +405,51 @@ export function MelodyPanel({
           </li>
         ))}
       </ol>
+
+      {motif && (
+        <>
+          <h3>Motif</h3>
+          <div class="melody-bar">
+            <label>
+              Motif from
+              <select
+                value={motif.bar}
+                onChange={(e) => setMotifBar(Number(e.currentTarget.value))}
+              >
+                {motifs.map((m) => (
+                  <option key={m.bar} value={m.bar}>
+                    Bar {m.bar}: {motifText(m.notes)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <ol class="next-notes motif-options">
+            {motifChoices.map((s) => (
+              <li key={motifLabel(s.candidate)}>
+                <button
+                  type="button"
+                  class="next-note"
+                  title={s.explanation}
+                  onClick={() => addMotif(s.candidate.notes)}
+                >
+                  + {motifLabel(s.candidate)}
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Hear ${motifLabel(s.candidate)}`}
+                  title="Hear it"
+                  onClick={() => hear(s.candidate.notes)}
+                >
+                  ▶
+                </button>
+                <span>{motifText(s.candidate.notes)}</span>
+                <span class="muted next-why">{s.explanation}</span>
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
 
       <form
         class="melody-type"
