@@ -1707,3 +1707,13 @@ The melody, each line row and each arpeggio row already sat on rows of their own
 - **Clearing a bar of one row (my choice):** a bar's **✕** in the melody lane used to offer only **Rows**, which silenced every row there. It now lists each row by name. Picking one silences that row's bar and leaves the others playing. **Every row** is still there when there's more than one row, along with **Everything in it** and **Melody**. Each row's own bar **×** still works as before.
 - **Which row a bar goes into (my choice):** **+** on a bar in the Lines or Arpeggio tab always went into the latest row of its kind. When there is a row of that kind, it now asks: **Into** a row you name, or **A new row** with just that bar. With none, it starts a row, as before. Building a row bar by bar (walking in bar 1, chromatic in bar 3) still works by picking the same row each time. A frozen row takes no bars, as before.
 - **Row names told apart:** two rows that would have the same name are numbered, for example "Lines, bar by bar (2)", so the menus can tell them apart.
+
+## 2026-10-24 — Each row keeps its light until its next note (Phase 7 task 13)
+
+The strip's **▶ Play** lit only one note at a time across the melody, its harmonies and every row: whichever note started last. So a held melody note lost its light as soon as a row played its next note. Now each row has a light of its own (`lightsAt` in `src/workspace/along.ts`, tested in `tests/workspace/along.test.ts`):
+
+- **The note or chord sounding stays the darker colour until that row's next note takes over,** whatever the other rows do. That includes a held note and a note tied over the barline.
+- **Through a rest (my reading of David's note):** the last note stays lit until the next note on its row. When playback ends, every light goes out.
+- **Everywhere the rows play:** the strip's ▶ Play, the Melody tab's Play melody (the harmony rows now light too), and ▶ on a bar of the lane or a row.
+- Chords on the strip, and the Arpeggio and Lines tabs' own playback, already held their light until the next one, and are unchanged.
+

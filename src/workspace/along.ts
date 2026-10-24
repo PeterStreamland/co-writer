@@ -3,7 +3,7 @@
 // workspace plays the chords and these notes together; `source` lets the
 // tab that sent them know they're its own, and `ref` lets it find which of
 // its notes is sounding.
-import type { Dur, Note } from '../theory'
+import { compareDur, type Dur, type Note } from '../theory'
 
 export type AlongNote = {
   step: number // the chord of the progression it sounds over
@@ -19,4 +19,30 @@ export type AlongNote = {
   place?: number
 }
 
-export type Along = { source: object; notes: AlongNote[] }
+// `voices` splits the notes by the row they light on (the melody, each
+// harmony, each row), so each row keeps a light of its own.
+export type Along = {
+  source: object
+  notes: AlongNote[]
+  voices?: Record<string, AlongNote[]>
+}
+
+// The note lit on each row at a moment (Phase 7 task 13, David's note):
+// the one that started last, so it stays lit through a held note or a
+// rest until that row's next note takes over, whatever the other rows do.
+// A row whose first note hasn't come yet has no light.
+export function lightsAt(
+  voices: Record<string, AlongNote[]>,
+  at: Dur,
+): Record<string, AlongNote> {
+  const lit: Record<string, AlongNote> = {}
+  for (const [voice, notes] of Object.entries(voices)) {
+    let latest: AlongNote | undefined
+    for (const n of notes) {
+      if (compareDur(n.onset, at) > 0) continue
+      if (!latest || compareDur(n.onset, latest.onset) >= 0) latest = n
+    }
+    if (latest) lit[voice] = latest
+  }
+  return lit
+}
