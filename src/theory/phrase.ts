@@ -39,8 +39,12 @@ import {
 import { midiNumber, mod, pitchClass } from './note'
 import {
   PHRASE_CHOICE,
+  MIXED_LONG,
+  PHRASE_RHYTHMS,
+  PHRASE_NOTES,
   PHRASE_SIZES,
   RHYTHM_CELLS,
+  type PhraseRhythm,
   type PhraseSize,
   type RhythmCell,
 } from './phrase-data'
@@ -64,14 +68,45 @@ export function phraseSpan(
   ctx: NextNoteContext,
   size: PhraseSize,
   bar?: number,
+  options: PhraseOptions = {},
 ): PhraseSpan {
   const which = sizeOf(size)
   const start = bar === undefined ? phraseStart(ctx) : barStart(ctx.time, bar)
   const end =
     'bars' in which
       ? barsEnd(ctx.time, start, which.bars)
-      : addDur(start, timesDur(ctx.length, which.notes))
+      : addDur(start, timesDur(ctx.length, countOf(options)))
   return { start, end }
+}
+
+// The choices a phrase can take beyond its size (Phase 7 task 16): how
+// many notes a set number is, and how long its notes are.
+export type PhraseOptions = { count?: number; rhythm?: PhraseRhythm }
+
+const countOf = (options: PhraseOptions) =>
+  Math.round(
+    Math.min(
+      PHRASE_NOTES.most,
+      Math.max(PHRASE_NOTES.fewest, options.count ?? DEFAULT_COUNT),
+    ),
+  )
+const DEFAULT_COUNT = 4
+
+// A phrase's rhythm unless one is chosen: even notes, or varied bars.
+export function defaultRhythm(size: PhraseSize): PhraseRhythm {
+  return 'bars' in sizeOf(size) ? 'varied' : 'even'
+}
+
+// Where a phrase written into its span ends up: a set number of notes in
+// a rhythm other than even lasts as long as its notes do, so the span ends
+// where they end; any other phrase fills its span.
+export function writtenSpan(
+  span: PhraseSpan,
+  size: PhraseSize,
+  notes: MelodyNote[],
+): PhraseSpan {
+  if ('bars' in sizeOf(size) || !notes.length) return span
+  return { start: span.start, end: melodyEnd(notes) }
 }
 
 // The melody with a phrase in its span: the notes starting there go, a
@@ -172,6 +207,57 @@ function rhythm(
   return slots
 }
 
+// A phrase's notes over whole bars, from `start` to `end`, in a rhythm
+// (Phase 7 task 16). Even and mixed notes that don't fit the span are cut
+// at its end.
+function barSlots(
+  ctx: NextNoteContext,
+  start: Dur,
+  end: Dur,
+  style: PhraseRhythm,
+  random: () => number,
+): Slot[] {
+  if (style === 'varied') return rhythm(ctx.time, start, end, random)
+  const slots: Slot[] = []
+  let at = start
+  while (compareDur(at, end) < 0) {
+    const long = style === 'mixed' && slots.length > 0 && random() < MIXED_LONG
+    const want = long ? timesDur(ctx.length, 2) : ctx.length
+    const left = subDur(end, at)
+    const length = compareDur(want, left) > 0 ? left : want
+    slots.push({ onset: at, length })
+    at = addDur(at, length)
+  }
+  return slots
+}
+
+// A set number of notes from `start`, in a rhythm (Phase 7 task 16): each
+// the note value; varied beat by beat as bars are; or mostly the note
+// value with the odd one twice as long.
+function countSlots(
+  ctx: NextNoteContext,
+  start: Dur,
+  count: number,
+  style: PhraseRhythm,
+  random: () => number,
+): Slot[] {
+  if (style === 'varied') {
+    // Every beat strikes at least one note but for a held one, so twice as
+    // many bars as notes always holds enough.
+    const end = barsEnd(ctx.time, start, 2 * count)
+    return rhythm(ctx.time, start, end, random).slice(0, count)
+  }
+  const slots: Slot[] = []
+  let at = start
+  for (let k = 0; k < count; k++) {
+    const long = style === 'mixed' && k > 0 && random() < MIXED_LONG
+    const length = long ? timesDur(ctx.length, 2) : ctx.length
+    slots.push({ onset: at, length })
+    at = addDur(at, length)
+  }
+  return slots
+}
+
 // A part of a beat as an exact length: ½ of a crotchet is a quaver.
 function partOf(beat: Dur, part: number): Dur {
   for (const d of [1, 2, 3, 4, 6, 8, 12]) {
@@ -268,12 +354,21 @@ export function generatePhrase(
   size: PhraseSize,
   take = 0,
   bar?: number,
+  options: PhraseOptions = {},
 ): NextNoteSuggestion[] {
   const which = sizeOf(size)
+  const count = countOf(options)
+  const style = options.rhythm ?? defaultRhythm(size)
+  // The settings as they were before task 16 give the takes they gave.
+  const own =
+    (count === DEFAULT_COUNT ? 0 : 31 * count) +
+    (style === defaultRhythm(size)
+      ? 0
+      : 613 * (PHRASE_RHYTHMS.findIndex((r) => r.id === style) + 1))
   const random = seededRandom(
-    melodySeed(ctx) + 7919 * take + which.id.length + 104729 * (bar ?? 0),
+    melodySeed(ctx) + 7919 * take + which.id.length + 104729 * (bar ?? 0) + own,
   )
-  const { start, end } = phraseSpan(ctx, size, bar)
+  const { start, end } = phraseSpan(ctx, size, bar, options)
   const kept = clearSpan(ctx.melody, start, end)
   const before = kept.filter((m) => compareDur(m.onset, start) < 0)
   const after = kept.find((m) => compareDur(m.onset, start) >= 0)
@@ -285,11 +380,8 @@ export function generatePhrase(
   for (let attempt = 0; attempt < PHRASE_CHOICE.tries; attempt++) {
     const slots =
       'bars' in which
-        ? rhythm(ctx.time, start, end, random)
-        : Array.from({ length: which.notes }, (_, k) => ({
-            onset: addDur(start, timesDur(ctx.length, k)),
-            length: ctx.length,
-          }))
+        ? barSlots(ctx, start, end, style, random)
+        : countSlots(ctx, start, count, style, random)
     const chosen: NextNoteSuggestion[] = []
     let melody = before
     let leads = true

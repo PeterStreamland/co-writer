@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  PHRASE_RHYTHMS,
   PHRASE_SIZES,
+  defaultRhythm,
+  writtenSpan,
   beatsOf,
   addDur,
   barLength,
@@ -83,6 +86,47 @@ function strongBeats(ctx: NextNoteContext, from: Dur, to: Dur): Dur[] {
 const midi = (m: MelodyNote) => midiNumber(m.note) as number
 const TAKES = 12
 
+// Every next-note rule a phrase keeps (the Phase 7 exit criterion).
+function expectRules(
+  ctx: NextNoteContext,
+  scale: string[],
+  phrase: ReturnType<typeof generatePhrase>,
+) {
+  const notes = phrase.map((s) => s.candidate)
+  const all = [...ctx.melody, ...notes]
+  const low = midiNumber(ctx.range.low)!
+  const high = midiNumber(ctx.range.high)!
+  notes.forEach((n, k) => {
+    // In range, and in the key.
+    expect(midi(n)).toBeGreaterThanOrEqual(low)
+    expect(midi(n)).toBeLessThanOrEqual(high)
+    expect(scale).toContain(`${n.note.letter}${n.note.accidental}`)
+    // A chord tone on each strong beat it sounds on, held or struck.
+    for (const at of strongBeats(ctx, n.onset, addDur(n.onset, n.length))) {
+      const under = ctx.chords.find(
+        (c) =>
+          compareDur(c.start, at) <= 0 &&
+          compareDur(at, addDur(c.start, c.length)) < 0,
+      )
+      if (!under) continue
+      const tones = chordNotes(under.chord).map(pitchClass)
+      expect(tones, `${formatNote(n.note)} on a strong beat`).toContain(
+        pitchClass(n.note),
+      )
+    }
+    // After a leap of a 4th or more, a change of direction.
+    const i = ctx.melody.length + k
+    if (i >= 2) {
+      const leap = midi(all[i - 1]) - midi(all[i - 2])
+      if (Math.abs(leap) >= 5) {
+        expect(Math.sign(midi(n) - midi(all[i - 1]))).toBe(-Math.sign(leap))
+      }
+    }
+    // Each a Suggestion, explained.
+    expect(phrase[k].ruleIds.length).toBeGreaterThan(0)
+  })
+}
+
 describe('generating a phrase (Phase 7 task 7)', () => {
   for (const f of phrases) {
     const ctx = context(f)
@@ -94,45 +138,8 @@ describe('generating a phrase (Phase 7 task 7)', () => {
         for (let take = 0; take < TAKES; take++) {
           const phrase = generatePhrase(ctx, size.id, take)
           expect(phrase.length).toBeGreaterThan(0)
+          expectRules(ctx, scale, phrase)
           const notes = phrase.map((s) => s.candidate)
-          const all = [...ctx.melody, ...notes]
-          const low = midiNumber(ctx.range.low)!
-          const high = midiNumber(ctx.range.high)!
-          notes.forEach((n, k) => {
-            // In range, and in the key.
-            expect(midi(n)).toBeGreaterThanOrEqual(low)
-            expect(midi(n)).toBeLessThanOrEqual(high)
-            expect(scale).toContain(`${n.note.letter}${n.note.accidental}`)
-            // A chord tone on each strong beat it sounds on, held or struck.
-            for (const at of strongBeats(
-              ctx,
-              n.onset,
-              addDur(n.onset, n.length),
-            )) {
-              const under = ctx.chords.find(
-                (c) =>
-                  compareDur(c.start, at) <= 0 &&
-                  compareDur(at, addDur(c.start, c.length)) < 0,
-              )
-              if (!under) continue
-              const tones = chordNotes(under.chord).map(pitchClass)
-              expect(tones, `${formatNote(n.note)} on a strong beat`).toContain(
-                pitchClass(n.note),
-              )
-            }
-            // After a leap of a 4th or more, a change of direction.
-            const i = ctx.melody.length + k
-            if (i >= 2) {
-              const leap = midi(all[i - 1]) - midi(all[i - 2])
-              if (Math.abs(leap) >= 5) {
-                expect(Math.sign(midi(n) - midi(all[i - 1]))).toBe(
-                  -Math.sign(leap),
-                )
-              }
-            }
-            // Each a Suggestion, explained.
-            expect(phrase[k].ruleIds.length).toBeGreaterThan(0)
-          })
           // One after another, with no gaps.
           let at = phraseStart(ctx)
           for (const n of notes) {
@@ -318,5 +325,114 @@ describe('writing a phrase into a chosen bar (Phase 7 task 10)', () => {
     expect(text(2, 1)).toBe(text(2, 1))
     const takes = new Set(Array.from({ length: 8 }, (_, k) => text(2, k)))
     expect(takes.size).toBeGreaterThan(3)
+  })
+})
+
+describe('more control for Write a phrase (Phase 7 task 16)', () => {
+  const takes = 4
+  const len = (n: MelodyNote) => `${n.length.n}/${n.length.d}`
+  for (const f of phrases) {
+    const ctx = context(f)
+    const scale = scaleNotes(ctx.key.tonic, ctx.key.mode).map(
+      (n) => `${n.letter}${n.accidental}`,
+    )
+    const value = len({ ...ctx.melody[0], length: ctx.length })
+    const double = len({
+      ...ctx.melody[0],
+      length: dur(ctx.length.n * 2, ctx.length.d),
+    })
+    for (const size of PHRASE_SIZES) {
+      for (const rhythm of PHRASE_RHYTHMS) {
+        const counts = 'notes' in size ? [1, 7, 16] : [undefined]
+        for (const count of counts) {
+          const options = { rhythm: rhythm.id, count }
+          it(`${f.name}: ${size.label.toLowerCase()}${count ? ` (${count})` : ''}, ${rhythm.label.toLowerCase()}, keeps every rule`, () => {
+            for (let take = 0; take < takes; take++) {
+              const phrase = generatePhrase(
+                ctx,
+                size.id,
+                take,
+                undefined,
+                options,
+              )
+              expect(phrase.length).toBeGreaterThan(0)
+              expectRules(ctx, scale, phrase)
+              const notes = phrase.map((s) => s.candidate)
+              // One after another from where the phrase starts.
+              let at = phraseStart(ctx)
+              for (const n of notes) {
+                expect(n.onset).toEqual(at)
+                at = addDur(n.onset, n.length)
+              }
+              const span = phraseSpan(ctx, size.id, undefined, options)
+              if (count) {
+                expect(notes).toHaveLength(count)
+                expect(writtenSpan(span, size.id, notes).end).toEqual(
+                  melodyEnd(notes),
+                )
+              } else {
+                // Bars end at their barline, whatever the rhythm.
+                expect(melodyEnd(notes)).toEqual(span.end)
+              }
+              // Even notes all last the note value, and mixed ones the
+              // note value or twice it; in bars the last may be cut short.
+              const body = count ? notes : notes.slice(0, -1)
+              if (rhythm.id === 'even') {
+                for (const n of body) expect(len(n)).toBe(value)
+              }
+              if (rhythm.id === 'mixed') {
+                for (const n of body) expect([value, double]).toContain(len(n))
+              }
+            }
+          })
+        }
+      }
+    }
+  }
+
+  it('keeps the takes it gave before when nothing new is chosen', () => {
+    const ctx = context(phrases[0])
+    const text = (p: ReturnType<typeof generatePhrase>) =>
+      p
+        .map((s) => `${formatNote(s.candidate.note)}:${len(s.candidate)}`)
+        .join(' ')
+    for (const size of PHRASE_SIZES) {
+      for (let take = 0; take < 3; take++) {
+        expect(
+          text(
+            generatePhrase(ctx, size.id, take, undefined, {
+              rhythm: defaultRhythm(size.id),
+              count: 4,
+            }),
+          ),
+        ).toBe(text(generatePhrase(ctx, size.id, take)))
+      }
+    }
+    expect(defaultRhythm('notes')).toBe('even')
+    expect(defaultRhythm('two-bars')).toBe('varied')
+  })
+
+  it('mixes in a long note now and then, and varies a set number of notes', () => {
+    const ctx = context(phrases[0])
+    const lengths = (rhythm: 'mixed' | 'varied') =>
+      new Set(
+        Array.from({ length: 8 }, (_, k) =>
+          generatePhrase(ctx, 'notes', k, undefined, { rhythm, count: 8 }),
+        )
+          .flat()
+          .map((s) => len(s.candidate)),
+      )
+    expect([...lengths('mixed')].sort()).toEqual(['1/2', '1/4'])
+    expect(lengths('varied').size).toBeGreaterThan(2)
+  })
+
+  it('keeps a set number between 1 and 16', () => {
+    const ctx = context(phrases[0])
+    expect(
+      generatePhrase(ctx, 'notes', 0, undefined, { count: 40 }),
+    ).toHaveLength(16)
+    expect(
+      generatePhrase(ctx, 'notes', 0, undefined, { count: 0 }),
+    ).toHaveLength(1)
   })
 })

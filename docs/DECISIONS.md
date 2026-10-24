@@ -1732,3 +1732,19 @@ The tab also has its own **▶ Play melody** and **▶ Play with chords** (my ch
 ## 2026-10-24 — The Harmony cards' notes, bar by bar (Phase 7 task 15)
 
 Each Harmony card (3rds above, 6ths below, the countermelody, 3rds below and the rest) showed its notes as one long grey run of names. They are now laid out **bar by bar**, one bar to a line with "Bar n" in front (`notesByBar` in `src/workspace/melody-view.ts`). Each note is a teal chip like the notes on the harmony rows, and a note outside the key is dashed, as it is there. Hovering over a note says what it is (chord tone, passing, bent and so on). The card's explanation and ⓘ stay underneath.
+
+## 2026-10-24 — More control for Write a phrase (Phase 7 task 16, David's choices)
+
+Write a phrase in the Melody tab has three new controls (`PHRASE_SIZES`, `PHRASE_RHYTHMS` and `PHRASE_NOTES` in `src/theory/phrase-data.ts`; `generatePhrase` and `phraseSpan` take the options, and `writtenSpan` says where a phrase ends):
+
+- **How much (David's choice):** **Four bars** joins "To the bar's end" and "Two bars". "A few notes" becomes **A set number of notes**.
+- **A set number of notes (David's choice: a number box):** **Notes** sets it, from 1 to 16, four to start with. The phrase is exactly that many notes.
+- **Rhythm (David's choice: Even, Varied, Mixed):**
+  - **Even:** every note lasts the note value chosen under Tap or type.
+  - **Varied:** beat by beat from the rhythm table, as bars were written before.
+  - **Mixed:** mostly the note value, with the odd note (about one in four, never the first) twice as long.
+
+  Until a rhythm is picked, it follows the size, as before: a set number of notes is even, and bars are varied. With nothing new chosen, every take comes out exactly as it did before.
+
+- **Where it fits:** bars still end at their barline, so the last even or mixed note is cut short if needed. A set number of notes in a varied or mixed rhythm lasts as long as its notes do. Into a bar, it takes the place of the notes it covers.
+- **Every rule still holds** (the Phase 7 exit criterion): tested over every golden melody in `tests/fixtures/phrases.ts`, in every size and rhythm, with 1, 7 and 16 notes, four takes each.

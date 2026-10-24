@@ -2,10 +2,15 @@ import { useEffect, useRef, useState } from 'preact/hooks'
 import {
   GRIDS,
   NOTE_VALUES,
+  PHRASE_NOTES,
+  PHRASE_RHYTHMS,
   PHRASE_SIZES,
+  defaultRhythm,
   generatePhrase,
   phraseSpan,
   placePhrase,
+  writtenSpan,
+  type PhraseRhythm,
   valueSymbol,
   type PhraseSpan,
   type PhraseSize,
@@ -222,6 +227,12 @@ export function MelodyPanel({
   // kept, trimmed a note at a time or undone. It goes after the melody, or
   // into the bar chosen (task 10, David's note), in place of its notes.
   const [phraseSize, setPhraseSize] = useState<PhraseSize>('bar')
+  // How many notes a set number is, and how long the notes are (task 16,
+  // David's choices); the rhythm follows the size until one is chosen.
+  const [phraseCount, setPhraseCount] = useState(4)
+  const [chosenRhythm, setChosenRhythm] = useState<PhraseRhythm>()
+  const phraseRhythm = chosenRhythm ?? defaultRhythm(phraseSize)
+  const phraseOptions = { count: phraseCount, rhythm: phraseRhythm }
   const [phrase, setPhrase] = useState<{
     base: MelodyNote[]
     gap: Dur
@@ -246,11 +257,15 @@ export function MelodyPanel({
     const gap = pending?.gap ?? entry.gap
     const bar = entry.phraseBar
     const ctx = { ...noteContext, melody: base, gap }
-    const notes = generatePhrase(ctx, phraseSize, take, bar).map(
+    const notes = generatePhrase(ctx, phraseSize, take, bar, phraseOptions).map(
       (s) => s.candidate,
     )
     if (!notes.length) return
-    const span = phraseSpan(ctx, phraseSize, bar)
+    const span = writtenSpan(
+      phraseSpan(ctx, phraseSize, bar, phraseOptions),
+      phraseSize,
+      notes,
+    )
     setPhrase({ base, gap, take, notes, bar, span })
     onChange(placePhrase(base, notes, span))
     // A rest waiting after the melody is used up once a phrase runs past it.
@@ -665,7 +680,46 @@ export function MelodyPanel({
           >
             {PHRASE_SIZES.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.id === 'notes' ? `${p.notes} ${value.name}s` : p.label}
+                {p.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        {phraseSize === 'notes' && (
+          <label>
+            Notes
+            <input
+              type="number"
+              class="phrase-count"
+              min={PHRASE_NOTES.fewest}
+              max={PHRASE_NOTES.most}
+              value={phraseCount}
+              onChange={(e) => {
+                const n = Math.round(Number(e.currentTarget.value))
+                if (Number.isFinite(n)) {
+                  setPhraseCount(
+                    Math.min(
+                      PHRASE_NOTES.most,
+                      Math.max(PHRASE_NOTES.fewest, n),
+                    ),
+                  )
+                }
+              }}
+            />
+          </label>
+        )}
+        <label>
+          Rhythm
+          <select
+            value={phraseRhythm}
+            title="How long the phrase's notes are"
+            onChange={(e) =>
+              setChosenRhythm(e.currentTarget.value as PhraseRhythm)
+            }
+          >
+            {PHRASE_RHYTHMS.map((r) => (
+              <option key={r.id} value={r.id}>
+                {RHYTHM_TEXT[r.id](value.name)}
               </option>
             ))}
           </select>
@@ -889,4 +943,12 @@ function RangeNote({
       />
     </label>
   )
+}
+
+// How each phrase rhythm reads in its menu, with the note value chosen
+// (Phase 7 task 16).
+const RHYTHM_TEXT: Record<PhraseRhythm, (value: string) => string> = {
+  even: (value) => `Even: every note a ${value}`,
+  varied: () => 'Varied, beat by beat',
+  mixed: (value) => `Mixed: ${value}s, the odd one twice as long`,
 }
