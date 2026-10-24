@@ -1,7 +1,11 @@
 import { useState } from 'preact/hooks'
 import {
+  ZERO,
+  addDur,
   barLength,
+  beatsOf,
   chordInsight,
+  compareDur,
   CHORD_STYLES,
   chordStyle,
   chordSymbol,
@@ -15,10 +19,12 @@ import {
   meterOfBar,
   ratioOf,
   romanNumeral,
+  subDur,
   type BeatStrength,
   type ChordName,
   type Dur,
   type Key,
+  type Meter,
   type MeterMap,
   type Placement,
 } from '../theory'
@@ -31,6 +37,7 @@ import {
   type Progression,
 } from '../sketch/progression'
 import { InfoPanel, InfoToggle, useToggle } from './ChordInfo'
+import { BAR_REM } from './MelodyLane'
 import { readTypedChords } from './typed-chords'
 import {
   MAX_BPM,
@@ -69,8 +76,6 @@ export function ProgressionStrip({
   playingAt,
   onPlay,
   onStop,
-  bpm,
-  onBpmChange,
   pulse,
   time,
   timing,
@@ -86,6 +91,7 @@ export function ProgressionStrip({
   onStep,
   onHear,
   showInfo = true,
+  barCount = 0,
 }: {
   progression: Progression
   sectionKey: Key
@@ -106,8 +112,6 @@ export function ProgressionStrip({
   playingAt: number | undefined
   onPlay: () => void
   onStop: () => void
-  bpm: number
-  onBpmChange: (bpm: number) => void
   // The latest beat while playing, for the beat and bar lights.
   pulse: Pulse | undefined
   // The time signature, any bar overrides, and where each chord falls.
@@ -137,6 +141,8 @@ export function ProgressionStrip({
   // The selected chord's options show (only one set of options is open
   // at a time, David's request).
   showInfo?: boolean
+  // How many bars the lane shows, so the chords line up with it.
+  barCount?: number
 }) {
   const [treeOpen, setTreeOpen] = useState(false)
   // The less-used controls fold away (David's request).
@@ -153,6 +159,11 @@ export function ProgressionStrip({
       selectedNode.chord,
       selected > 0 ? path[selected - 1].chord : undefined,
     )
+  const selectedOptions =
+    selected >= 0 ? alternatives(progression, selected) : []
+  // The chords laid out bar by bar on the timeline, as wide as their
+  // bars, lined up with the melody lane and the rows (David's request).
+  const strips = chordStrips(path.length, timing, time, barCount)
   return (
     <section class="strip part-row" aria-label="Progression">
       <div class="part-head strip-bar">
@@ -196,39 +207,6 @@ export function ProgressionStrip({
       </div>
       {moreOpen && (
         <div class="strip-more">
-          <label class="time-signature">
-            Time
-            <select
-              value={meterId(time.meter)}
-              aria-label="Time signature"
-              onChange={(e) => {
-                const option = METER_OPTIONS.find(
-                  (o) => o.id === e.currentTarget.value,
-                )
-                if (option) onTimeChange({ ...time, meter: option.meter })
-              }}
-            >
-              {METER_OPTIONS.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label class="tempo">
-            <span aria-hidden="true">{tempoNote(time.meter)} =</span>
-            <input
-              type="number"
-              min={MIN_BPM}
-              max={MAX_BPM}
-              value={bpm}
-              aria-label="Tempo in beats per minute"
-              onChange={(e) =>
-                onBpmChange(clampBpm(Number(e.currentTarget.value)))
-              }
-            />
-            BPM
-          </label>
           <span class="octave-all" role="group" aria-label="Every chord">
             Octave
             <button
@@ -311,170 +289,187 @@ export function ProgressionStrip({
           )}
         </div>
       )}
-      <ol class="chips">
-        {path.map((n, i) => {
-          const options = alternatives(progression, i)
-          const at = options.indexOf(n.id)
-          const key = keyAt(progression, i, sectionKey)
-          const placed = timing[i]
-          return [
-            <li
-              key={`${i}-${n.id}`}
-              class={[
-                i === selected ? 'selected' : '',
-                i === playingAt ? 'playing' : '',
-              ].join(' ')}
+      <div class="lane-bars chord-lane">
+        {strips.map((strip) => {
+          const pct = (d: Dur) => `${ratioOf(d, strip.length) * 100}%`
+          return (
+            <div
+              key={strip.bar}
+              class="lane-bar"
+              style={{
+                width: `${ratioOf(strip.length, { n: 1, d: 1 }) * BAR_REM}rem`,
+              }}
             >
+              <div class="lane-head">
+                <span class="muted">Bar {strip.bar}</span>
+              </div>
+              <div class="lane-ruler">
+                {beatsOf(strip.meter).map((b, k) => (
+                  <span key={k} style={{ left: pct(b.onset) }}>
+                    {k + 1}
+                  </span>
+                ))}
+              </div>
+              <div class="lane-track">
+                {strip.chords.map((c) => {
+                  const n = path[c.index]
+                  const i = c.index
+                  const key = keyAt(progression, i, sectionKey)
+                  const marks = [
+                    n.keyChange && `→ ${keyName(n.keyChange)}`,
+                    n.style !== undefined &&
+                      CHORD_STYLES.find((x) => x.id === styleAt(progression, i))
+                        ?.label,
+                    (n.octave || inversionOf(n.chord)) &&
+                      inversionStepLabel(
+                        inversionOf(n.chord) ?? 0,
+                        n.octave ?? 0,
+                      ),
+                    alternatives(progression, i).length > 1 &&
+                      `${alternatives(progression, i).indexOf(n.id) + 1}/${alternatives(progression, i).length}`,
+                  ].filter(Boolean)
+                  return (
+                    <button
+                      type="button"
+                      key={i}
+                      class={[
+                        'lane-note',
+                        'chord-box',
+                        i === selected ? 'selected' : '',
+                        i === playingAt ? 'sounding' : '',
+                        c.tiedIn ? 'tied-in' : '',
+                        c.tiedOut ? 'tied-out' : '',
+                      ].join(' ')}
+                      style={{
+                        left: pct(c.from),
+                        width: pct(subDur(c.to, c.from)),
+                      }}
+                      aria-pressed={i === selected}
+                      title={[
+                        `${chordSymbol(n.chord)}, ${romanNumeral(key, n.chord).numeral}`,
+                        ...marks,
+                      ].join(' · ')}
+                      onClick={() => onSelect(i)}
+                    >
+                      <span class="lane-name">
+                        {c.tiedIn ? '⌒' : ''}
+                        {chordSymbol(n.chord)}
+                      </span>
+                      {!c.tiedIn && (
+                        <span class="chord-numeral">
+                          {romanNumeral(key, n.chord).numeral}
+                          {marks.length > 0 ? ' •' : ''}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+                {strip.add && (
+                  <button
+                    type="button"
+                    class="lane-note chord-box chord-add"
+                    style={{
+                      left: pct(strip.add.from),
+                      width: pct(subDur(strip.add.to, strip.add.from)),
+                    }}
+                    onClick={onAddFree}
+                    disabled={!freeChord}
+                    title={
+                      freeChord
+                        ? `Add ${chordSymbol(freeChord)} after the selected chord`
+                        : 'Pick a chord in Explore, or play one, to add it'
+                    }
+                  >
+                    + {freeChord ? chordSymbol(freeChord) : ''}
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      {selectedNode && showInfo && (
+        <div class="strip-info row-tools">
+          <div class="place-options chord-tools">
+            <span class="octave-one">
               <button
                 type="button"
-                class="chip"
-                style={{ minWidth: `${2.6 + chipWidth(placed.length)}rem` }}
-                aria-pressed={i === selected}
-                onClick={() => onSelect(i)}
+                aria-label={`${chordSymbol(selectedNode.chord)} down an inversion`}
+                title="Down an inversion: the chord tone below in the bass (C, C/G, C/E, then C an octave down)"
+                onClick={() => onStep(selected, -1)}
               >
-                <span class="bar-number">
-                  {placed.beat === 1 ? `Bar ${placed.bar}` : '\u00a0'}
-                </span>
-                <span class="symbol">{chordSymbol(n.chord)}</span>
-                <span class="numeral">
-                  {romanNumeral(key, n.chord).numeral}
-                </span>
-                {n.length && (
-                  <span class="length-label">
-                    {lengthLabel(meterOfBar(time, placed.bar), n.length)}
-                  </span>
-                )}
-                <BeatDots placed={placed} />
-                {n.keyChange && (
-                  <span class="key-change">→ {keyName(n.keyChange)}</span>
-                )}
-                {n.style !== undefined && (
-                  <span class="style-label">
-                    {
-                      CHORD_STYLES.find((s) => s.id === styleAt(progression, i))
-                        ?.label
-                    }
-                  </span>
-                )}
-                {Boolean(n.octave || inversionOf(n.chord)) && (
-                  <span class="octave-label">
-                    {inversionStepLabel(
-                      inversionOf(n.chord) ?? 0,
-                      n.octave ?? 0,
-                    )}
-                  </span>
-                )}
+                ▼
               </button>
-              {i === selected && showInfo && (
-                <span class="octave-one">
-                  <button
-                    type="button"
-                    aria-label={`${chordSymbol(n.chord)} down an inversion`}
-                    title="Down an inversion: the chord tone below in the bass (C, C/G, C/E, then C an octave down)"
-                    onClick={() => onStep(i, -1)}
-                  >
-                    ▼
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`${chordSymbol(n.chord)} up an inversion`}
-                    title="Up an inversion: the next chord tone in the bass (C, C/E, C/G, then C an octave up)"
-                    onClick={() => onStep(i, 1)}
-                  >
-                    ▲
-                  </button>
-                  <button
-                    type="button"
-                    class="octave-step"
-                    aria-label={`${chordSymbol(n.chord)} down an octave`}
-                    title="Down a whole octave"
-                    onClick={() => onShift(i, -1)}
-                  >
-                    ▼8ve
-                  </button>
-                  <button
-                    type="button"
-                    class="octave-step"
-                    aria-label={`${chordSymbol(n.chord)} up an octave`}
-                    title="Up a whole octave"
-                    onClick={() => onShift(i, 1)}
-                  >
-                    ▲8ve
-                  </button>
-                  <button
-                    type="button"
-                    class="remove"
-                    aria-label={`Remove ${chordSymbol(n.chord)}`}
-                    title="Take this chord out (Undo brings it back)"
-                    onClick={() => onRemove(i)}
-                  >
-                    ✕
-                  </button>
-                </span>
-              )}
-              {options.length > 1 && (
-                <span class="alts">
-                  <button
-                    type="button"
-                    aria-label="Previous alternative"
-                    onClick={() => onSwitch(i, -1)}
-                  >
-                    ‹
-                  </button>
-                  {at + 1}/{options.length}
-                  <button
-                    type="button"
-                    aria-label="Next alternative"
-                    onClick={() => onSwitch(i, 1)}
-                  >
-                    ›
-                  </button>
-                </span>
-              )}
-            </li>,
-            i === selected && showInfo && i + 1 < path.length && (
-              <li key={`between-${i}`} class="between">
+              <button
+                type="button"
+                aria-label={`${chordSymbol(selectedNode.chord)} up an inversion`}
+                title="Up an inversion: the next chord tone in the bass (C, C/E, C/G, then C an octave up)"
+                onClick={() => onStep(selected, 1)}
+              >
+                ▲
+              </button>
+              <button
+                type="button"
+                class="octave-step"
+                aria-label={`${chordSymbol(selectedNode.chord)} down an octave`}
+                title="Down a whole octave"
+                onClick={() => onShift(selected, -1)}
+              >
+                ▼8ve
+              </button>
+              <button
+                type="button"
+                class="octave-step"
+                aria-label={`${chordSymbol(selectedNode.chord)} up an octave`}
+                title="Up a whole octave"
+                onClick={() => onShift(selected, 1)}
+              >
+                ▲8ve
+              </button>
+              <button
+                type="button"
+                class="remove"
+                aria-label={`Remove ${chordSymbol(selectedNode.chord)}`}
+                title="Take this chord out (Undo brings it back)"
+                onClick={() => onRemove(selected)}
+              >
+                ✕
+              </button>
+            </span>
+            {selectedOptions.length > 1 && (
+              <span class="alts">
                 <button
                   type="button"
-                  class={between === i ? 'chip passing active' : 'chip passing'}
-                  aria-pressed={between === i}
-                  title={`Suggest a passing chord between ${chordSymbol(n.chord)} and ${chordSymbol(path[i + 1].chord)}`}
-                  onClick={() => onBetween(i)}
+                  aria-label="Previous alternative"
+                  onClick={() => onSwitch(selected, -1)}
                 >
-                  + between
+                  ‹
                 </button>
-              </li>
-            ),
-          ]
-        })}
-        <li>
-          <button
-            type="button"
-            class="chip add"
-            onClick={onAddFree}
-            disabled={!freeChord}
-            title={
-              freeChord
-                ? `Add ${chordSymbol(freeChord)} after the selected chord`
-                : 'Pick a chord in Explore, or play one, to add it'
-            }
-          >
-            + {freeChord ? chordSymbol(freeChord) : ''}
-          </button>
-        </li>
-      </ol>
-      <TypeChords
-        where={
-          between !== undefined
-            ? `between ${chordSymbol(path[between].chord)} and ${chordSymbol(path[between + 1].chord)}`
-            : selectedNode
-              ? `after ${chordSymbol(selectedNode.chord)}`
-              : 'to start the progression'
-        }
-        onAdd={onAddTyped}
-      />
-      {selectedNode && showInfo && (
-        <div class="strip-info">
+                {selectedOptions.indexOf(selectedNode.id) + 1}/
+                {selectedOptions.length}
+                <button
+                  type="button"
+                  aria-label="Next alternative"
+                  onClick={() => onSwitch(selected, 1)}
+                >
+                  ›
+                </button>
+              </span>
+            )}
+            {selected + 1 < path.length && (
+              <button
+                type="button"
+                class={
+                  between === selected ? 'chip passing active' : 'chip passing'
+                }
+                aria-pressed={between === selected}
+                title={`Suggest a passing chord between ${chordSymbol(selectedNode.chord)} and ${chordSymbol(path[selected + 1].chord)}`}
+                onClick={() => onBetween(selected)}
+              >
+                + between
+              </button>
+            )}
+          </div>
           <p>
             <strong>{chordSymbol(selectedNode.chord)}</strong> ·{' '}
             {selectedInsight?.reading}{' '}
@@ -532,6 +527,16 @@ export function ProgressionStrip({
           )}
         </div>
       )}
+      <TypeChords
+        where={
+          between !== undefined
+            ? `between ${chordSymbol(path[between].chord)} and ${chordSymbol(path[between + 1].chord)}`
+            : selectedNode
+              ? `after ${chordSymbol(selectedNode.chord)}`
+              : 'to start the progression'
+        }
+        onAdd={onAddTyped}
+      />
       {path.length === 0 && (
         <p class="muted">
           Empty so far. Type some chords above, pick a chord in Explore and add
@@ -661,31 +666,6 @@ function BeatLights({ pulse }: { pulse: Pulse | undefined }) {
   )
 }
 
-// Chips grow with their length: a bar of 4/4 adds 1.6rem.
-function chipWidth(length: Dur): number {
-  return ratioOf(length, { n: 1, d: 1 }) * 1.6
-}
-
-// The beats a chord covers, under its symbol: the downbeat largest, strong
-// beats filled, weak beats hollow, with a bar line where a new bar starts.
-function BeatDots({ placed }: { placed: Placement }) {
-  return (
-    <span
-      class="beat-dots"
-      aria-label={
-        placed.beat
-          ? `Starts on beat ${placed.beat} of bar ${placed.bar}`
-          : `Starts between beats in bar ${placed.bar}`
-      }
-    >
-      {placed.beats.map((b, i) => [
-        b.beat === 1 && i > 0 && <i key={`bar-${b.bar}`} class="bar-line" />,
-        <i key={`${b.bar}-${b.beat}`} class={b.strength} />,
-      ])}
-    </span>
-  )
-}
-
 // The selected chord's place in time: its length, counted in its bar's
 // meter, where it starts, and that bar's own time signature, which can
 // differ from the section's (a bar of 2/4 in a 4/4 verse).
@@ -759,4 +739,115 @@ function ChordTime({
       </label>
     </div>
   )
+}
+
+// The time signature and tempo, for the whole song: at the top beside the
+// key (David's request: the progression's less-used controls tidied away).
+export function TimeAndTempo({
+  time,
+  bpm,
+  onTimeChange,
+  onBpmChange,
+}: {
+  time: MeterMap
+  bpm: number
+  onTimeChange: (time: MeterMap) => void
+  onBpmChange: (bpm: number) => void
+}) {
+  return (
+    <span class="time-tempo">
+      <label class="time-signature">
+        Time
+        <select
+          value={meterId(time.meter)}
+          aria-label="Time signature"
+          onChange={(e) => {
+            const option = METER_OPTIONS.find(
+              (o) => o.id === e.currentTarget.value,
+            )
+            if (option) onTimeChange({ ...time, meter: option.meter })
+          }}
+        >
+          {METER_OPTIONS.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label class="tempo">
+        <span aria-hidden="true">{tempoNote(time.meter)} =</span>
+        <input
+          type="number"
+          min={MIN_BPM}
+          max={MAX_BPM}
+          value={bpm}
+          aria-label="Tempo in beats per minute"
+          onChange={(e) => onBpmChange(clampBpm(Number(e.currentTarget.value)))}
+        />
+        BPM
+      </label>
+    </span>
+  )
+}
+
+type ChordStrip = {
+  bar: number
+  length: Dur
+  meter: Meter
+  chords: {
+    index: number
+    from: Dur
+    to: Dur
+    tiedIn: boolean
+    tiedOut: boolean
+  }[]
+  add?: { from: Dur; to: Dur } // the space after the last chord, for +
+}
+
+// Each bar with the chords sounding in it, from its start, and where the
+// + for a new chord goes: after the last chord, in its bar or the next.
+export function chordStrips(
+  count: number,
+  timing: Placement[],
+  time: MeterMap,
+  barCount: number,
+): ChordStrip[] {
+  const end = count
+    ? addDur(timing[count - 1].start, timing[count - 1].length)
+    : ZERO
+  const strips: ChordStrip[] = []
+  let start = ZERO
+  let added = false
+  for (let bar = 1; ; bar++) {
+    const meter = meterOfBar(time, bar)
+    const length = barLength(meter)
+    const barEnd = addDur(start, length)
+    if (bar > barCount && compareDur(start, end) >= 0 && added) break
+    const chords: ChordStrip['chords'] = []
+    for (let i = 0; i < count; i++) {
+      const t = timing[i]
+      const tEnd = addDur(t.start, t.length)
+      if (compareDur(tEnd, start) <= 0 || compareDur(t.start, barEnd) >= 0)
+        continue
+      const from = compareDur(t.start, start) > 0 ? t.start : start
+      const to = compareDur(tEnd, barEnd) < 0 ? tEnd : barEnd
+      chords.push({
+        index: i,
+        from: subDur(from, start),
+        to: subDur(to, start),
+        tiedIn: compareDur(t.start, start) < 0,
+        tiedOut: compareDur(tEnd, barEnd) > 0,
+      })
+    }
+    const strip: ChordStrip = { bar, length, meter, chords }
+    if (!added && compareDur(end, barEnd) < 0) {
+      const from = compareDur(end, start) > 0 ? subDur(end, start) : ZERO
+      strip.add = { from, to: length }
+      added = true
+    }
+    strips.push(strip)
+    start = barEnd
+  }
+  return strips
 }

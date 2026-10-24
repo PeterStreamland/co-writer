@@ -1906,3 +1906,34 @@ David asked for counterpoint lines and harmonies to move in bars and parts of a 
   - a note or bar of a line or arpeggio row.
 - A click on the background closes them. Clicks on buttons, menus, the instrument and the options themselves don't.
 - Picking or adding a chord opens its options, as before.
+
+## 2026-10-24 — The progression on the timeline, and more chord patterns (Phase 7 task 22, David's requests)
+
+**The progression on the timeline** (David's request). The chords are no longer chips.
+
+- Each chord is a box as wide as its bars, laid out bar by bar with the same ruler as the melody lane and the rows (`chordStrips` in `src/workspace/ProgressionStrip.tsx`). It scrolls sideways with them.
+- A chord over a barline carries on into the next bar (⌒). The dashed **+** after the last chord adds the chord picked in Explore.
+- Each box shows the symbol and numeral. A • means it has more: a key change, a style of its own, an inversion or octave, or alternatives. Hovering over it says which.
+- **Tapping a chord opens its options underneath, as tapping a note in a row does:**
+  - ▼ ▲ inversions, ▼8ve ▲8ve and ✕;
+  - its alternatives ‹ ›;
+  - - between;
+  - then its reading, how it plays, its length, and Type chords.
+- **David asked for another solution for the extra options. Mine:** the time signature and tempo now sit at the top beside the key, since like the key they belong to the whole song. The row's header keeps Play, Undo and Redo. **▸ More** shows the octave of every chord, Tree, Clear chords, Clear everything and how the chords play.
+
+**More chord patterns** (David's request). These are twelve new styles in **Chords play** and **This chord plays**. Most are patterns in data (`PATTERN_STYLES` in `src/theory/chord-style-data.ts`): a bar's own pattern for 4/4, 3/4 and 2/4 where it has one, else a pattern for each beat.
+
+- arpeggio up, arpeggio down, and arpeggio up and down;
+- Alberti bass;
+- fingerpicking (Travis);
+- boom-chick (alternating bass);
+- reggae skank (2 and 4);
+- Charleston;
+- 3 + 3 + 2 push;
+- gallop;
+- driving quavers;
+- tremolo.
+
+A chord always sounds as it starts, even where a pattern rests (a Charleston chord starting halfway through a bar), except in the styles that rest first: off-beat stabs and reggae. Silences in a pattern run on as one rest.
+
+Every style still fills each chord exactly in every meter (the Phase 7 exit criterion). Six new golden cases cover Alberti, arpeggio up in 3/4, reggae, gallop, boom-chick and the Charleston.
