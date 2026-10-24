@@ -1450,3 +1450,22 @@ David asked for a way to see how much of each bar the melody fills, holds and si
 - **Bars:** the lane shows at least every bar the chords cover, so empty bars to come are visible.
 - **Playing one bar (David's request):** tapping ▶ Bar n plays that bar, its chords cut to it and its melody, with the note sounding lit. The bar names of the line and arpeggio rows under the progression ("C · bar 1") now play that bar of the row with its chord too.
 - **Still to do for task 6:** lining the rows up bar by bar in the same strips under the chords, and freezing a row into notes to edit by hand.
+
+## 2026-10-24 — Chord styles and inversion steps join Phase 7 (David's requests)
+
+Two of David's ideas join Phase 7 as tasks 8 and 9, each with an exit criterion:
+
+- **Chord styles (task 8).** Chords now always play as a block. A menu above the chord names will choose how they are played:
+  - block
+  - strum
+  - pulse on every beat
+  - bass then chord ("oom-pah")
+  - broken (rolled)
+  - off-beat stabs
+  - a down-up strum pattern
+
+  **David's choice:** both a style for the whole progression and a style of its own on any single chord.
+
+- **Inversions before octaves (task 9).** ▲ ▼ on a chord will step through its inversions before moving it a whole octave: C, C/E, C/G, then C an octave up.
+  - On guitar each step takes the nearest playable shape of that inversion, as octave moves do now.
+  - **David asked** that it is always clear which kind of step a chord has had: an inversion or a perfect-octave move. So the chord shows labels such as "1st inversion", "+1 octave", or both.
