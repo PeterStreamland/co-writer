@@ -15,6 +15,8 @@ export type AlongNote = {
   // class that colours its box (a line's tag, an arpeggio tone's role).
   label?: string
   look?: string
+  // An arpeggio note's place in its bar's pattern.
+  place?: number
 }
 
 export type Along = { source: object; notes: AlongNote[] }

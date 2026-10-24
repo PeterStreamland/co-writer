@@ -17,6 +17,7 @@ import {
   partKind,
   recipeAt,
   setFrozenBar,
+  shiftArpeggioNote,
   partsShown,
   removePart,
   setPartMuted,
@@ -325,5 +326,36 @@ describe('freezing a row into notes (David’s request)', () => {
     let h = startHistory(withRow)
     h = record(h, frozen)
     expect(partKind(partsShown(undo(h).present)[0])).toBe('line')
+  })
+})
+
+describe('arpeggio notes moved by octaves (David’s request)', () => {
+  it('gives the bar its own setting, saved and read back', () => {
+    const p = addPart(build('C', 'G'), ARPEGGIOS)
+    const node = p.activePath[1]
+    const q = shiftArpeggioNote(p, 'r1', node, 3, 1)
+    expect(recipeAt(partsShown(q)[0], node)).toEqual({
+      ...ARPEGGIOS,
+      shifts: { 3: 1 },
+    })
+    expect(recipeAt(partsShown(q)[0], p.activePath[0])).toEqual(ARPEGGIOS)
+    expect(isProgression(JSON.parse(JSON.stringify(q)))).toBe(true)
+    expect(
+      isProgression({
+        ...p,
+        parts: [
+          {
+            id: 'r1',
+            anchor: node,
+            recipe: { ...ARPEGGIOS, shifts: { 0: 0.5 } },
+          },
+        ],
+      }),
+    ).toBe(false)
+  })
+
+  it('leaves line rows alone', () => {
+    const p = addPart(build('C'), WALKING)
+    expect(shiftArpeggioNote(p, 'r1', p.activePath[0], 0, 1)).toBe(p)
   })
 })

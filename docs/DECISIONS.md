@@ -1528,3 +1528,39 @@ Task 6 is finished. The rows under the progression now share the melody lane's t
   - Tested in `tests/theory/line-edits.test.ts`; SPEC 12 is updated.
 - **Frozen rows take no bars from the tabs:** a bar's **+ Row** in the Lines or Arpeggio tab goes to an unfrozen row of its kind, or starts a new row.
 - **Not yet:** harmonies still don't show in the lane as their own strips.
+
+## 2026-10-24 — Writing a phrase (Phase 7 task 7)
+
+The Melody tab has a new **Write a phrase** section, under Next note. The theory is in `src/theory/phrase.ts`, with the sizes, rhythms and how much chance as data in `phrase-data.ts`. The starting melodies the tests write after are in `tests/fixtures/phrases.ts`.
+
+- **How much:** the next four notes at the note value chosen, to the end of the bar, or two bars (to the barline after next).
+- **How each note is chosen:** from the next-note suggestions, one at a time, each read after the notes chosen before it. Each is drawn from the best four that keep every rule, the better the likelier: a note's chance falls by e for every 1.5 points it scores below the best. A repeated note counts for 1.5 less, so phrases move.
+- **The rules every note keeps** (the exit criterion, now ticked):
+  - It is within the range.
+  - It is a note of the key (my choice: colour notes stay yours to add).
+  - It is a chord tone on every strong beat it sounds on, struck or held over, wherever a chord sounds.
+  - After a leap of a 4th or more, it turns back. This is the same leap size the next-note rules turn back from, so a 3rd, which often runs along the chord, can carry on.
+  - The phrase ends on a chord tone where one is available.
+
+  Tested over ten starting melodies (major, minors, Dorian; 4/4, 3/4, 6/8 and 7/8; a narrow range, past the last chord, no chords at all), each with all three sizes and twelve takes.
+
+- **Rhythm:** a bar or two is written beat by beat, each beat a whole note, two halves, a dotted pair, or held from the note before. A dotted beat (6/8) and a two-quaver beat (7/8) have their own options. A beat is held only after a note that filled its beat, so held notes last whole beats. The last beat is one note, so the phrase lands. Time left in a beat after the melody is one note.
+- **Takes:** the same melody, chords and take always give the same phrase. The take goes straight into the melody, so it shows in the lane and plays at once. Then:
+  - **↻ Another take** puts the next take in its place.
+  - **✓ Keep** keeps it.
+  - **✂ Trim a note** takes its last note off.
+  - **⟲ Undo it** takes it out, along with any rest that was waiting before it.
+
+  Any other change to the melody keeps the take as it stands.
+
+## 2026-10-24 — Moving single notes by octaves (David's request)
+
+David asked to move a note up or down an octave when it is tapped in the melody or arpeggio rows.
+
+- **The melody lane:** a tapped note has **▼ Octave** and **▲ Octave**, beside its other tools. Its spelling, place and length stay (`shiftMelodyNote` in `src/theory/melody.ts`, octaves 0 to 8).
+- **Arpeggio rows that follow the chords:** a tapped note has ▼ ▲ too.
+  - The move is kept by the note's place in the bar's pattern, as rests and holds are, so it stays moved when the chord changes: the third note of the bar goes up, whatever the chord.
+  - The bar gets a setting of its own for this, and the row's name says "with one bar of its own" ("1 note moved" in the bar's tools). It goes no further than three octaves (`shiftArpeggioNote` in `src/sketch/parts.ts`; `shifts` on an arpeggio recipe, SPEC 12 updated).
+  - Freezing the row keeps the moves.
+- **Frozen rows:** a tapped note has ▼ ▲ alongside Play instead and the rest.
+- **Line rows that follow the chords** don't move single notes: their notes are rewritten whenever the chords change, so there is no fixed note to move. A tapped line note offers ❄ Freeze instead, then ▼ ▲.

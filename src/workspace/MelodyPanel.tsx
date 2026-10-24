@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from 'preact/hooks'
 import {
   GRIDS,
   NOTE_VALUES,
+  PHRASE_SIZES,
+  generatePhrase,
+  valueSymbol,
+  type PhraseSize,
   ZERO,
   addDur,
   barLength,
@@ -209,6 +213,40 @@ export function MelodyPanel({
   const previewMotif = (id: string, notes: MelodyNote[]) => {
     setPreviewId(id)
     onLight({ notes: notes.map((n) => n.note), chord: chordAt(notes[0]) })
+    hear(notes)
+  }
+  // Generate a phrase (Phase 7 task 7, David's request): the next few
+  // notes, or a bar or two, chosen from the next notes with a little
+  // chance. The take goes straight into the melody, to see in the lane and
+  // hear; another press gives another take in its place, and it can be
+  // kept, trimmed a note at a time or undone.
+  const [phraseSize, setPhraseSize] = useState<PhraseSize>('bar')
+  const [phrase, setPhrase] = useState<{
+    base: MelodyNote[]
+    gap: Dur
+    take: number
+    notes: MelodyNote[]
+  }>()
+  const melodyText = (m: MelodyNote[]) =>
+    m.map((n) => `${formatNote(n.note)}@${n.onset.n}/${n.onset.d}`).join(' ')
+  // A take stands while the melody is the take; any other change keeps it.
+  const pending =
+    phrase &&
+    melodyText(melody) === melodyText([...phrase.base, ...phrase.notes])
+      ? phrase
+      : undefined
+  const writePhrase = (take: number) => {
+    const base = pending?.base ?? melody
+    const gap = pending?.gap ?? entry.gap
+    const notes = generatePhrase(
+      { ...noteContext, melody: base, gap },
+      phraseSize,
+      take,
+    ).map((s) => s.candidate)
+    if (!notes.length) return
+    setPhrase({ base, gap, take, notes })
+    onChange([...base, ...notes])
+    set({ gap: ZERO })
     hear(notes)
   }
   // A next note's card: tap to preview, + to add, ⓘ for more.
@@ -691,6 +729,75 @@ export function MelodyPanel({
           </div>
         )}
       </div>
+
+      <h3>Write a phrase</h3>
+      <div class="melody-bar phrase-bar">
+        <label>
+          How much
+          <select
+            value={phraseSize}
+            onChange={(e) => setPhraseSize(e.currentTarget.value as PhraseSize)}
+          >
+            {PHRASE_SIZES.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.id === 'notes' ? `${p.notes} ${value.name}s` : p.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          class="accept"
+          title={
+            pending
+              ? 'Another take in its place'
+              : 'Write the next notes from the next-note suggestions, with a little chance'
+          }
+          onClick={() => writePhrase(pending ? pending.take + 1 : 0)}
+        >
+          {pending ? '↻ Another take' : '✎ Write a phrase'}
+        </button>
+        {pending && (
+          <>
+            <button
+              type="button"
+              title="Keep this take"
+              onClick={() => setPhrase(undefined)}
+            >
+              ✓ Keep
+            </button>
+            <button
+              type="button"
+              title="Take its last note off"
+              onClick={() => {
+                const notes = pending.notes.slice(0, -1)
+                onChange([...pending.base, ...notes])
+                setPhrase(notes.length ? { ...pending, notes } : undefined)
+              }}
+            >
+              ✂ Trim a note
+            </button>
+            <button
+              type="button"
+              title="Take the phrase out"
+              onClick={() => {
+                onChange(pending.base)
+                set({ gap: pending.gap })
+                setPhrase(undefined)
+              }}
+            >
+              ⟲ Undo it
+            </button>
+          </>
+        )}
+      </div>
+      <p class="muted">
+        {pending
+          ? `Take ${pending.take + 1}: ${pending.notes.map((n) => `${formatNote(n.note)}${valueSymbol(n.length)}`).join(' ')}. `
+          : ''}
+        Each note keeps the next-note rules: in range, in the key, a chord tone
+        on each strong beat, and a turn back after a leap.
+      </p>
 
       <form
         class="melody-type"

@@ -74,6 +74,7 @@ export function PartRows({
   onFreeze,
   frozenLine,
   onEditBar,
+  onShiftNote,
   onPlayNote,
 }: {
   rows: PartView[]
@@ -95,6 +96,9 @@ export function PartRows({
   frozenLine: (id: string) => FrozenLine | undefined
   // A frozen row's bar with notes edited by hand.
   onEditBar: (id: string, step: number, notes: BarNote[]) => void
+  // Moves one note of an arpeggio row's bar by octaves, by its place in
+  // the bar's pattern (David's request).
+  onShiftNote: (id: string, step: number, place: number, by: number) => void
   onPlayNote: (note: Note, length: Dur) => void
 }) {
   const [picked, setPicked] = useState<Picked>()
@@ -289,6 +293,23 @@ export function PartRows({
                 note={pickedNote}
                 line={frozen ? frozenLine(part.id) : undefined}
                 onEdit={(step, bar) => onEditBar(part.id, step, bar)}
+                onShift={
+                  pickedNote.place === undefined
+                    ? undefined
+                    : (by) => {
+                        onShiftNote(
+                          part.id,
+                          pickedNote.step,
+                          pickedNote.place as number,
+                          by,
+                        )
+                        const octave = (pickedNote.note.octave ?? 4) + by
+                        onPlayNote(
+                          { ...pickedNote.note, octave },
+                          pickedNote.length,
+                        )
+                      }
+                }
                 onPlayNote={onPlayNote}
                 onFreeze={() => onFreeze(part.id)}
                 onDone={() => setPicked(undefined)}
@@ -387,6 +408,7 @@ function NoteTools({
   note,
   line,
   onEdit,
+  onShift,
   onPlayNote,
   onFreeze,
   onDone,
@@ -394,6 +416,8 @@ function NoteTools({
   note: AlongNote
   line?: FrozenLine
   onEdit: (step: number, bar: BarNote[]) => void
+  // An arpeggio note that follows the chords, moved by octaves.
+  onShift?: (by: number) => void
   onPlayNote: (note: Note, length: Dur) => void
   onFreeze: () => void
   onDone: () => void
@@ -415,13 +439,37 @@ function NoteTools({
       </button>
     </>
   )
+  // ▼ ▲ for a note (David's request): a frozen row's note, or an arpeggio
+  // note, which keeps the move as the row follows the chords.
+  const octaves = (shift: (by: number) => void) => (
+    <div class="place-options" role="group" aria-label="Octave">
+      <button
+        type="button"
+        title="This note down an octave"
+        onClick={() => shift(-1)}
+      >
+        ▼ Octave
+      </button>
+      <button
+        type="button"
+        title="This note up an octave"
+        onClick={() => shift(1)}
+      >
+        ▲ Octave
+      </button>
+    </div>
+  )
   if (!line || !tagged) {
     return (
       <div class="lane-place row-tools">
         {head}
+        {onShift && octaves(onShift)}
         <p class="muted">
-          This row follows the chords. Freeze it to keep its notes and change
-          them by hand.{' '}
+          This row follows the chords.{' '}
+          {onShift
+            ? 'A note moved here stays moved when the chords change. '
+            : ''}
+          Freeze it to keep its notes and change them by hand.{' '}
           <button type="button" onClick={onFreeze}>
             ❄ Freeze
           </button>
@@ -438,6 +486,13 @@ function NoteTools({
     <div class="lane-place row-tools">
       {head}
       <p class="line-why">{tagged.explanation}</p>
+      {octaves((by) => {
+        const octave = (tagged.note.octave ?? 4) + by
+        if (octave < 0 || octave > 8) return
+        const moved = { ...tagged.note, octave }
+        onEdit(tagged.step, swapNote(notes, at, steps, moved))
+        onPlayNote(moved, tagged.length)
+      })}
       <div class="note-options" role="group" aria-label="Play instead">
         <span class="muted">Play instead:</span>
         {swaps.map((o) => (

@@ -385,6 +385,7 @@ type PartRecipe =
       settings: ArpeggioSettings
       from?: number
       gaps?: Record<number, 'rest' | 'hold'>
+      shifts?: Record<number, number> // notes moved by octaves, by place in the bar's pattern (2026-10-24)
     } // rests and holds by place in the bar's pattern (2026-10-24)
   | { kind: 'notes'; notes: BarNote[] } // a frozen row's bar (2026-10-24)
 type BarNote = { note: Note; at: Dur; length?: Dur } // lasts to the next note, or for its length with a rest after (2026-10-24)

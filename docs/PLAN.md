@@ -240,14 +240,14 @@ Goal: enter a few notes and get next-note options; add harmonies and countermelo
 4. The same next-token interface as Phase 4. ✅
 5. Melody-based lines: diatonic 3rds and 6ths (twin-guitar harmony) and a contrary-motion countermelody. ✅
 6. The rows under the progression and the melody lane line up bar by bar under the chords, and a row can be frozen into notes to edit by hand (added 2026-10-23, David's request). ✅
-7. Generate a phrase: one button that writes the next few notes, or a bar or two, by choosing from the next-note suggestions with a little chance, following every next-note rule; another press gives another take, and the phrase can be kept, trimmed or undone (added 2026-10-23, David's request).
+7. Generate a phrase: one button that writes the next few notes, or a bar or two, by choosing from the next-note suggestions with a little chance, following every next-note rule; another press gives another take, and the phrase can be kept, trimmed or undone (added 2026-10-23, David's request). ✅
 8. Chord styles (added 2026-10-24, David's request): how chords are played, from a menu above the chord names, for the whole progression and changeable on any single chord. Block (all together, as now), strum, pulse on every beat, bass then chord ("oom-pah"), broken (rolled), off-beat stabs, and a down-up strum pattern. Playback, rows and saving follow it.
 9. Inversions before octaves (added 2026-10-24, David's request): ▲ ▼ on a chord step through its inversions before moving a whole octave (C, C/E, C/G, then C an octave up), on keyboard and guitar (the nearest playable shape of each inversion). The chord always shows which it is, for example "1st inversion" or "+1 octave", so an inversion step can't be mistaken for a perfect-octave move.
 
 - [x] Every suggestion stays in range and is tagged (chord tone, passing, neighbour, leap, chromatic)
 - [x] A motif option appears whenever the melody contains a motif
 - [x] Twin-harmony lines stay diatonic unless tagged
-- [ ] A generated phrase follows every next-note rule: in range, chord tones on strong beats, and a change of direction after a leap
+- [x] A generated phrase follows every next-note rule: in range, chord tones on strong beats, and a change of direction after a leap
 - [ ] Every chord style fills each chord's length exactly, and a single chord's own style overrides the progression's
 - [ ] Stepping ▲ ▼ visits every inversion of the chord before the next octave, and each step is labelled as an inversion or an octave
 
