@@ -840,7 +840,7 @@ export function MelodyPanel({
         Each note keeps the next-note rules: in range, in the key, a chord tone
         on each strong beat, and a turn back after a leap.
         {entry.phraseBar
-          ? ` Into bar ${entry.phraseBar}, it takes the place of the notes there and leads into the note after. Tap ▶ on a bar in the melody lane to make it the active bar.`
+          ? ` Into bar ${entry.phraseBar}, it takes the place of the notes there and leads into the note after. Tap a chord, or anything in a bar of the melody lane or a row, to make it the active bar.`
           : ' Tap ▶ on a bar in the melody lane to write into that bar.'}
       </p>
 

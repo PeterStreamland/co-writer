@@ -28,7 +28,6 @@ import {
   compareDur,
   countUnit,
   holdOver,
-  harmonise,
   rankNoteInPlace,
   restBefore,
   setNoteLength,
@@ -81,11 +80,13 @@ import { LinesPanel } from './LinesPanel'
 import type { LineBars, LineEdits } from './lines-view'
 import type { Along, AlongNote } from './along'
 import { PartRows, type PartView } from './PartRows'
+import { HarmonyRows } from './HarmonyRows'
 import { MelodyLane } from './MelodyLane'
 import { MelodyPanel, type MelodyEntry, type MelodyLight } from './MelodyPanel'
 import {
-  HARMONY_LOOK,
   MELODY_LOOK,
+  harmonyLook,
+  harmonyRows,
   melodyAlong,
   rangeFromSetting,
 } from './melody-view'
@@ -741,6 +742,8 @@ export function Workspace() {
     setChord(path[index].chord)
     showNode(path[index])
     playNode(path[index])
+    // The chord's bar becomes the active bar (David's request).
+    setActiveBar(timing[index].bar)
   }
   // The melody (SPEC 7.2), entered on the Melody tab and shown in the lane
   // under the strip. Every change is undoable with the strip's undo.
@@ -759,6 +762,12 @@ export function Workspace() {
     tap: true,
     grid: '1/16',
   })
+  // The active bar (Phase 7 task 10), the one Write a phrase writes into:
+  // tapping a chord, or anything in a bar of the lane or a row, makes it
+  // the active bar (David's request).
+  function setActiveBar(bar: number) {
+    setMelodyEntry((e) => (e.phraseBar === bar ? e : { ...e, phraseBar: bar }))
+  }
   // Tapping the instrument while the Melody tab is open adds a note of the
   // chosen value after the last (step entry), and plays it.
   const melodyTap =
@@ -905,8 +914,16 @@ export function Workspace() {
   // The harmonies playing with the melody (SPEC 7.4), rewritten as it
   // changes.
   const harmonyIds = progression.harmonies ?? []
-  const harmonyNotes = harmonyIds.flatMap(
-    (id) => harmonise({ melody, key, chords: melodyChords, time }, id).notes,
+  // Each on a row of its own (PLAN Phase 7 task 11).
+  const harmonies = harmonyRows(
+    harmonyIds,
+    { melody, key, chords: melodyChords, time },
+    timing,
+  )
+  const harmonyNotes = harmonies.flatMap((r) => r.notes)
+  const harmonyAlong = harmonies.flatMap((r) => r.along)
+  const harmonySounding = harmonies.find(
+    (r) => alongAt?.look === harmonyLook(r.id),
   )
   function setHarmonies(ids: string[]) {
     setHistory((h) => {
@@ -952,10 +969,7 @@ export function Workspace() {
         stopSolo()
         playAlong({
           source: melody,
-          notes: [
-            ...melodyAlong(melody, timing),
-            ...melodyAlong(harmonyNotes, timing, HARMONY_LOOK),
-          ],
+          notes: [...melodyAlong(melody, timing), ...harmonyAlong],
         })
       }}
       onPlayChords={() => {
@@ -998,7 +1012,7 @@ export function Workspace() {
         const notes = [
           ...playing.flatMap((r) => r.notes),
           ...melodyAlong(melody, timing),
-          ...melodyAlong(harmonyNotes, timing, HARMONY_LOOK),
+          ...harmonyAlong,
         ]
         setAlong(notes.length ? { source: rows, notes } : undefined)
         setPlayingAt(0)
@@ -1376,8 +1390,9 @@ export function Workspace() {
                 change(next, selected)
               }}
               activeBar={melodyEntry.phraseBar}
+              onActivate={setActiveBar}
               onPlayBar={(start, length, bar) => {
-                setMelodyEntry((e) => ({ ...e, phraseBar: bar }))
+                setActiveBar(bar)
                 playSpan(start, length, [
                   ...melody.map((m, ref) => ({ ...m, ref, look: MELODY_LOOK })),
                   ...harmonyNotes,
@@ -1419,8 +1434,27 @@ export function Workspace() {
                 )
               }}
             />
+            <HarmonyRows
+              rows={harmonies}
+              time={time}
+              barCount={laneBars}
+              sounding={
+                harmonySounding &&
+                alongAt && { id: harmonySounding.id, index: alongAt.ref }
+              }
+              activeBar={melodyEntry.phraseBar}
+              onActivate={setActiveBar}
+              onRemove={(id) =>
+                setHarmonies(harmonyIds.filter((h) => h !== id))
+              }
+              onPlayNote={(note, length) =>
+                void playNote(note, secondsOf(length, bpm, time.meter))
+              }
+            />
             <PartRows
               rows={rows}
+              activeBar={melodyEntry.phraseBar}
+              onActivate={setActiveBar}
               chords={rowChords}
               time={time}
               barCount={laneBars}

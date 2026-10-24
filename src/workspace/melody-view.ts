@@ -5,8 +5,12 @@ import {
   DEFAULT_RANGE,
   addDur,
   compareDur,
+  harmonise,
+  harmonyKind,
   melodyRange,
   midiNumber,
+  type HarmonyContext,
+  type HarmonyNote,
   type MelodyNote,
   type MelodyRange,
   type Placement,
@@ -42,6 +46,41 @@ export function melodyAlong(
           },
         ]
   })
+}
+
+// A harmony of the melody as its own row under the chords (PLAN Phase 7
+// task 11): its notes, and the same notes playing along, each harmony
+// with a look of its own so its row knows which of its notes is sounding.
+export type HarmonyRow = {
+  id: string
+  label: string
+  notes: HarmonyNote[]
+  along: AlongNote[]
+}
+
+export function harmonyRows(
+  ids: string[],
+  ctx: HarmonyContext,
+  timing: Placement[],
+): HarmonyRow[] {
+  return ids.flatMap((id) => {
+    const kind = harmonyKind(id)
+    if (!kind) return []
+    const { notes } = harmonise(ctx, id)
+    return [
+      {
+        id,
+        label: kind.label,
+        notes,
+        along: melodyAlong(notes, timing, harmonyLook(id)),
+      },
+    ]
+  })
+}
+
+// The look a harmony's notes play along with: harmony-3rd-above.
+export function harmonyLook(id: string): string {
+  return `${HARMONY_LOOK}-${id}`
 }
 
 // The melody's range from its setting: a preset's, or the notes chosen for

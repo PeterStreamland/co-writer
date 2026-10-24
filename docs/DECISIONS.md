@@ -1657,3 +1657,17 @@ Write a phrase in the Melody tab can now write into a bar you pick, not only aft
 - **An empty bar past the melody** starts with a rest from the melody's end to its downbeat.
 - **Every rule a phrase keeps still holds** (the Phase 7 exit criterion): tested over six melodies (major, minor, harmonic minor; 4/4, 3/4 and 6/8; first, middle and empty bars; a note ringing in), all three sizes and twelve takes each. A phrase after the melody comes out exactly as before.
 - **Changing the bar** keeps the take as it stands. The next press writes a fresh take into the new bar.
+
+## 2026-10-24 — Rows for the harmonies, and the active bar by tapping (Phase 7 task 11, David's request)
+
+- **A row for each harmony:** every harmony or countermelody playing with the melody now sits on its own row under the melody lane. It is laid out bar by bar like the lane and the line and arpeggio rows, so they all line up under the chords. Its notes are teal, and a note outside the key is dashed. When Play reaches a note, it lights on its own row (`harmonyRows` in `src/workspace/melody-view.ts`).
+  - A harmony follows the melody note for note, so its row isn't edited by hand. Tapping a note plays it and says why it's there.
+  - The row's **×** stops that harmony, the same as unticking it in the Melody tab. Undo brings it back.
+- **The active bar by tapping (David's request):** the active bar no longer needs ▶. Tapping any of these makes its bar the active bar:
+  - a chord on the strip;
+  - anything in a bar of the melody lane;
+  - anything in a bar of a harmony, line or arpeggio row.
+
+  The active bar is outlined on every row. It is still the bar Write a phrase writes into, so tapping a chord also points Write a phrase's **Into** menu at that chord's bar.
+
+- **Task 16 added (David's note):** more control for Write a phrase: more **How much** choices, a set number of notes, and ways of varying how long the notes are. It joins Phase 7 before its gate, for a session of its own.

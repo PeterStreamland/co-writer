@@ -26,7 +26,8 @@ export const BAR_REM = 18
 // ruler of its beats and how full it is. Each note is as wide as it lasts;
 // a held note marks where each hold began; rests are dashed and time not
 // filled yet is faint; a note over the barline is split and tied. The note
-// sounding is lit. Tapping a bar's name plays it. Tapping a note (David's request) plays it and offers
+// sounding is lit. Tapping a bar's name plays it; tapping anything in a
+// bar makes it the active bar. Tapping a note (David's request) plays it and offers
 // notes for its place, best first, and ways to leave a gap there: silence
 // it, hold the note before over it (no new note), or a beat's rest before
 // it.
@@ -50,6 +51,7 @@ export function MelodyLane({
   onPlayBar,
   onClearBar,
   activeBar,
+  onActivate,
 }: {
   melody: MelodyNote[]
   time: MeterMap
@@ -78,6 +80,8 @@ export function MelodyLane({
   // writes into (Phase 7 task 10, David's choice).
   onPlayBar: (start: Dur, length: Dur, bar: number) => void
   activeBar?: number
+  // Tapping anything in a bar makes it the active bar (David's request).
+  onActivate: (bar: number) => void
   // Clears a bar (David's request): its melody, its rows, or both.
   onClearBar: (start: Dur, length: Dur, what: BarClear) => void
 }) {
@@ -124,6 +128,7 @@ export function MelodyLane({
                   style={{
                     width: `${ratioOf(strip.length, { n: 1, d: 1 }) * BAR_REM}rem`,
                   }}
+                  onClick={() => onActivate(strip.bar)}
                 >
                   <div class="lane-chord">{chordsIn(strip) || '\u00a0'}</div>
                   <div class="lane-head">
