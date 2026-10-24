@@ -247,7 +247,7 @@ Goal: enter a few notes and get next-note options; add harmonies and countermelo
 11. Rows for the melody, harmonies and countermelody (added 2026-10-24, David's note): each plays on its own row under the chords, lined up bar by bar with the others. ✅
 12. Separate rows with their own clear (added 2026-10-24, David's note): the melody, each arpeggio row and each line row sit on rows of their own, each with its own delete or clear, so clearing one never touches another. ✅
 13. Hold the light while a note sounds (added 2026-10-24, David's note): when chords, melody or arpeggios play, the box of the note or chord sounding stays the darker colour until the next one takes over, including through held notes. ✅
-14. A Harmony tab (added 2026-10-24, David's note): harmonies and the countermelody move out of the Melody tab into their own tab beside it.
+14. A Harmony tab (added 2026-10-24, David's note): harmonies and the countermelody move out of the Melody tab into their own tab beside it. ✅
 15. Fix the harmony cards' layout (added 2026-10-24, David's note): the note lists in the Harmony cards (3rds above, 6ths below, countermelody, 3rds below) run on in long grey blocks; show them so they read clearly, for example bar by bar.
 16. More control for Write a phrase (added 2026-10-24, David's note): more choices of How much, a set number of notes, and ways of varying how long the notes are.
 17. Edit a harmony's notes (added 2026-10-24, David's request): tap a note in a harmony or countermelody row to take it out, move it an octave or play another note in its place; the harmony keeps following the melody with your notes on top. ✅

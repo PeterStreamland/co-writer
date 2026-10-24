@@ -1716,3 +1716,15 @@ The strip's **▶ Play** lit only one note at a time across the melody, its harm
 - **Through a rest (my reading of David's note):** the last note stays lit until the next note on its row. When playback ends, every light goes out.
 - **Everywhere the rows play:** the strip's ▶ Play, the Melody tab's Play melody (the harmony rows now light too), and ▶ on a bar of the lane or a row.
 - Chords on the strip, and the Arpeggio and Lines tabs' own playback, already held their light until the next one, and are unchanged.
+
+## 2026-10-24 — A Harmony tab (Phase 7 task 14)
+
+The harmonies and the countermelody have moved out of the Melody tab into a **Harmony** tab beside it (`src/workspace/HarmonyPanel.tsx`). They work as before:
+
+- tap a card to hear it with the melody, lit on the instrument;
+- **+** plays it with the melody from then on, on a row of its own;
+- **More harmonies…** shows the rest, and ⓘ explains each one note by note.
+
+The tab also has its own **▶ Play melody** and **▶ Play with chords** (my choice), so a harmony can be heard without going back to the Melody tab. With no melody yet, it says so and offers **Add a melody**, which opens the Melody tab.
+
+**A fix to task 13:** the Melody tab's **▶ Play with chords** still lit one note at a time across the melody and its harmonies. It now uses a light for each row too, the same as the strip's ▶ Play.
