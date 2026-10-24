@@ -166,7 +166,7 @@ describe('what a row plays', () => {
         recipe: walking,
         cells: { n2: null },
       }),
-    ).toBe('Walking, with one bar of its own')
+    ).toBe('Walking, one bar silent')
     expect(
       partLabel({
         id: 'r1',

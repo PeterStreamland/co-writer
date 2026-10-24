@@ -79,12 +79,17 @@ export function recipeLabel(recipe: PartRecipe): string {
 // How a row reads: its recipe, noting any bars of its own, or for a row
 // built bar by bar, what kind it is.
 export function partLabel(part: Part): string {
-  const bars = Object.keys(part.cells ?? {}).length
+  const cells = Object.values(part.cells ?? {})
+  const own = cells.filter((c) => c !== null).length
+  const silent = cells.length - own
+  const count = (n: number) => (n === 1 ? 'one bar' : `${n} bars`)
   if (part.frozen !== undefined) return `${part.frozen}, frozen`
   if (part.recipe) {
-    return bars
-      ? `${recipeLabel(part.recipe)}, with ${bars === 1 ? 'one bar' : `${bars} bars`} of its own`
-      : recipeLabel(part.recipe)
+    return [
+      recipeLabel(part.recipe),
+      ...(own ? [`with ${count(own)} of its own`] : []),
+      ...(silent ? [`${count(silent)} silent`] : []),
+    ].join(', ')
   }
   return partKind(part) === 'line'
     ? 'Lines, bar by bar'

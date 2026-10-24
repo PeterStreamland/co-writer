@@ -1,3 +1,4 @@
+import { useState } from 'preact/hooks'
 import {
   addDur,
   beatsOf,
@@ -47,6 +48,7 @@ export function MelodyLane({
   chords,
   barCount,
   onPlayBar,
+  onClearBar,
 }: {
   melody: MelodyNote[]
   time: MeterMap
@@ -72,7 +74,10 @@ export function MelodyLane({
   barCount: number
   // Plays a bar: its melody over its chords (David's request).
   onPlayBar: (start: Dur, length: Dur) => void
+  // Clears a bar (David's request): its melody, its rows, or both.
+  onClearBar: (start: Dur, length: Dur, what: BarClear) => void
 }) {
+  const [clearing, setClearing] = useState<number>()
   const strips = melodyStrips(melody, time, barCount)
   // The chord names over a bar: every chord sounding in it.
   const chordsIn = (strip: Strip) => {
@@ -96,12 +101,13 @@ export function MelodyLane({
             {melody.length ? 'Edit' : 'Add a melody'}
           </button>
         </div>
-        {melody.length === 0 ? (
+        {melody.length === 0 && (
           <p class="muted">
             No melody yet: tap it on the instrument, type it or record it on
             MIDI in the Melody tab.
           </p>
-        ) : (
+        )}
+        {strips.length > 0 && (
           <div class="lane-bars">
             {strips.map((strip) => {
               const pct = (d: Dur) => `${ratioOf(d, strip.length) * 100}%`
@@ -126,7 +132,42 @@ export function MelodyLane({
                     <span class={strip.count === 'full' ? 'full' : 'muted'}>
                       {strip.count}
                     </span>
+                    <button
+                      type="button"
+                      class="lane-clear"
+                      aria-expanded={clearing === strip.bar}
+                      aria-label={`Clear bar ${strip.bar}`}
+                      title={`Clear bar ${strip.bar}: its melody, its rows or both`}
+                      onClick={() =>
+                        setClearing(
+                          clearing === strip.bar ? undefined : strip.bar,
+                        )
+                      }
+                    >
+                      ✕
+                    </button>
                   </div>
+                  {clearing === strip.bar && (
+                    <div
+                      class="lane-clear-menu"
+                      role="group"
+                      aria-label={`Clear bar ${strip.bar}`}
+                    >
+                      {CLEAR_CHOICES.map((c) => (
+                        <button
+                          type="button"
+                          key={c.what}
+                          title={c.title}
+                          onClick={() => {
+                            onClearBar(strip.start, strip.length, c.what)
+                            setClearing(undefined)
+                          }}
+                        >
+                          {c.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <div class="lane-ruler">
                     {beatsOf(strip.meter).map((b, k) => (
                       <span key={k} style={{ left: pct(b.onset) }}>
@@ -303,3 +344,25 @@ const TAG_WORDS: Record<string, string> = {
   'chord-tone': 'chord tone',
   tendency: 'resolves',
 }
+
+// What clearing a bar can take out (David's request); the chords stay, as
+// taking one out moves every bar after it (its ✕ on the strip does that).
+export type BarClear = 'all' | 'melody' | 'rows'
+
+const CLEAR_CHOICES: { what: BarClear; label: string; title: string }[] = [
+  {
+    what: 'all',
+    label: 'Everything in it',
+    title: 'Its melody notes and every row in it; the chords stay',
+  },
+  {
+    what: 'melody',
+    label: 'Melody',
+    title: 'Its melody notes; the notes after stay where they are',
+  },
+  {
+    what: 'rows',
+    label: 'Rows',
+    title: 'Every row goes silent over the chords in this bar',
+  },
+]

@@ -36,6 +36,7 @@ import {
   spellTapped,
   swapMelodyNote,
   shiftMelodyNote,
+  clearSpan,
 } from '../theory'
 import {
   OCTAVE_LIMIT,
@@ -98,6 +99,7 @@ import {
   partsShown,
   removePart,
   setFrozenBar,
+  silenceAll,
   setPartMuted,
   shiftArpeggioNote,
   shiftPart,
@@ -1015,6 +1017,25 @@ export function Workspace() {
             ...(progression.harmonies && {
               harmonies: progression.harmonies,
             }),
+            ...(progression.chordStyle && {
+              chordStyle: progression.chordStyle,
+            }),
+          },
+          -1,
+        )
+      }
+      onClearAll={() =>
+        // Everything goes: chords, rows, melody and its harmonies. The
+        // melody's range and the chord style are settings, so they stay.
+        change(
+          {
+            ...EMPTY_PROGRESSION,
+            ...(progression.melodyRange && {
+              melodyRange: progression.melodyRange,
+            }),
+            ...(progression.chordStyle && {
+              chordStyle: progression.chordStyle,
+            }),
           },
           -1,
         )
@@ -1328,6 +1349,31 @@ export function Workspace() {
               }}
               chords={rowChords}
               barCount={laneBars}
+              onClearBar={(start, length, what) => {
+                const end = addDur(start, length)
+                let next = progression
+                if (what !== 'rows') {
+                  const cleared = clearSpan(melody, start, end)
+                  next = { ...next, melody: cleared }
+                  if (!cleared.length) delete next.melody
+                }
+                if (what !== 'melody') {
+                  // The chords sounding in the bar.
+                  const nodes = path
+                    .filter(
+                      (_, i) =>
+                        compareDur(timing[i].start, end) < 0 &&
+                        compareDur(
+                          addDur(timing[i].start, timing[i].length),
+                          start,
+                        ) > 0,
+                    )
+                    .map((n) => n.id)
+                  next = silenceAll(next, nodes)
+                }
+                setLaneAt(undefined)
+                change(next, selected)
+              }}
               onPlayBar={(start, length) =>
                 playSpan(start, length, [
                   ...melody.map((m, ref) => ({ ...m, ref, look: MELODY_LOOK })),
