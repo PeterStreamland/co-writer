@@ -251,6 +251,7 @@ Goal: enter a few notes and get next-note options; add harmonies and countermelo
 15. Fix the harmony cards' layout (added 2026-10-24, David's note): the note lists in the Harmony cards (3rds above, 6ths below, countermelody, 3rds below) run on in long grey blocks; show them so they read clearly, for example bar by bar.
 16. More control for Write a phrase (added 2026-10-24, David's note): more choices of How much, a set number of notes, and ways of varying how long the notes are.
 17. Edit a harmony's notes (added 2026-10-24, David's request): tap a note in a harmony or countermelody row to take it out, move it an octave or play another note in its place; the harmony keeps following the melody with your notes on top. ✅
+18. A Counterpoint tab (added 2026-10-24, David's request): its own tab, with as many options as can be made reliably. Lines against the melody in each of the five species: note against note, two against one, four against one, tied across the beat, and free (florid). Each can go above or below the melody, in strict or freer rules. Every move is checked against the counterpoint rules (consonances on the beat, no parallel 5ths or octaves, approach and leave dissonances by step, a cadence at the end), and each break is explained. A line is heard with the melody and kept on a row of its own, like a harmony, with its notes editable as in task 17.
 
 - [x] Every suggestion stays in range and is tagged (chord tone, passing, neighbour, leap, chromatic)
 - [x] A motif option appears whenever the melody contains a motif

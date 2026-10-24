@@ -1685,3 +1685,16 @@ David asked for a harmony note to be deletable once it's tapped, and agreed each
 - **An edit belongs to the melody note it was made under** (its onset and its note). If that melody note changes, the edit there goes and the harmony works the note out again. Every other edit stays.
 - Stopping a harmony drops its edits; **Clear chords** keeps them along with the melody; **Clear everything** clears them. They're saved with the song (`harmonyEdits` on the progression).
 - **Added as Phase 7 task 17**, built in the same session as task 11 at David's request, and ticked as its check passes.
+
+## 2026-10-24 — A Counterpoint tab joins Phase 7 as task 18; saving stays in Phase 10 (David's choices)
+
+- **Counterpoint gets a tab of its own** (David's choice), with as many options as can be made reliably. The plan is:
+  - **The five species:** note against note, two against one, four against one, tied across the beat (syncopation), and free (florid).
+  - **Above or below** the melody.
+  - **Strict or freer rules.** Strict follows the textbook. Freer allows things such as a passing dissonance on a weak beat, for lines that suit guitar.
+  - **Every move checked** against the counterpoint rules: consonances on the beat, no parallel 5ths or octaves, dissonances approached and left by step, a cadence at the end. Each break is explained in plain words.
+  - **A line plays with the melody** and sits on a row of its own, like a harmony, with its notes editable as in task 17.
+
+  An option goes in only if its rules can be tested with golden fixtures; anything that can't be made reliable is left out and recorded here. Adding the task means Phase 7's gate comes later.
+
+- **Save as, load and a new song** stay where they are, in Phase 10 task 1 (David's choice).
