@@ -20,6 +20,7 @@ import {
   addDur,
   appendNote,
   NOTE_VALUES,
+  degreeLabel,
   spellTapped,
 } from '../theory'
 import { OCTAVE_LIMIT, shiftNotes, shiftShape } from '../instruments/octave'
@@ -32,6 +33,7 @@ import { strum } from './ChordBoxes'
 import {
   ChordBox,
   DEFAULT_GUITAR,
+  type ArpeggioShow,
   InstrumentView,
   guitarFrom,
   type GuitarSettings,
@@ -59,7 +61,7 @@ import type { LineBars, LineEdits } from './lines-view'
 import type { Along, AlongNote } from './along'
 import { PartRows, type PartView } from './PartRows'
 import { MelodyLane } from './MelodyLane'
-import { MelodyPanel, type MelodyEntry } from './MelodyPanel'
+import { MelodyPanel, type MelodyEntry, type MelodyLight } from './MelodyPanel'
 import { MELODY_LOOK, melodyAlong } from './melody-view'
 import { partLabel, partNotes } from './parts-view'
 import {
@@ -635,6 +637,7 @@ export function Workspace() {
       return record(h, p)
     })
   }
+  const [melodyLight, setMelodyLight] = useState<MelodyLight>()
   const [melodyEntry, setMelodyEntry] = useState<MelodyEntry>({
     value: 'quarter',
     gap: ZERO,
@@ -727,6 +730,7 @@ export function Workspace() {
         setPlayingAt(undefined)
       }}
       onRecordStart={() => setRecording(false)}
+      onLight={setMelodyLight}
       chords={path.map((n, i) => ({
         chord: n.chord,
         key: keyAt(progression, i, key),
@@ -904,6 +908,22 @@ export function Workspace() {
   // open.
   const arpeggioOn =
     tab === 'arpeggio' || tab === 'lines' ? arpeggioShow : undefined
+  // A melody suggestion being previewed lights on the instrument, labelled
+  // by degree, while the Melody tab is open.
+  const melodyShow: ArpeggioShow | undefined =
+    tab === 'melody' && melodyLight
+      ? {
+          name: 'Melody',
+          notes: melodyLight.notes.map((note) => ({
+            note,
+            midi: midiNumber(note) as number,
+            label: degreeLabel({ ...key.tonic, octave: undefined }, note),
+            number: 1,
+          })),
+          sounding: melodyLight.at,
+        }
+      : undefined
+  const lit = melodyShow ?? arpeggioOn
   const lines = (
     <LinesPanel
       progression={progression}
@@ -994,9 +1014,13 @@ export function Workspace() {
           <InstrumentView
             addable={narrow}
             value={key}
-            chord={arpeggioOn?.chord ?? shown}
+            chord={
+              melodyShow
+                ? (melodyLight?.chord ?? shown)
+                : (arpeggioOn?.chord ?? shown)
+            }
             played={playing.notes}
-            arpeggio={arpeggioOn}
+            arpeggio={lit}
             instrument={instrument}
             onInstrumentChange={setInstrument}
             settings={settings}

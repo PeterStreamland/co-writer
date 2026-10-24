@@ -15,7 +15,10 @@ import {
   motifText,
   motifsIn,
   subDur,
-  nextNotes,
+  MELODY_CATEGORY_LABELS,
+  compareDur,
+  noteInsight,
+  rankMelody,
   parseNote,
   meterOfBar,
   quantise,
@@ -26,13 +29,18 @@ import {
   type Dur,
   type GridId,
   type Key,
+  type ChordName,
   type MelodyChord,
+  type MotifSuggestion,
+  type NextNoteSuggestion,
+  type Note,
   type MelodyNote,
   type MeterMap,
 } from '../theory'
 import { playClick, playNote } from '../audio/player'
 import type { MelodyRangeSetting } from '../sketch/progression'
 import { rangeFromSetting } from './melody-view'
+import { InfoToggle } from './ChordInfo'
 import type { Midi } from '../midi/useMidi'
 import { finishTake, startTake, takeEvent, type Take } from '../midi/take'
 import { secondsOf, tempoNote } from '../sketch/time'
@@ -47,6 +55,14 @@ export type MelodyEntry = {
 }
 
 type Phase = 'idle' | 'count-in' | 'recording'
+
+// Notes a preview lights on the instrument, the one sounding last, and the
+// chord they sit over.
+export type MelodyLight = { notes: Note[]; at?: number; chord?: ChordName }
+
+// A preview plays the last note, then the candidate.
+const PREVIEW_SECONDS = 0.8
+const PREVIEW_GAP_MS = 600
 
 // The Melody tab (PLAN Phase 7 task 1, SPEC 7.2): enter a melody by tapping
 // the fretboard or keyboard (step entry, with the note value chosen here),
@@ -73,6 +89,7 @@ export function MelodyPanel({
   chords,
   rangeSetting,
   onRangeSetting,
+  onLight,
 }: {
   melody: MelodyNote[]
   // Every change is undoable, with the strip's undo.
@@ -98,15 +115,20 @@ export function MelodyPanel({
   chords: MelodyChord[]
   rangeSetting?: MelodyRangeSetting
   onRangeSetting: (setting: MelodyRangeSetting) => void
+  // Lights notes on the instrument while previewing; undefined clears.
+  onLight: (light: MelodyLight | undefined) => void
 }) {
   const set = (part: Partial<MelodyEntry>) => onEntry({ ...entry, ...part })
   const value =
     NOTE_VALUES.find((v) => v.id === entry.value) ??
     NOTE_VALUES.find((v) => v.id === 'quarter')!
-  // Next-note suggestions (Phase 7 task 2): what could come after the
-  // last note, for the note value chosen, best first. Tap one to add it.
+  // Next notes (Phase 7 tasks 2 and 4): what could come after the last
+  // note, for the note value chosen, shown as chord suggestions are (SPEC
+  // 6.2, 7.3): six to eight grouped, a wildcard with Another, a tap to
+  // preview (the last note, then the candidate, lit on the instrument), +
+  // to add, and ⓘ for the reading and why it ranks there.
   const range = rangeFromSetting(rangeSetting)
-  const suggestions = nextNotes({
+  const noteContext = {
     melody,
     key: keyValue,
     chords,
@@ -114,11 +136,40 @@ export function MelodyPanel({
     range,
     length: value.length,
     gap: entry.gap,
-  })
+  }
+  const [another, setAnother] = useState(0)
+  const [previewId, setPreviewId] = useState<string>()
+  const [openId, setOpenId] = useState<string>()
+  const inputKey = `${melody.length}|${value.id}|${entry.gap.n}/${entry.gap.d}|${chords.length}|${formatNote(range.low)}-${formatNote(range.high)}`
+  useEffect(() => {
+    setAnother(0)
+    setPreviewId(undefined)
+    onLight(undefined)
+  }, [inputKey])
+  const ranked = rankMelody(noteContext, { another })
+  const last = melody.at(-1)
+  const chordAt = (n: MelodyNote) =>
+    chords.find(
+      (c) =>
+        compareDur(c.start, n.onset) <= 0 &&
+        compareDur(n.onset, addDur(c.start, c.length)) < 0,
+    )?.chord
   const addSuggested = (note: MelodyNote) => {
     onChange([...melody, note])
     set({ gap: ZERO })
     void playNote(note.note, secondsOf(note.length, bpm, time.meter))
+  }
+  const previewNote = (id: string, note: MelodyNote) => {
+    setPreviewId(id)
+    const notes = last ? [last.note, note.note] : [note.note]
+    onLight({ notes: notes, at: notes.length - 1, chord: chordAt(note) })
+    if (last) {
+      void playNote(last.note, PREVIEW_SECONDS)
+      window.setTimeout(
+        () => void playNote(note.note, PREVIEW_SECONDS),
+        PREVIEW_GAP_MS,
+      )
+    } else void playNote(note.note, PREVIEW_SECONDS)
   }
   // Motif options (Phase 7 task 3): the motif that comes back most, or a
   // bar you pick, again in the next free bar as a repeat, a sequence, with
@@ -144,6 +195,123 @@ export function MelodyPanel({
     onChange([...melody, ...notes])
     set({ gap: ZERO })
     hear(notes)
+  }
+  const previewMotif = (id: string, notes: MelodyNote[]) => {
+    setPreviewId(id)
+    onLight({ notes: notes.map((n) => n.note), chord: chordAt(notes[0]) })
+    hear(notes)
+  }
+  // A next note's card: tap to preview, + to add, ⓘ for more.
+  const noteCard = (s: NextNoteSuggestion, wildcard = false) => {
+    const id = `note-${formatNote(s.candidate.note)}`
+    const name = formatNote(s.candidate.note)
+    const insight = noteInsight(
+      keyValue,
+      s.candidate.note,
+      chordAt(s.candidate),
+      last?.note,
+    )
+    return (
+      <li
+        key={id}
+        class={previewId === id ? 'suggestion previewing' : 'suggestion'}
+      >
+        <button
+          type="button"
+          class="preview"
+          aria-pressed={previewId === id}
+          onClick={() => previewNote(id, s.candidate)}
+        >
+          <span class="symbol">{name}</span>
+          <span class="melody-tags">
+            {s.tags.map((t) => (
+              <span key={t} class={`melody-tag tag-${t}`}>
+                {TAG_TEXT[t] ?? t}
+              </span>
+            ))}
+          </span>
+          {wildcard && <span class="badge">Wildcard</span>}
+        </button>
+        <button
+          type="button"
+          class="accept"
+          aria-label={`Add ${name}`}
+          title={`Add ${name}`}
+          onClick={() => addSuggested(s.candidate)}
+        >
+          +
+        </button>
+        <p class="why">
+          {s.explanation}{' '}
+          <InfoToggle
+            open={openId === id}
+            label={name}
+            onToggle={() => setOpenId(openId === id ? undefined : id)}
+          />
+        </p>
+        {s.contextNotes.length > 0 && openId !== id && (
+          <p class="context">
+            {s.contextNotes.length === 1
+              ? s.contextNotes[0]
+              : `${s.contextNotes[0]} (and more under ⓘ)`}
+          </p>
+        )}
+        {openId === id && (
+          <div class="info-panel">
+            <p>
+              <strong>{insight.reading}</strong>
+            </p>
+            {insight.move && (
+              <>
+                <h4>More</h4>
+                <p>{insight.move}</p>
+              </>
+            )}
+            {s.contextNotes.length > 0 && (
+              <>
+                <h4>Why it ranks here</h4>
+                {s.contextNotes.map((note) => (
+                  <p key={note} class="context">
+                    {note}
+                  </p>
+                ))}
+              </>
+            )}
+          </div>
+        )}
+      </li>
+    )
+  }
+  // A motif option's card: tap to hear it, lit; + to add it.
+  const motifCard = (s: MotifSuggestion) => {
+    const label = motifLabel(s.candidate)
+    const id = `motif-${label}`
+    return (
+      <li
+        key={id}
+        class={previewId === id ? 'suggestion previewing' : 'suggestion'}
+      >
+        <button
+          type="button"
+          class="preview"
+          aria-pressed={previewId === id}
+          onClick={() => previewMotif(id, s.candidate.notes)}
+        >
+          <span class="symbol">{label}</span>
+          <span class="numeral">{motifText(s.candidate.notes)}</span>
+        </button>
+        <button
+          type="button"
+          class="accept"
+          aria-label={`Add ${label}`}
+          title={`Add ${label}`}
+          onClick={() => addMotif(s.candidate.notes)}
+        >
+          +
+        </button>
+        <p class="why">{s.explanation}</p>
+      </li>
+    )
   }
   const [text, setText] = useState('')
   const [unknown, setUnknown] = useState<string[]>([])
@@ -239,7 +407,6 @@ export function MelodyPanel({
       `Recorded ${notes.length} note${notes.length === 1 ? '' : 's'}. Undo brings back the melody before.`,
     )
   }
-  const last = melody.at(-1)
   return (
     <section class="melody" aria-label="Melody">
       <p class="muted">
@@ -378,40 +545,39 @@ export function MelodyPanel({
           </>
         )}
       </div>
-      <p class="muted">
-        {melody.length
-          ? `What could follow ${formatNote(melody.at(-1)!.note)}, best first, as a ${value.name}. Tap one to add it.`
-          : `Notes to start on, best first, as a ${value.name}. Tap one to add it.`}
-      </p>
-      <ol class="next-notes">
-        {suggestions.map((s) => (
-          <li key={formatNote(s.candidate.note)}>
-            <button
-              type="button"
-              class="next-note"
-              title={s.explanation}
-              onClick={() => addSuggested(s.candidate)}
-            >
-              + {formatNote(s.candidate.note)}
-            </button>
-            <span class="melody-tags">
-              {s.tags.map((t) => (
-                <span key={t} class={`melody-tag tag-${t}`}>
-                  {TAG_TEXT[t] ?? t}
-                </span>
-              ))}
-            </span>
-            <span class="muted next-why">{s.explanation}</span>
-          </li>
+      <div class="suggest melody-suggest">
+        <p class="muted">
+          {last
+            ? `What could follow ${formatNote(last.note)}, as a ${value.name}: tap one to hear it after ${formatNote(last.note)}; + to add it.`
+            : `Notes to start on, as a ${value.name}: tap one to hear it; + to add it.`}
+        </p>
+        {ranked.groups.map((group) => (
+          <div key={group.category} class="group">
+            <h3>{MELODY_CATEGORY_LABELS[group.category]}</h3>
+            <ul>{group.suggestions.map((s) => noteCard(s))}</ul>
+          </div>
         ))}
-      </ol>
-
-      {motif && (
-        <>
-          <h3>Motif</h3>
-          <div class="melody-bar">
-            <label>
-              Motif from
+        {ranked.wildcard && (
+          <div class="group wildcard">
+            <h3>
+              Wildcard{' '}
+              <button
+                type="button"
+                class="another"
+                disabled={ranked.wildcards < 2}
+                onClick={() => setAnother(another + 1)}
+              >
+                Another
+              </button>
+            </h3>
+            <ul>{noteCard(ranked.wildcard, true)}</ul>
+          </div>
+        )}
+        {motif && (
+          <div class="group motif">
+            <h3>Motif</h3>
+            <label class="motif-from">
+              Motif from{' '}
               <select
                 value={motif.bar}
                 onChange={(e) => setMotifBar(Number(e.currentTarget.value))}
@@ -423,33 +589,10 @@ export function MelodyPanel({
                 ))}
               </select>
             </label>
+            <ul>{motifChoices.map(motifCard)}</ul>
           </div>
-          <ol class="next-notes motif-options">
-            {motifChoices.map((s) => (
-              <li key={motifLabel(s.candidate)}>
-                <button
-                  type="button"
-                  class="next-note"
-                  title={s.explanation}
-                  onClick={() => addMotif(s.candidate.notes)}
-                >
-                  + {motifLabel(s.candidate)}
-                </button>
-                <button
-                  type="button"
-                  aria-label={`Hear ${motifLabel(s.candidate)}`}
-                  title="Hear it"
-                  onClick={() => hear(s.candidate.notes)}
-                >
-                  ▶
-                </button>
-                <span>{motifText(s.candidate.notes)}</span>
-                <span class="muted next-why">{s.explanation}</span>
-              </li>
-            ))}
-          </ol>
-        </>
-      )}
+        )}
+      </div>
 
       <form
         class="melody-type"

@@ -12,6 +12,7 @@ import {
   motifsIn,
   parseChordSymbol,
   parseNote,
+  scaleNotes,
   transposeDiatonic,
   typeMelody,
   type Key,
@@ -119,6 +120,7 @@ describe('a motif option whenever there is a motif', () => {
     'G4 - - - A B C5 D5',
     'C4 D E F G A B C5 D5 E5',
     'B4 C5',
+    'F4 C4 A4 G4',
     'A3 G♯ A - E4 - - -',
   ]
   it('over every range preset and key', () => {
@@ -135,6 +137,17 @@ describe('a motif option whenever there is a motif', () => {
           expect(options.length > 0, `${text} in ${preset}`).toBe(has)
           for (const o of options) {
             expect(o.tags).toContain('motif')
+            if (o.candidate.kind === 'changed-ending') {
+              // It answers inside the key.
+              const end = o.candidate.notes.at(-1)!.note
+              const scale = scaleNotes(key.tonic, key.mode)
+              expect(
+                scale.some(
+                  (n) =>
+                    n.letter === end.letter && n.accidental === end.accidental,
+                ),
+              ).toBe(true)
+            }
             for (const n of o.candidate.notes) {
               const m = midiNumber(n.note)!
               expect(m).toBeGreaterThanOrEqual(midiNumber(range.low)!)

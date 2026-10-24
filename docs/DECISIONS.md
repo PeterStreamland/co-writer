@@ -1389,3 +1389,25 @@ The Melody tab has a **Motif** section under Next note. It offers a motif from t
   - **Upside down:** each scale step from the first note mirrored, so C E G becomes C A F.
 - **Range:** an option that doesn't fit moves by an octave (or two), and costs a little for it. One that can't fit at all isn't offered.
 - Options are tagged "motif" and their kind, and explained. Exit criterion 1 still waits for task 4.
+
+## 2026-10-24 — The melody's next-token interface (Phase 7 task 4)
+
+Next note and Motif in the Melody tab now work as the Suggest tab does for chords (SPEC 6.2, 7.3). The theory is `src/theory/melody-ranker.ts`, with the groups, counts and context lines as data in `melody-ranker-data.ts` and the ⓘ readings in `tests/fixtures/note-insights.ts`.
+
+- **Groups:** six to eight next notes, no more than three from a group:
+  - **Chord tones**
+  - **Steps and neighbours** (with repeats)
+  - **Leaps**
+  - **Colour notes** (outside the key)
+
+  A first note is always a chord tone, so that group fills the list.
+
+- **Wildcard:** a valid but unlikely note from the lower-scoring half of the notes not shown.
+  - It is seeded by the melody, chords, key, range and note value, so it is the same for the same input.
+  - **Another** steps through the rest without repeating until it wraps round.
+- **Preview:** tapping a note plays the last note, then the candidate, and lights both on the instrument by degree, with the candidate as the one sounding. **+** adds it.
+- **Motif options** sit in their own **Motif** group with the same cards: tap to hear them, lit; + to add.
+- **ⓘ** gives the note's degree in the key (degrees count from the major scale on the tonic, SPEC 4), its place in the chord under it, and its move from the note before. A 2nd is named as a semitone or a tone; other moves by their spelled interval: "Down a minor 6th from E4".
+- **Why it ranks here:** one line for each rule that moved the note, such as "Ranked higher: it turns back after the leap". Rules the explanation already states (a note outside the chord on a strong beat, a note outside the key) don't repeat there.
+- **Found while trying it:** a motif's **changed ending** now ends on a note of the key. It had picked A♭ in C, which reads as a colour, not an answer.
+- **Exit criterion 1 is ticked:** every note shown, every wildcard and every motif option stays in range and is tagged (tested over four ranges and six melodies, and over the motif cases).
