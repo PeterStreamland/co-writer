@@ -239,6 +239,20 @@ export function patternCycle(
 ): number[] {
   const up = Array.from({ length: count }, (_, i) => i)
   const down = [...up].reverse()
+  if (pattern.shape === 'alberti') {
+    return count < 3 ? up : [...pattern.group]
+  }
+  if (pattern.shape === 'pedal') {
+    return count < 2 ? up : up.slice(1).flatMap((i) => [0, i])
+  }
+  if (pattern.shape === 'outside-in') {
+    const order: number[] = []
+    for (let lo = 0, hi = count - 1; lo <= hi; lo++, hi--) {
+      order.push(lo)
+      if (hi !== lo) order.push(hi)
+    }
+    return order
+  }
   const path = {
     up,
     down,
@@ -293,4 +307,34 @@ export function arpeggioRhythm(
 // The span of the events, for checking they fill the length.
 export function eventsLength(events: ArpeggioEvent[]): Dur {
   return events.reduce((sum, e) => addDur(sum, e.length), ZERO)
+}
+
+// What a note of a bar's pattern does instead of playing (David's
+// request): a rest is silence; a hold strikes no new note, so the note
+// before rings on (silence too, after a rest).
+export type ArpeggioGap = 'rest' | 'hold'
+
+// The bar's notes with its rests and holds, keyed by each note's place in
+// the pattern. Each note left keeps that place as `event`.
+export function withGaps(
+  events: ArpeggioEvent[],
+  gaps: Record<number, ArpeggioGap> = {},
+): (ArpeggioEvent & { event: number })[] {
+  const out: (ArpeggioEvent & { event: number })[] = []
+  let ringing = true // whether the note before is sounding
+  events.forEach((e, k) => {
+    const gap = gaps[k]
+    if (!gap) {
+      out.push({ ...e, event: k })
+      ringing = true
+      return
+    }
+    const last = out.at(-1)
+    if (gap === 'hold' && ringing && last) {
+      last.length = subDur(addDur(e.onset, e.length), last.onset)
+      return
+    }
+    ringing = false
+  })
+  return out
 }

@@ -47,6 +47,23 @@ export const MELODY_CONTEXT: Record<string, string> = {
   'melody-leading-note':
     'Ranked higher: the leading note wants to rise to the tonic.',
   'melody-four-to-three': 'Ranked higher: the 4th wants to fall to the 3rd.',
+  'melody-step-into': 'Ranked higher: it steps into the note after.',
+  'melody-leap-into': 'Ranked lower: it leaps to the note after.',
   'melody-chromatic-resolves':
     'Ranked higher: the note before resolves to it by a semitone.',
+}
+
+// Notes for a note's place in the melody (David's request, 2026-10-24):
+// ranked as next notes after the notes before it, then by how they lead
+// into the note after: a step or a semitone into it is liked, a leap of a
+// 4th or more away from it costs. Eight show.
+export const IN_PLACE = {
+  stepInto: 1,
+  leapInto: -1,
+  shown: 8,
+}
+
+export const IN_PLACE_TEXT = {
+  stepInto: 'It steps into {next}.',
+  leapInto: 'It leaps to {next}.',
 }

@@ -260,3 +260,46 @@ export function valueName(length: Dur): string {
   const value = NOTE_VALUES.find((v) => durEquals(v.length, length))
   return value ? value.name : valueFraction(length)
 }
+
+// Silences a note: it goes, and the notes after it keep their places, so
+// a rest is left where it was (David's request).
+export function silenceNote(melody: MelodyNote[], index: number): MelodyNote[] {
+  return melody.filter((_, i) => i !== index)
+}
+
+// A rest of `length` before a note: it and every note after it move later.
+export function restBefore(
+  melody: MelodyNote[],
+  index: number,
+  length: Dur,
+): MelodyNote[] {
+  return melody.map((m, i) =>
+    i < index ? m : { ...m, onset: addDur(m.onset, length) },
+  )
+}
+
+// Another note in a note's place, at its start and for its length.
+export function swapMelodyNote(
+  melody: MelodyNote[],
+  index: number,
+  note: Note,
+): MelodyNote[] {
+  return melody.map((m, i) => (i === index ? { ...m, note } : m))
+}
+
+// Holds the note before through a note's place (David's request): no new
+// note is struck there, and the note before rings on to its end. The first
+// note has nothing before it, so it falls silent.
+export function holdOver(melody: MelodyNote[], index: number): MelodyNote[] {
+  const gone = melody[index]
+  if (!gone) return melody
+  return melody.flatMap((m, i) => {
+    if (i === index) return []
+    if (i === index - 1) {
+      return [
+        { ...m, length: subDur(addDur(gone.onset, gone.length), m.onset) },
+      ]
+    }
+    return [m]
+  })
+}

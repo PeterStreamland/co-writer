@@ -1411,3 +1411,28 @@ Next note and Motif in the Melody tab now work as the Suggest tab does for chord
 - **Why it ranks here:** one line for each rule that moved the note, such as "Ranked higher: it turns back after the leap". Rules the explanation already states (a note outside the chord on a strong beat, a note outside the key) don't repeat there.
 - **Found while trying it:** a motif's **changed ending** now ends on a note of the key. It had picked A♭ in C, which reads as a colour, not an answer.
 - **Exit criterion 1 is ticked:** every note shown, every wildcard and every motif option stays in range and is tagged (tested over four ranges and six melodies, and over the motif cases).
+
+## 2026-10-24 — Fixes and additions to melodies and arpeggios (David's requests)
+
+- **Notes in a melody note's place.** Tapping a note in the melody lane plays it and offers up to eight notes for its place, best first. They are ranked as next notes after the notes before it (`rankNoteInPlace` in `src/theory/melody-ranker.ts`), then re-ranked by how they lead into the note after: a step into it ranks higher, a leap of a 4th or more away lower. Tapping one swaps it in at the same start and length, and plays it. The cases are in `tests/fixtures/notes-in-place.ts`.
+- **Gaps (David's "ghost notes": a beat with no new note).** Two kinds, as David described both:
+  - **A rest:** silence.
+  - **A hold:** no new note, the note before rings on.
+
+  Where you can use them:
+  - **In the melody lane,** a tapped note offers:
+    - **Silence it:** the note goes and the rest of the melody stays put.
+    - **Hold the note before:** the note before rings on through its place.
+    - **A beat's rest before it:** a beat of the time signature, and that note and the ones after move later.
+  - **In the Arpeggio tab,** tap any note of a bar's pattern to hold the note before over it, again for a rest, and again to play it (`withGaps` in `src/theory/arpeggio.ts`). A hold after a rest stays silent.
+  - **Rows:** + on a bar and **+ Add as a row** keep a bar's rests and holds (`gaps` on the arpeggio recipe; SPEC 12 updated), and the row's name counts them.
+
+- **Arpeggio bars play when tapped.** Tapping a bar's name in the Arpeggio tab plays that bar, as other boxes do. While the arpeggios play with the chords, it only shows the bar.
+- **Only the note playing lights.** Arpeggio notes were lit by pitch, so every note of the same pitch in the bar lit at once (every R). They now light by their place in the bar's pattern.
+- **Each bar's own pattern.** Every bar in the Arpeggio tab has its own pattern menu: "Pattern as above" follows the tab's, or pick another. **+** and **+ Add as a row** keep each bar's pattern. Bar choices clear when a chord is added or taken out, as the bars move along.
+- **More patterns.** Asked whether arpeggios have many set patterns: there are plenty of standard ones. Added:
+  - **In fours** up and down (1–2–3–4, 2–3–4–5…)
+  - **Turns** up and down (1–2–3–2, 2–3–4–3…)
+  - **Alberti** (low–high–middle–high on the lowest three notes, the classic piano accompaniment)
+  - **Pedal** on the lowest note (1–2–1–3–1–4…)
+  - **Outside in** (lowest, highest, second lowest, second highest…)
