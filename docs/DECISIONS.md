@@ -1606,3 +1606,21 @@ David asked to move a note up or down an octave when it is tapped in the melody 
 - **A slash chord over a note outside it** (F/G) has no inversions to step through, so ▲ ▼ move it a whole octave.
 - **Exit criterion ticked:** stepping ▲ or ▼ visits every inversion once before landing in root position an octave away. Each step is labelled as an inversion, an octave or both. Tested in both directions over twelve chords (triads, 7ths, half-diminished, sus2, power chord, m6, dim7).
 - **▶ Hear it (David's request):** beside **This chord plays**, it plays the selected chord through its length in its style, so a style can be heard before playing the progression.
+
+## 2026-10-24 — Clearing everything, and clearing a bar (David's request)
+
+David asked for clear buttons for everything and bar by bar. He chose **Everything** for clearing the whole song and left the per-bar design to me.
+
+- **Clear everything** on the strip takes out the chords, the rows, the melody and its harmonies, after a confirm.
+  - The melody's range and the chord style are settings, so they stay.
+  - Undo brings it all back.
+- **Clear chords** is the strip's old **Clear**, renamed so it says what it does: it takes out the chords and their rows, and the melody stays.
+- **The Melody tab's Clear** still clears just the melody, and each row's **×** removes that row.
+- **Clearing a bar (my choice):** ✕ beside each bar's count in the melody lane gives three choices:
+  - **Everything in it:** its melody notes, and every row over its chords.
+  - **Melody:** the notes starting in the bar go. A note ringing into it stops at the barline, and the notes after stay where they are (`clearSpan` in `src/theory/melody.ts`).
+  - **Rows:** every row goes silent over the chords sounding in the bar (`silenceAll` in `src/sketch/parts.ts`). A row is set chord by chord, so a chord longer than the bar goes silent through its whole length.
+
+  Chords aren't cleared by bar, because taking one out moves every bar after it; the chord's own ✕ on the strip does that. The lane now shows its bars whenever there are chords, even before a melody, so bars can be cleared from the start. Each one can be undone.
+
+- **Row names:** a row with bars left silent now says so ("Walking, one bar silent") rather than counting them as bars of its own.

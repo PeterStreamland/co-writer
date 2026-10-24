@@ -2726,6 +2726,25 @@ button.octave-step {
   font-weight: 700;
 }
 
+/* Clearing a bar (David's request): ✕ by its count, and the choices. */
+.lane-clear {
+  padding: 0 0.3rem;
+  font-size: 0.7rem;
+  line-height: 1.3;
+}
+
+.lane-clear-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0.15rem 0;
+}
+
+.lane-clear-menu button {
+  padding: 0 0.4rem;
+  font-size: 0.72rem;
+}
+
 .lane-play {
   padding: 0 0.35rem;
   font-size: 0.75rem;

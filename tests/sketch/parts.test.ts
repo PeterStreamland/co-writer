@@ -17,6 +17,7 @@ import {
   partKind,
   recipeAt,
   setFrozenBar,
+  silenceAll,
   shiftArpeggioNote,
   partsShown,
   removePart,
@@ -357,5 +358,20 @@ describe('arpeggio notes moved by octaves (David’s request)', () => {
   it('leaves line rows alone', () => {
     const p = addPart(build('C'), WALKING)
     expect(shiftArpeggioNote(p, 'r1', p.activePath[0], 0, 1)).toBe(p)
+  })
+})
+
+describe('clearing a bar of every row (David’s request)', () => {
+  it('silences each row over the chords given, the rest playing on', () => {
+    let p = addPart(build('C', 'Am', 'F'), WALKING)
+    p = addPart(p, ARPEGGIOS)
+    const [c, am, f] = p.activePath
+    const q = silenceAll(p, [am])
+    for (const row of partsShown(q)) {
+      expect(recipeAt(row, am)).toBeUndefined()
+      expect(recipeAt(row, c)).toBeDefined()
+      expect(recipeAt(row, f)).toBeDefined()
+    }
+    expect(silenceAll(build('C'), [c])).toEqual(build('C'))
   })
 })

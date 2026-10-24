@@ -64,6 +64,7 @@ export function ProgressionStrip({
   onUndo,
   onRedo,
   onClear,
+  onClearAll,
   onPickNode,
   playingAt,
   onPlay,
@@ -98,6 +99,8 @@ export function ProgressionStrip({
   onUndo: () => void
   onRedo: () => void
   onClear: () => void
+  // Clears chords, rows and melody alike (David's request).
+  onClearAll: () => void
   onPickNode: (id: string) => void
   playingAt: number | undefined
   onPlay: () => void
@@ -235,12 +238,31 @@ export function ProgressionStrip({
           <button
             type="button"
             onClick={() => {
-              if (confirm('Clear the whole progression? Undo brings it back.'))
+              if (
+                confirm(
+                  'Clear the chords and their rows? The melody stays. Undo brings them back.',
+                )
+              )
                 onClear()
             }}
             disabled={path.length === 0}
+            title="Clear the chords and their rows; the melody stays (Undo brings them back)"
           >
-            Clear
+            Clear chords
+          </button>
+          <button
+            type="button"
+            title="Clear everything: the chords, the rows, the melody and its harmonies (Undo brings them back)"
+            onClick={() => {
+              if (
+                confirm(
+                  'Clear everything: chords, rows, melody and harmonies? Undo brings it back.',
+                )
+              )
+                onClearAll()
+            }}
+          >
+            Clear everything
           </button>
         </div>
       </div>

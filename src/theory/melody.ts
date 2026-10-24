@@ -308,6 +308,31 @@ export function shiftMelodyNote(
   return swapMelodyNote(melody, index, { ...target.note, octave })
 }
 
+// A stretch of the melody cleared (David's request: clear a bar): the
+// notes starting in it go, a note ringing into it stops at its start, and
+// the notes after stay where they are.
+export function clearSpan(
+  melody: MelodyNote[],
+  start: Dur,
+  end: Dur,
+): MelodyNote[] {
+  return melody.flatMap((m) => {
+    if (compareDur(m.onset, start) >= 0 && compareDur(m.onset, end) < 0) {
+      return []
+    }
+    const noteEnd = addDur(m.onset, m.length)
+    if (compareDur(m.onset, start) >= 0 || compareDur(noteEnd, start) <= 0) {
+      return [m]
+    }
+    const length = subDur(start, m.onset)
+    const cut: MelodyNote = { ...m, length }
+    const holds = (m.holds ?? []).filter((h) => compareDur(h, length) < 0)
+    if (holds.length) cut.holds = holds
+    else delete cut.holds
+    return [cut]
+  })
+}
+
 // Holds the note before through a note's place (David's request): no new
 // note is struck there, and the note before rings on to its end. The first
 // note has nothing before it, so it falls silent.

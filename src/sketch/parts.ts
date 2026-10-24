@@ -219,6 +219,16 @@ export function shiftArpeggioNote(
   return setCell(p, id, node, moved)
 }
 
+// Every row showing left silent over some chords (David's request: clear
+// a bar), by chord node id.
+export function silenceAll(p: Progression, nodes: string[]): Progression {
+  let out = p
+  for (const r of partsShown(p)) {
+    for (const node of nodes) out = clearCell(out, r.id, node)
+  }
+  return out
+}
+
 export function removePart(p: Progression, id: string): Progression {
   return { ...p, parts: (p.parts ?? []).filter((r) => r.id !== id) }
 }

@@ -14,6 +14,7 @@ import {
   removeLast,
   restBefore,
   setNoteLength,
+  clearSpan,
   shiftMelodyNote,
   silenceNote,
   swapMelodyNote,
@@ -281,5 +282,47 @@ describe('moving a note by octaves (David’s request)', () => {
     expect(shiftMelodyNote(low, 0, -1)).toBe(low)
     const high = typeMelody('C8', dur(1, 4)).notes
     expect(shiftMelodyNote(high, 0, 1)).toBe(high)
+  })
+})
+
+describe('clearing a bar (David’s request)', () => {
+  // Crotchets through two bars of 4/4, the fourth tied over the barline.
+  const melody = () => {
+    const m = typeMelody('C4 D E F G A B C5', dur(1, 4)).notes
+    return setNoteLength(m, 3, dur(1, 2))
+  }
+  it('takes out the notes starting in it, the others staying put', () => {
+    const m = clearSpan(melody(), dur(1, 1), dur(2, 1))
+    // C5 was pushed into bar 3 by the minim, so it stays.
+    expect(m.map((n) => formatNote(n.note))).toEqual([
+      'C4',
+      'D4',
+      'E4',
+      'F4',
+      'C5',
+    ])
+    expect(m.map((n) => n.onset)).toEqual([
+      dur(0, 1),
+      dur(1, 4),
+      dur(1, 2),
+      dur(3, 4),
+      dur(2, 1),
+    ])
+  })
+  it('cuts a note held into it at the barline', () => {
+    const m = clearSpan(melody(), dur(1, 1), dur(2, 1))
+    expect(m[3].length).toEqual(dur(1, 4))
+  })
+  it('keeps a note that only starts after it', () => {
+    const m = clearSpan(melody(), dur(0, 1), dur(1, 1))
+    expect(m.map((n) => formatNote(n.note))).toEqual(['G4', 'A4', 'B4', 'C5'])
+    expect(m[0].onset).toEqual(dur(5, 4))
+  })
+  it('drops holds past a cut note’s new end', () => {
+    const held = holdOver(typeMelody('C4 D E F', dur(1, 2)).notes, 2)
+    // D4 now rings from 1/2 through to 3/2, held at 1/2 past its onset.
+    const m = clearSpan(held, dur(1, 1), dur(2, 1))
+    expect(m[1].length).toEqual(dur(1, 2))
+    expect(m[1].holds).toBeUndefined()
   })
 })
