@@ -375,3 +375,41 @@ describe('clearing a bar of every row (David’s request)', () => {
     expect(silenceAll(build('C'), [c])).toEqual(build('C'))
   })
 })
+
+describe('rows kept apart (Phase 7 task 12)', () => {
+  it('clears a bar of one row without touching the others', () => {
+    let p = addPart(build('C', 'Am', 'F'), WALKING)
+    p = addPart(p, ARPEGGIOS)
+    p = addPart(p, { kind: 'line', mode: 'roots', roll: 0 })
+    const am = p.activePath[1]
+    const q = silenceAll(p, [am], ['r2'])
+    const [walking, arpeggios, roots] = partsShown(q)
+    expect(recipeAt(arpeggios, am)).toBeUndefined()
+    expect(recipeAt(walking, am)).toEqual(WALKING)
+    expect(recipeAt(roots, am)).toMatchObject({ mode: 'roots' })
+    expect(walking).toBe(partsShown(p)[0])
+    expect(silenceAll(p, [am], [])).toEqual(p)
+  })
+
+  it('adds a bar to the row chosen, or to a new row of its own', () => {
+    const p = build('C', 'Am', 'F')
+    const [n1, n2, n3] = p.activePath
+    let q = addCell(p, n1, WALKING)
+    q = addCell(q, n2, { kind: 'line', mode: 'roots', roll: 0 }, 'new')
+    expect(partsShown(q).map((r) => r.id)).toEqual(['r1', 'r2'])
+    expect(recipeAt(partsShown(q)[0], n2)).toBeUndefined()
+    q = addCell(q, n3, { kind: 'line', mode: 'chromatic', roll: 0 }, 'r1')
+    const [first, second] = partsShown(q)
+    expect(recipeAt(first, n3)).toMatchObject({ mode: 'chromatic' })
+    expect(recipeAt(second, n3)).toBeUndefined()
+    // Never into a row of the other kind, or one not showing.
+    expect(addCell(q, n3, ARPEGGIOS, 'r1')).toBe(q)
+    expect(addCell(q, n3, WALKING, 'r9')).toBe(q)
+  })
+
+  it('starts a new row without one of its kind showing', () => {
+    const p = build('C', 'Am')
+    const q = addCell(p, p.activePath[0], ARPEGGIOS, 'new')
+    expect(partsShown(q).map((r) => r.kind)).toEqual(['arpeggio'])
+  })
+})

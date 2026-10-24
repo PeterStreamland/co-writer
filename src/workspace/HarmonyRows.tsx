@@ -39,8 +39,9 @@ export function HarmonyRows({
   rows: HarmonyRow[]
   time: MeterMap
   barCount: number
-  // The note sounding: its row's id and its place in the row.
-  sounding?: { id: string; index: number }
+  // The note lit on each row, by the row's id: its place in the row, kept
+  // until the row's next note (Phase 7 task 13).
+  sounding: Record<string, number>
   activeBar?: number
   onActivate: (bar: number) => void
   onRemove: (id: string) => void
@@ -131,8 +132,7 @@ export function HarmonyRows({
                           )
                         }
                         const n = row.notes[g.index]
-                        const on =
-                          sounding?.id === row.id && sounding.index === g.index
+                        const on = sounding[row.id] === g.index
                         return (
                           <button
                             type="button"

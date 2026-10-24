@@ -36,6 +36,7 @@ import {
   freezeRow,
   frozenLine,
   partLabel,
+  partLabels,
   partNotes,
   recipeLabel,
 } from '../../src/workspace/parts-view'
@@ -175,6 +176,29 @@ describe('what a row plays', () => {
         cells: { n2: null },
       }),
     ).toBe('Arpeggios, bar by bar')
+  })
+
+  it('tells rows of the same name apart (Phase 7 task 12)', () => {
+    const walking = { kind: 'line', mode: 'walking', roll: 0 } as const
+    const barByBar = (id: string) => ({
+      id,
+      anchor: 'n1',
+      kind: 'line' as const,
+      cells: { n1: walking },
+    })
+    expect(
+      partLabels([
+        barByBar('r1'),
+        { id: 'r2', anchor: 'n1', recipe: walking },
+        barByBar('r3'),
+        barByBar('r4'),
+      ]),
+    ).toEqual([
+      'Lines, bar by bar',
+      'Walking',
+      'Lines, bar by bar (2)',
+      'Lines, bar by bar (3)',
+    ])
   })
 })
 

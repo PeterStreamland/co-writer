@@ -2,13 +2,34 @@
 // the rhythms a beat can take, and how much chance goes into choosing
 // each note from the next-note suggestions.
 
-// How much a phrase writes: the next few notes at the note value chosen,
-// or to the end of the bar, or of the bar after.
+// How much a phrase writes: a set number of notes (four unless chosen,
+// Phase 7 task 16), or to the end of the bar, the bar after, or four bars
+// on (David's choice).
 export const PHRASE_SIZES = [
-  { id: 'notes', label: 'A few notes', notes: 4 },
+  { id: 'notes', label: 'A set number of notes', notes: 4 },
   { id: 'bar', label: 'To the bar’s end', bars: 1 },
   { id: 'two-bars', label: 'Two bars', bars: 2 },
+  { id: 'four-bars', label: 'Four bars', bars: 4 },
 ] as const
+
+// How many notes "a set number of notes" can be (David's choice: 1 to 16).
+export const PHRASE_NOTES = { fewest: 1, most: 16 }
+
+// How long a phrase's notes are (Phase 7 task 16, David's choice): all the
+// note value chosen; varied beat by beat by the rhythms below; or mostly
+// the note value with the odd note twice as long. Unset, a set number of
+// notes is even and bars are varied, as before.
+export const PHRASE_RHYTHMS = [
+  { id: 'even', label: 'Even' },
+  { id: 'varied', label: 'Varied' },
+  { id: 'mixed', label: 'Mixed' },
+] as const
+
+export type PhraseRhythm = (typeof PHRASE_RHYTHMS)[number]['id']
+
+// In a mixed rhythm, how likely each note after the first is to last
+// twice the note value.
+export const MIXED_LONG = 0.25
 
 export type PhraseSize = (typeof PHRASE_SIZES)[number]['id']
 

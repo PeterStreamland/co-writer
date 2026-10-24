@@ -1698,3 +1698,53 @@ David asked for a harmony note to be deletable once it's tapped, and agreed each
   An option goes in only if its rules can be tested with golden fixtures; anything that can't be made reliable is left out and recorded here. Adding the task means Phase 7's gate comes later.
 
 - **Save as, load and a new song** stay where they are, in Phase 10 task 1 (David's choice).
+
+## 2026-10-24 — Rows kept apart, each with its own clear (Phase 7 task 12)
+
+The melody, each line row and each arpeggio row already sat on rows of their own, and each line or arpeggio row had its **×**. Three things still let one row run into another, and they are fixed (`addCell` and `silenceAll` in `src/sketch/parts.ts`, `partLabels` in `src/workspace/parts-view.ts`):
+
+- **The melody's own Clear:** the ♪ Melody row now has **× Clear**. It clears just the melody (its harmonies follow it), and the chords and rows stay. Undo brings it back. The Melody tab's Clear does the same.
+- **Clearing a bar of one row (my choice):** a bar's **✕** in the melody lane used to offer only **Rows**, which silenced every row there. It now lists each row by name. Picking one silences that row's bar and leaves the others playing. **Every row** is still there when there's more than one row, along with **Everything in it** and **Melody**. Each row's own bar **×** still works as before.
+- **Which row a bar goes into (my choice):** **+** on a bar in the Lines or Arpeggio tab always went into the latest row of its kind. When there is a row of that kind, it now asks: **Into** a row you name, or **A new row** with just that bar. With none, it starts a row, as before. Building a row bar by bar (walking in bar 1, chromatic in bar 3) still works by picking the same row each time. A frozen row takes no bars, as before.
+- **Row names told apart:** two rows that would have the same name are numbered, for example "Lines, bar by bar (2)", so the menus can tell them apart.
+
+## 2026-10-24 — Each row keeps its light until its next note (Phase 7 task 13)
+
+The strip's **▶ Play** lit only one note at a time across the melody, its harmonies and every row: whichever note started last. So a held melody note lost its light as soon as a row played its next note. Now each row has a light of its own (`lightsAt` in `src/workspace/along.ts`, tested in `tests/workspace/along.test.ts`):
+
+- **The note or chord sounding stays the darker colour until that row's next note takes over,** whatever the other rows do. That includes a held note and a note tied over the barline.
+- **Through a rest (my reading of David's note):** the last note stays lit until the next note on its row. When playback ends, every light goes out.
+- **Everywhere the rows play:** the strip's ▶ Play, the Melody tab's Play melody (the harmony rows now light too), and ▶ on a bar of the lane or a row.
+- Chords on the strip, and the Arpeggio and Lines tabs' own playback, already held their light until the next one, and are unchanged.
+
+## 2026-10-24 — A Harmony tab (Phase 7 task 14)
+
+The harmonies and the countermelody have moved out of the Melody tab into a **Harmony** tab beside it (`src/workspace/HarmonyPanel.tsx`). They work as before:
+
+- tap a card to hear it with the melody, lit on the instrument;
+- **+** plays it with the melody from then on, on a row of its own;
+- **More harmonies…** shows the rest, and ⓘ explains each one note by note.
+
+The tab also has its own **▶ Play melody** and **▶ Play with chords** (my choice), so a harmony can be heard without going back to the Melody tab. With no melody yet, it says so and offers **Add a melody**, which opens the Melody tab.
+
+**A fix to task 13:** the Melody tab's **▶ Play with chords** still lit one note at a time across the melody and its harmonies. It now uses a light for each row too, the same as the strip's ▶ Play.
+
+## 2026-10-24 — The Harmony cards' notes, bar by bar (Phase 7 task 15)
+
+Each Harmony card (3rds above, 6ths below, the countermelody, 3rds below and the rest) showed its notes as one long grey run of names. They are now laid out **bar by bar**, one bar to a line with "Bar n" in front (`notesByBar` in `src/workspace/melody-view.ts`). Each note is a teal chip like the notes on the harmony rows, and a note outside the key is dashed, as it is there. Hovering over a note says what it is (chord tone, passing, bent and so on). The card's explanation and ⓘ stay underneath.
+
+## 2026-10-24 — More control for Write a phrase (Phase 7 task 16, David's choices)
+
+Write a phrase in the Melody tab has three new controls (`PHRASE_SIZES`, `PHRASE_RHYTHMS` and `PHRASE_NOTES` in `src/theory/phrase-data.ts`; `generatePhrase` and `phraseSpan` take the options, and `writtenSpan` says where a phrase ends):
+
+- **How much (David's choice):** **Four bars** joins "To the bar's end" and "Two bars". "A few notes" becomes **A set number of notes**.
+- **A set number of notes (David's choice: a number box):** **Notes** sets it, from 1 to 16, four to start with. The phrase is exactly that many notes.
+- **Rhythm (David's choice: Even, Varied, Mixed):**
+  - **Even:** every note lasts the note value chosen under Tap or type.
+  - **Varied:** beat by beat from the rhythm table, as bars were written before.
+  - **Mixed:** mostly the note value, with the odd note (about one in four, never the first) twice as long.
+
+  Until a rhythm is picked, it follows the size, as before: a set number of notes is even, and bars are varied. With nothing new chosen, every take comes out exactly as it did before.
+
+- **Where it fits:** bars still end at their barline, so the last even or mixed note is cut short if needed. A set number of notes in a varied or mixed rhythm lasts as long as its notes do. Into a bar, it takes the place of the notes it covers.
+- **Every rule still holds** (the Phase 7 exit criterion): tested over every golden melody in `tests/fixtures/phrases.ts`, in every size and rhythm, with 1, 7 and 16 notes, four takes each.

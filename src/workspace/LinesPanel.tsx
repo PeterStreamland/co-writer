@@ -42,6 +42,7 @@ import {
   type LineBars,
   type LineEdits,
 } from './lines-view'
+import { AddBarButton, type RowChoice } from './AddBarButton'
 
 // The Lines tab (PLAN Phase 6 tasks 3–4, SPEC 6.2, 7.4): every line mode
 // over the progression as a suggestion, grouped as bass lines, inner voices
@@ -72,6 +73,7 @@ export function LinesPanel({
   onStop,
   onAddRow,
   onAddBar,
+  rowsOf,
   edits,
   onEdits,
   bars,
@@ -93,7 +95,10 @@ export function LinesPanel({
   // own by chord.
   onAddRow: (recipe: PartRecipe, cells?: Record<number, PartRecipe>) => void
   // Adds one chord's bar of the line to a row.
-  onAddBar: (step: number, recipe: PartRecipe) => void
+  // Adds one bar to a row: the row's id, or 'new'.
+  onAddBar: (step: number, recipe: PartRecipe, into: string) => void
+  // The rows of this tab's kind a bar can go into.
+  rowsOf: RowChoice[]
   // Every line's bars of their own, by editKey, and changing them.
   edits: Record<string, LineEdits>
   onEdits: (edits: Record<string, LineEdits>) => void
@@ -506,15 +511,12 @@ export function LinesPanel({
                     ↺
                   </button>
                 )}
-                <button
-                  type="button"
-                  class="add-bar"
-                  aria-label={`Add the line over ${label} to a row`}
-                  title="Add this bar of the line to a row"
-                  onClick={() => onAddBar(s, barRecipe(s))}
-                >
-                  + Row
-                </button>
+                <AddBarButton
+                  rows={rowsOf}
+                  text="+ Row"
+                  label={`the line over ${label}`}
+                  onAdd={(into) => onAddBar(s, barRecipe(s), into)}
+                />
               </div>
               {offChord && (
                 <p class="off-chord">

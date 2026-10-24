@@ -107,16 +107,25 @@ export function addPart(
   return { ...p, parts: [...(p.parts ?? []), part] }
 }
 
-// Adds one bar to the latest row of its kind showing, or to a new row of
-// that bar alone; the bar takes the recipe over any it had.
+// Adds one bar to a row (David's request): by default the latest row of
+// its kind showing; `into` names the row, or 'new' starts a row of that bar
+// alone, so rows can be kept apart (Phase 7 task 12). A row of its kind
+// with none showing starts one; a row named that isn't showing, or is of
+// another kind, takes nothing. The bar takes the recipe over any it had.
 export function addCell(
   p: Progression,
   node: string,
   recipe: PartRecipe,
+  into?: string,
 ): Progression {
-  const target = partsShown(p)
-    .filter((r) => partKind(r) === recipe.kind)
-    .at(-1)
+  const ofKind = partsShown(p).filter((r) => partKind(r) === recipe.kind)
+  const target =
+    into === undefined
+      ? ofKind.at(-1)
+      : into === 'new'
+        ? undefined
+        : ofKind.find((r) => r.id === into)
+  if (into !== undefined && into !== 'new' && !target) return p
   if (!target) {
     const anchor = p.activePath.at(-1)
     if (!anchor || !p.activePath.includes(node)) return p
@@ -220,10 +229,16 @@ export function shiftArpeggioNote(
 }
 
 // Every row showing left silent over some chords (David's request: clear
-// a bar), by chord node id.
-export function silenceAll(p: Progression, nodes: string[]): Progression {
+// a bar), by chord node id; or only the rows named, so clearing one row
+// never touches another (Phase 7 task 12).
+export function silenceAll(
+  p: Progression,
+  nodes: string[],
+  ids?: string[],
+): Progression {
   let out = p
   for (const r of partsShown(p)) {
+    if (ids && !ids.includes(r.id)) continue
     for (const node of nodes) out = clearCell(out, r.id, node)
   }
   return out

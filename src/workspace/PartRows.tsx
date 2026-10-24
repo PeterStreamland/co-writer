@@ -84,7 +84,9 @@ export function PartRows({
   time: MeterMap
   // How many bars the lane shows, so the rows line up with it.
   barCount: number
-  sounding?: AlongNote
+  // The note lit on each row, kept until the row's next note (Phase 7
+  // task 13).
+  sounding: AlongNote[]
   onMute: (id: string, muted: boolean) => void
   onRemove: (id: string) => void
   // Leaves one bar of a row silent.
@@ -253,7 +255,7 @@ export function PartRows({
                               n.look ?? '',
                               g.tiedIn ? 'tied-in' : '',
                               g.tiedOut ? 'tied-out' : '',
-                              n === sounding ? 'sounding' : '',
+                              sounding.includes(n) ? 'sounding' : '',
                               mine?.note === g.index ? 'selected' : '',
                             ].join(' ')}
                             style={{

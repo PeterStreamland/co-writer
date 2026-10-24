@@ -83,23 +83,20 @@ import { VoicePanel } from './VoicePanel'
 import { ArpeggioBox } from './ArpeggioBox'
 import { LinesPanel } from './LinesPanel'
 import type { LineBars, LineEdits } from './lines-view'
-import type { Along, AlongNote } from './along'
+import { lightsAt, type Along, type AlongNote } from './along'
 import { PartRows, type PartView } from './PartRows'
+import { HarmonyPanel } from './HarmonyPanel'
 import { HarmonyRows } from './HarmonyRows'
 import { MelodyLane } from './MelodyLane'
+import type { RowChoice } from './AddBarButton'
 import { MelodyPanel, type MelodyEntry, type MelodyLight } from './MelodyPanel'
-import {
-  MELODY_LOOK,
-  harmonyLook,
-  harmonyRows,
-  melodyAlong,
-  rangeFromSetting,
-} from './melody-view'
-import { freezeRow, frozenLine, partLabel, partNotes } from './parts-view'
+import { harmonyRows, melodyAlong, rangeFromSetting } from './melody-view'
+import { freezeRow, frozenLine, partLabels, partNotes } from './parts-view'
 import { melodyStrips } from './melody-strips'
 import { Timeline } from './Timeline'
 import {
   addCell,
+  partKind,
   addPart,
   clearCell,
   partsShown,
@@ -181,6 +178,24 @@ import {
 
 // How long after the current chord a previewed suggestion plays.
 const PREVIEW_GAP_MS = 900
+
+// The rows that light while playing, each with a light of its own
+// (Phase 7 task 13).
+const MELODY_VOICE = 'melody'
+const rowVoice = (id: string) => `row:${id}`
+const harmonyVoice = (id: string) => `harmony:${id}`
+
+// Notes of the melody or a harmony as a row that lights: every note,
+// found by its place.
+function asVoice(notes: MelodyNote[]): AlongNote[] {
+  return notes.map((m, ref) => ({
+    step: -1,
+    onset: m.onset,
+    length: m.length,
+    note: m.note,
+    ref,
+  }))
+}
 
 // The single workspace (SPEC 2): the key picker in the header; the stage,
 // with the scale above the instrument view and MIDI input below it (David's
@@ -670,6 +685,9 @@ export function Workspace() {
   // the one sounding.
   const [along, setAlong] = useState<Along>()
   const [alongAt, setAlongAt] = useState<AlongNote>()
+  // The note lit on each row under the strip (the melody, each harmony,
+  // each row), each kept until that row's next note (Phase 7 task 13).
+  const [rowLights, setRowLights] = useState<Record<string, AlongNote>>({})
   const playAlong = (notes: Along) => {
     setAlong(notes)
     setPlayingAt(0)
@@ -681,6 +699,7 @@ export function Workspace() {
       setPulse(undefined)
       setAlong(undefined)
       setAlongAt(undefined)
+      setRowLights({})
       return
     }
     const n = path[playingAt]
@@ -701,6 +720,8 @@ export function Workspace() {
             setTimeout(
               () => {
                 setAlongAt(note)
+                if (along?.voices)
+                  setRowLights(lightsAt(along.voices, note.onset))
                 void playNote(
                   note.note,
                   secondsOf(note.length, bpm, time.meter),
@@ -813,26 +834,29 @@ export function Workspace() {
     soloTimers.current.forEach(clearTimeout)
     soloTimers.current = []
     setSoloAt(undefined)
+    setRowLights({})
   }
   function playMelody() {
     stopSolo()
     setPlayingAt(undefined)
     const ms = (d: { n: number; d: number }) =>
       secondsOf(d, bpm, time.meter) * 1000
+    const voices = melodyVoices()
     melody.forEach((m, i) => {
       soloTimers.current.push(
         window.setTimeout(() => {
           setSoloAt(i)
+          setRowLights(lightsAt(voices, m.onset))
           void playNote(m.note, secondsOf(m.length, bpm, time.meter))
         }, ms(m.onset)),
       )
     })
     harmonyNotes.forEach((m) => {
       soloTimers.current.push(
-        window.setTimeout(
-          () => void playNote(m.note, secondsOf(m.length, bpm, time.meter)),
-          ms(m.onset),
-        ),
+        window.setTimeout(() => {
+          setRowLights(lightsAt(voices, m.onset))
+          void playNote(m.note, secondsOf(m.length, bpm, time.meter))
+        }, ms(m.onset)),
       )
     })
     const last = melody.at(-1)
@@ -845,7 +869,7 @@ export function Workspace() {
   useEffect(() => stopSolo, [])
   const lastPlaced = timing.at(-1)
   const sectionEnd = lastPlaced && addDur(lastPlaced.start, lastPlaced.length)
-  const melodySounding = alongAt?.look === MELODY_LOOK ? alongAt.ref : soloAt
+  const melodySounding = rowLights[MELODY_VOICE]?.ref ?? soloAt
   // How many bars the chords cover, so the lane shows each of them.
   const chordsEnd = barPosition(time, sectionEnd ?? ZERO)
   const chordBars = !sectionEnd
@@ -870,8 +894,9 @@ export function Workspace() {
   function playSpan(
     start: Dur,
     length: Dur,
-    notes: (MelodyNote & { ref?: number; look?: string })[],
+    voices: Record<string, AlongNote[]>,
   ) {
+    const notes = Object.values(voices).flat()
     spanTimers.current.forEach(clearTimeout)
     spanTimers.current = []
     stopSolo()
@@ -906,7 +931,7 @@ export function Workspace() {
       spanTimers.current.push(
         window.setTimeout(
           () => {
-            if (m.look === MELODY_LOOK && m.ref !== undefined) setSoloAt(m.ref)
+            setRowLights(lightsAt(voices, m.onset))
             void playNote(m.note, secondsOf(m.length, bpm, time.meter))
           },
           ms(subDur(m.onset, start)),
@@ -914,7 +939,7 @@ export function Workspace() {
       )
     }
     spanTimers.current.push(
-      window.setTimeout(() => setSoloAt(undefined), ms(length)),
+      window.setTimeout(() => setRowLights({}), ms(length)),
     )
   }
   // Tapping a note in the lane (David's request) offers notes for its
@@ -948,10 +973,13 @@ export function Workspace() {
   }
   const editsOf = (id: string) => progression.harmonyEdits?.[id] ?? []
   const harmonyNotes = harmonies.flatMap((r) => r.notes)
-  const harmonyAlong = harmonies.flatMap((r) => r.along)
-  const harmonySounding = harmonies.find(
-    (r) => alongAt?.look === harmonyLook(r.id),
-  )
+  // The melody and its harmonies as rows that light, every note on each.
+  const melodyVoices = (): Record<string, AlongNote[]> => ({
+    [MELODY_VOICE]: asVoice(melody),
+    ...Object.fromEntries(
+      harmonies.map((r) => [harmonyVoice(r.id), asVoice(r.notes)]),
+    ),
+  })
   function setHarmonies(ids: string[]) {
     setHistory((h) => {
       const p: Progression = { ...h.present, harmonies: ids }
@@ -1002,10 +1030,7 @@ export function Workspace() {
           return
         }
         stopSolo()
-        playAlong({
-          source: melody,
-          notes: [...melodyAlong(melody, timing), ...harmonyAlong],
-        })
+        playMelodyAlong()
       }}
       onPlayChords={() => {
         stopSolo()
@@ -1023,8 +1048,42 @@ export function Workspace() {
       onRangeSetting={(melodyRange) =>
         setHistory((h) => record(h, { ...h.present, melodyRange }))
       }
+    />
+  )
+  // The melody with its harmonies along with the chords, each lit on its
+  // own row (Phase 7 task 13).
+  function playMelodyAlong() {
+    const voices: Record<string, AlongNote[]> = {
+      [MELODY_VOICE]: melodyAlong(melody, timing),
+      ...Object.fromEntries(
+        harmonies.map((r) => [harmonyVoice(r.id), r.along]),
+      ),
+    }
+    playAlong({ source: melody, notes: Object.values(voices).flat(), voices })
+  }
+  // The Harmony tab (Phase 7 task 14): harmonies and the countermelody.
+  const harmonyPanel = (
+    <HarmonyPanel
+      melody={melody}
+      keyValue={key}
+      chords={melodyChords}
+      time={time}
+      bpm={bpm}
       harmonies={harmonyIds}
       onHarmonies={setHarmonies}
+      onLight={setMelodyLight}
+      playing={playingAt !== undefined || soloAt !== undefined}
+      canPlayChords={sectionEnd !== undefined}
+      onPlay={(withChords) => {
+        stopSolo()
+        if (withChords) playMelodyAlong()
+        else playMelody()
+      }}
+      onStop={() => {
+        stopSolo()
+        setPlayingAt(undefined)
+      }}
+      onOpenMelody={() => setTab('melody')}
     />
   )
   const strip = (
@@ -1044,12 +1103,17 @@ export function Workspace() {
         // The rows that aren't muted play along with the chords.
         // So does the melody.
         const playing = rows.filter((r) => !r.part.muted)
-        const notes = [
-          ...playing.flatMap((r) => r.notes),
-          ...melodyAlong(melody, timing),
-          ...harmonyAlong,
-        ]
-        setAlong(notes.length ? { source: rows, notes } : undefined)
+        const voices: Record<string, AlongNote[]> = {
+          ...Object.fromEntries(
+            playing.map((r) => [rowVoice(r.part.id), r.notes]),
+          ),
+          [MELODY_VOICE]: melodyAlong(melody, timing),
+          ...Object.fromEntries(
+            harmonies.map((r) => [harmonyVoice(r.id), r.along]),
+          ),
+        }
+        const notes = Object.values(voices).flat()
+        setAlong(notes.length ? { source: rows, notes, voices } : undefined)
         setPlayingAt(0)
       }}
       onStop={() => setPlayingAt(undefined)}
@@ -1195,15 +1259,15 @@ export function Workspace() {
   }, [progression, timing, key, freeChord && chordKey(freeChord), suggestKey])
   // The rows of lines and arpeggios under the strip (David's request): the
   // branch's rows, each played over the chords as they are now.
-  const rows = useMemo<PartView[]>(
-    () =>
-      partsShown(progression).map((part) => ({
-        part,
-        label: partLabel(part),
-        notes: partNotes(part, progression, key, timing, guitar),
-      })),
-    [progression, key, timing, guitar],
-  )
+  const rows = useMemo<PartView[]>(() => {
+    const shown = partsShown(progression)
+    const labels = partLabels(shown)
+    return shown.map((part, i) => ({
+      part,
+      label: labels[i],
+      notes: partNotes(part, progression, key, timing, guitar),
+    }))
+  }, [progression, key, timing, guitar])
   const addRow = (recipe: PartRecipe, cells?: Record<number, PartRecipe>) =>
     change(
       addPart(
@@ -1224,18 +1288,24 @@ export function Workspace() {
   const [lineEdits, setLineEdits] = useState<Record<string, LineEdits>>({})
   // Each bar's notes and refreshes, whatever the line (David's request).
   const [lineBars, setLineBars] = useState<LineBars>({})
-  // + on one bar adds just that bar to a row (David's request).
-  const addBar = (step: number, recipe: PartRecipe) =>
-    change(addCell(progression, path[step].id, recipe), selected)
+  // + on one bar adds just that bar to a row (David's request): the one
+  // picked, or a new row (Phase 7 task 12).
+  const addBar = (step: number, recipe: PartRecipe, into: string) =>
+    change(addCell(progression, path[step].id, recipe, into), selected)
+  // The rows of a kind a bar can go into; a frozen row takes none.
+  const rowsOf = (kind: PartRecipe['kind']): RowChoice[] =>
+    rows
+      .filter((r) => partKind(r.part) === kind)
+      .map((r) => ({ id: r.part.id, label: r.label }))
   const [arpeggioShow, setArpeggioShow] = useState<ArpeggioOnShow>()
   // The Arpeggio and Lines tabs light their notes on the instrument while
   // open.
   const arpeggioOn =
     tab === 'arpeggio' || tab === 'lines' ? arpeggioShow : undefined
   // A melody suggestion being previewed lights on the instrument, labelled
-  // by degree, while the Melody tab is open.
+  // by degree, while the Melody or Harmony tab is open.
   const melodyShow: ArpeggioShow | undefined =
-    tab === 'melody' && melodyLight
+    (tab === 'melody' || tab === 'harmony') && melodyLight
       ? {
           name: 'Melody',
           notes: melodyLight.notes.map((note) => ({
@@ -1262,6 +1332,7 @@ export function Workspace() {
       onStop={() => setPlayingAt(undefined)}
       onAddRow={addRow}
       onAddBar={addBar}
+      rowsOf={rowsOf('line')}
       edits={lineEdits}
       onEdits={setLineEdits}
       bars={lineBars}
@@ -1283,6 +1354,7 @@ export function Workspace() {
       onStop={() => setPlayingAt(undefined)}
       onAddRow={addRow}
       onAddBar={addBar}
+      rowsOf={rowsOf('arpeggio')}
     />
   )
   // The chord box beside the side panel (David's layout); on a phone it
@@ -1402,10 +1474,16 @@ export function Workspace() {
               }}
               chords={rowChords}
               barCount={laneBars}
+              rowNames={rows.map((r) => ({ id: r.part.id, label: r.label }))}
+              onClear={() => {
+                setMelody([])
+                setMelodyEntry((e) => ({ ...e, gap: ZERO }))
+              }}
               onClearBar={(start, length, what) => {
                 const end = addDur(start, length)
                 let next = progression
-                if (what !== 'rows') {
+                const row = typeof what === 'object' ? what.row : undefined
+                if (what === 'all' || what === 'melody') {
                   const cleared = clearSpan(melody, start, end)
                   next = { ...next, melody: cleared }
                   if (!cleared.length) delete next.melody
@@ -1422,7 +1500,11 @@ export function Workspace() {
                         ) > 0,
                     )
                     .map((n) => n.id)
-                  next = silenceAll(next, nodes)
+                  next = silenceAll(
+                    next,
+                    nodes,
+                    row === undefined ? undefined : [row],
+                  )
                 }
                 setLaneAt(undefined)
                 change(next, selected)
@@ -1431,10 +1513,7 @@ export function Workspace() {
               onActivate={setActiveBar}
               onPlayBar={(start, length, bar) => {
                 setActiveBar(bar)
-                playSpan(start, length, [
-                  ...melody.map((m, ref) => ({ ...m, ref, look: MELODY_LOOK })),
-                  ...harmonyNotes,
-                ])
+                playSpan(start, length, melodyVoices())
               }}
               onOctave={(by) => {
                 if (laneSelected === undefined) return
@@ -1476,10 +1555,12 @@ export function Workspace() {
               rows={harmonies}
               time={time}
               barCount={laneBars}
-              sounding={
-                harmonySounding &&
-                alongAt && { id: harmonySounding.id, index: alongAt.ref }
-              }
+              sounding={Object.fromEntries(
+                harmonies.flatMap((r) => {
+                  const on = rowLights[harmonyVoice(r.id)]
+                  return on ? [[r.id, on.ref]] : []
+                }),
+              )}
               activeBar={melodyEntry.phraseBar}
               onActivate={setActiveBar}
               onRemove={(id) =>
@@ -1513,7 +1594,10 @@ export function Workspace() {
               chords={rowChords}
               time={time}
               barCount={laneBars}
-              sounding={along?.source === rows ? alongAt : undefined}
+              sounding={rows.flatMap((r) => {
+                const on = rowLights[rowVoice(r.part.id)]
+                return on ? [on] : []
+              })}
               onMute={(id, muted) =>
                 change(setPartMuted(progression, id, muted), selected)
               }
@@ -1523,11 +1607,11 @@ export function Workspace() {
               }
               onPlayBar={(id, step) => {
                 const row = rows.find((r) => r.part.id === id)
-                playSpan(
-                  timing[step].start,
-                  timing[step].length,
-                  (row?.notes ?? []).filter((n) => n.step === step),
-                )
+                playSpan(timing[step].start, timing[step].length, {
+                  [rowVoice(id)]: (row?.notes ?? []).filter(
+                    (n) => n.step === step,
+                  ),
+                })
               }}
               onShift={(id, by, step) =>
                 change(
@@ -1588,6 +1672,7 @@ export function Workspace() {
             { id: 'arpeggio', label: 'Arpeggio', content: arpeggio },
             { id: 'lines', label: 'Lines', content: lines },
             { id: 'melody', label: 'Melody', content: melodyPanel },
+            { id: 'harmony', label: 'Harmony', content: harmonyPanel },
           ]}
           open={sheetOpen}
           onOpenChange={setSheetOpen}

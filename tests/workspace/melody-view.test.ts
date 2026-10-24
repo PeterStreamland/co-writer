@@ -13,6 +13,7 @@ import {
   harmonyLook,
   harmonyRows,
   melodyAlong,
+  notesByBar,
   rangeFromSetting,
 } from '../../src/workspace/melody-view'
 
@@ -125,5 +126,43 @@ describe('rows for the harmonies (Phase 7 task 11)', () => {
 
   it('has no rows with no harmonies chosen', () => {
     expect(harmonyRows([], ctx, timing)).toEqual([])
+  })
+})
+
+// The Harmony cards show their notes bar by bar (Phase 7 task 15).
+describe('notes bar by bar', () => {
+  const at = (n: number, d: number) => ({ n, d })
+  const note = (name: string, onset: { n: number; d: number }) => ({
+    note: parseNote(name)!,
+    onset,
+    length: at(1, 4),
+  })
+
+  it('groups notes by the bar they start in, keeping each one’s place', () => {
+    const notes = [
+      note('G4', at(0, 1)),
+      note('F4', at(1, 4)),
+      note('A4', at(1, 1)),
+      note('B4', at(9, 4)),
+    ]
+    const bars = notesByBar(notes, { meter: { num: 4, den: 4 } })
+    expect(bars.map((b) => b.bar)).toEqual([1, 2, 3])
+    expect(bars.map((b) => b.notes.map((n) => formatNote(n.note)))).toEqual([
+      ['G4', 'F4'],
+      ['A4'],
+      ['B4'],
+    ])
+    expect(bars[2].notes[0].place).toBe(3)
+  })
+
+  it('follows bars of their own length, and skips empty bars', () => {
+    // A 3/4 bar 1, then 4/4: a note at beat 4 falls in bar 2.
+    const time = {
+      meter: { num: 4, den: 4 },
+      barMeters: { 1: { num: 3, den: 4 } },
+    }
+    const bars = notesByBar([note('C4', at(3, 4)), note('D4', at(11, 4))], time)
+    expect(bars.map((b) => b.bar)).toEqual([2, 4])
+    expect(notesByBar([], time)).toEqual([])
   })
 })
