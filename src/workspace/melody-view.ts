@@ -13,7 +13,9 @@ import {
   pruneCounterpointEdits,
   editHarmony,
   harmonise,
-  harmonyKind,
+  harmonyPlaying,
+  harmonyPlayingLabel,
+  spanMelody,
   melodyRange,
   pruneHarmonyEdits,
   midiNumber,
@@ -80,14 +82,19 @@ export function harmonyRows(
   edits: Record<string, HarmonyEdit[]> = {},
 ): HarmonyRow[] {
   return ids.flatMap((id) => {
-    const kind = harmonyKind(id)
-    if (!kind) return []
-    const own = pruneHarmonyEdits(ctx.melody, edits[id] ?? [])
-    const notes = editHarmony(ctx, harmonise(ctx, id).notes, own)
+    const playing = harmonyPlaying(id)
+    if (!playing) return []
+    const heard = harmonyContext(id, ctx)
+    const own = pruneHarmonyEdits(heard.melody, edits[id] ?? [])
+    const notes = editHarmony(
+      heard,
+      harmonise(heard, playing.kind.id).notes,
+      own,
+    )
     return [
       {
         id,
-        label: kind.label,
+        label: harmonyPlayingLabel(id),
         notes,
         along: melodyAlong(notes, timing, harmonyLook(id)),
         edited: own.length,
@@ -143,6 +150,19 @@ export function counterpointRows(
       },
     ]
   })
+}
+
+// What a harmony harmonises: the melody, or on a grid (David's request)
+// the note sounding at each step, held for the step. Its notes and your
+// edits are placed against this.
+export function harmonyContext(
+  id: string,
+  ctx: HarmonyContext,
+): HarmonyContext {
+  const unit = harmonyPlaying(id)?.unit ?? 'note'
+  return unit === 'note'
+    ? ctx
+    : { ...ctx, melody: spanMelody(ctx.melody, ctx.time, unit) }
 }
 
 // The look a harmony's notes play along with: harmony-3rd-above.

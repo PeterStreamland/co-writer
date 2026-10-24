@@ -19,6 +19,9 @@ import {
   setCounterpointEdit,
   typeMelody,
   type CounterpointOptions,
+  type SpanUnit,
+  melodySpans,
+  SPAN_UNITS,
   type Dur,
   type HarmonyContext,
   type MeterMap,
@@ -83,9 +86,17 @@ const midi = (n: { note: Parameters<typeof midiNumber>[0] }) =>
 describe('checking counterpoint against the rules (golden)', () => {
   for (const f of counterpointChecks) {
     it(f.name, () => {
-      const ctx = cantusContext(f.key, f.melody)
+      const ctx = {
+        ...cantusContext(f.key, f.melody),
+        melody: typeMelody(f.melody, value(f.melodyValue ?? '1')).notes,
+      }
       const line = typeMelody(f.line, value(f.value)).notes
-      const o = { species: f.species, side: f.side, mode: f.mode }
+      const o: CounterpointOptions = {
+        species: f.species,
+        side: f.side,
+        mode: f.mode,
+        ...(f.unit && { unit: f.unit as SpanUnit }),
+      }
       const { breaks, notes } = checkCounterpoint(ctx, o, line)
       expect(breaks.map((b) => `${b.ruleId}@${b.place}`)).toEqual(f.breaks)
       // Every break is in words, and on its note.
@@ -152,7 +163,11 @@ describe('suspensions and the leading note', () => {
     const f = counterpointChecks.find((x) => x.name.includes('no leading'))!
     const ctx = cantusContext(f.key, f.melody)
     const line = typeMelody(f.line, value(f.value)).notes
-    const [b] = checkCounterpoint(ctx, f, line).breaks
+    const [b] = checkCounterpoint(
+      ctx,
+      { species: f.species, side: f.side, mode: f.mode },
+      line,
+    ).breaks
     expect(b.text).toContain('raise C5 to C♯5')
   })
 })
@@ -364,4 +379,84 @@ describe('your own notes in a line', () => {
         .forEach((x) => expect(x.tags).toContain('break'))
     }
   })
+})
+
+describe('lines on a steady grid (every bar, ½ bar and so on)', () => {
+  const units = SPAN_UNITS.map((u) => u.id).filter((u) => u !== 'note')
+
+  it('every bar against semibreves is the same as each note', () => {
+    const c = CANTUS[0]
+    const ctx = cantusContext(c.key, c.melody)
+    for (const species of [1, 2, 4] as const) {
+      const o: CounterpointOptions = { species, side: 'above', mode: 'strict' }
+      expect(counterpoint(ctx, { ...o, unit: 'bar' }).notes).toEqual(
+        counterpoint(ctx, o).notes,
+      )
+    }
+  })
+
+  it('round-trips ids with a grid', () => {
+    for (const unit of units) {
+      const o: CounterpointOptions = {
+        species: 3,
+        side: 'below',
+        mode: 'freer',
+        unit,
+      }
+      expect(counterpointOptions(counterpointId(o))).toEqual(o)
+    }
+    expect(counterpointOptions('1-above-strict-note')).toEqual({
+      species: 1,
+      side: 'above',
+      mode: 'strict',
+    })
+    expect(counterpointOptions('1-above-strict-fortnight')).toBeUndefined()
+  })
+
+  for (const r of RHYTHMIC) {
+    const ctx = rhythmicContext(r)
+    for (const unit of units) {
+      it(`${r.name}, ${unit}`, () => {
+        const spans = melodySpans(ctx.melody, ctx.time, unit)
+        for (const species of [1, 2, 3, 4, 5] as const) {
+          const o: CounterpointOptions = {
+            species,
+            side: species % 2 ? 'below' : 'above',
+            mode: 'strict',
+            unit,
+          }
+          const line = counterpoint(ctx, o)
+          expect(line.notes.length).toBeGreaterThan(0)
+          // First species: one note on each step of the grid.
+          if (species === 1) {
+            expect(line.notes.map((n) => n.onset)).toEqual(
+              spans.map((sp) => sp.onset),
+            )
+          }
+          // Every note sounds with the melody and stays on its side.
+          for (const n of line.notes) {
+            const under = ctx.melody.find(
+              (m) =>
+                compareDur(m.onset, n.onset) <= 0 &&
+                compareDur(n.onset, end(m)) < 0,
+            )
+            expect(under).toBeDefined()
+            const gap = midi(n) - midi(under!)
+            if (o.side === 'above') expect(gap).toBeGreaterThanOrEqual(0)
+            else expect(gap).toBeLessThanOrEqual(0)
+          }
+          // Every break is tagged and explained; never parallels.
+          for (const b of line.breaks) {
+            expect(line.notes[b.place].tags).toContain('break')
+            expect(line.notes[b.place].explanation).toContain(b.text)
+          }
+          expect(line.breaks.filter((b) => b.ruleId === 'cp-parallel')).toEqual(
+            [],
+          )
+          // The line ends with the melody's last note.
+          expect(line.notes.at(-1)!.onset).toEqual(ctx.melody.at(-1)!.onset)
+        }
+      })
+    }
+  }
 })

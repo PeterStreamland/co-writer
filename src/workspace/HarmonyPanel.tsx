@@ -3,14 +3,19 @@ import {
   HARMONY_TAG_TEXT,
   ZERO,
   formatNote,
+  SPAN_UNITS,
   harmonyKind,
   harmonyOptions,
+  harmonyPlayingId,
+  harmonyPlayingLabel,
+  spanMelody,
   subDur,
   type HarmonySuggestion,
   type Key,
   type MelodyChord,
   type MelodyNote,
   type MeterMap,
+  type SpanUnit,
 } from '../theory'
 import { playNote } from '../audio/player'
 import { secondsOf } from '../sketch/time'
@@ -74,8 +79,12 @@ export function HarmonyPanel({
   // Harmonies (Phase 7 task 5): 3rds above first, 6ths below next, a
   // countermelody, the rest behind More. Tap one to hear it with the
   // melody; + to play it with the melody from then on.
+  // How often the harmonies move (David's request): with each note, or
+  // the note sounding at each step of a grid, held for the step.
+  const [unit, setUnit] = useState<SpanUnit>('note')
+  const heard = spanMelody(melody, time, unit)
   const harmonyChoices = harmonyOptions({
-    melody,
+    melody: heard,
     key: keyValue,
     chords,
     time,
@@ -86,8 +95,10 @@ export function HarmonyPanel({
   )
   const harmonyCard = (s: HarmonySuggestion) => {
     const kind = harmonyKind(s.candidate.kind)!
-    const id = `harmony-${kind.id}`
-    const on = harmonies.includes(kind.id)
+    const playingId = harmonyPlayingId(kind.id, unit)
+    const label = harmonyPlayingLabel(playingId)
+    const id = `harmony-${playingId}`
+    const on = harmonies.includes(playingId)
     const notes = s.candidate.notes
     return (
       <li
@@ -104,7 +115,7 @@ export function HarmonyPanel({
             hear([...melody, ...notes])
           }}
         >
-          <span class="symbol">{kind.label}</span>
+          <span class="symbol">{label}</span>
           {on && <span class="badge">Playing</span>}
         </button>
         <button
@@ -112,26 +123,20 @@ export function HarmonyPanel({
           class="accept"
           aria-pressed={on}
           aria-label={
-            on
-              ? `Stop playing ${kind.label}`
-              : `Play ${kind.label} with the melody`
+            on ? `Stop playing ${label}` : `Play ${label} with the melody`
           }
-          title={
-            on
-              ? `Stop playing ${kind.label}`
-              : `Play ${kind.label} with the melody`
-          }
+          title={on ? `Stop playing ${label}` : `Play ${label} with the melody`}
           onClick={() =>
             onHarmonies(
               on
-                ? harmonies.filter((h) => h !== kind.id)
-                : [...harmonies, kind.id],
+                ? harmonies.filter((h) => h !== playingId)
+                : [...harmonies, playingId],
             )
           }
         >
           {on ? '✓' : '+'}
         </button>
-        <ol class="harmony-bars" aria-label={`${kind.label}, bar by bar`}>
+        <ol class="harmony-bars" aria-label={`${label}, bar by bar`}>
           {notesByBar(notes, time).map((b) => (
             <li key={b.bar}>
               <span class="harmony-bar-name">Bar {b.bar}</span>
@@ -157,7 +162,7 @@ export function HarmonyPanel({
           {s.explanation}{' '}
           <InfoToggle
             open={openId === id}
-            label={kind.label}
+            label={label}
             onToggle={() => setOpenId(openId === id ? undefined : id)}
           />
         </p>
@@ -220,11 +225,31 @@ export function HarmonyPanel({
           </>
         )}
       </div>
+      <div class="melody-bar phrase-bar">
+        <label>
+          Harmonise
+          <select
+            value={unit}
+            title="How often the harmonies move: with each melody note, or the note sounding at each step, held for the step"
+            onChange={(e) => {
+              setUnit(e.currentTarget.value as SpanUnit)
+              setPreviewId(undefined)
+              onLight(undefined)
+            }}
+          >
+            {SPAN_UNITS.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
       <div class="suggest melody-suggest">
         <p class="muted">
           {harmonies.length
             ? `Playing with the melody: ${harmonies
-                .map((h) => harmonyKind(h)?.label ?? h)
+                .map(harmonyPlayingLabel)
                 .join(
                   ', ',
                 )}. They follow the melody as it changes; ✓ stops one.`

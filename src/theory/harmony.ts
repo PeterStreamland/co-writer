@@ -36,6 +36,7 @@ import {
   type Note,
 } from './note'
 import { scaleNotes, type Key } from './scale'
+import { isSpanUnit, spanUnit, type SpanUnit } from './spans'
 import { fillTemplate, makeSuggestion, type Suggestion } from './suggestion'
 
 export * from './harmony-data'
@@ -421,6 +422,30 @@ function countermelody(ctx: HarmonyContext): HarmonyNote[] {
 
 export function harmonyKind(id: string): HarmonyKind | undefined {
   return HARMONY_KINDS.find((k) => k.id === id)
+}
+
+// A harmony playing with the melody: its kind, and how often it moves
+// (David's request): with each melody note, or on a grid ('3rd-above@half'
+// harmonises the note sounding at each half bar, held for the half bar).
+export function harmonyPlaying(
+  id: string,
+): { kind: HarmonyKind; unit: SpanUnit } | undefined {
+  const [kindId, unit = 'note', ...more] = id.split('@')
+  const kind = harmonyKind(kindId)
+  if (!kind || more.length || !isSpanUnit(unit)) return undefined
+  return { kind, unit }
+}
+
+export function harmonyPlayingId(kind: string, unit: SpanUnit): string {
+  return unit === 'note' ? kind : `${kind}@${unit}`
+}
+
+// "3rds above", "3rds above, every ½ bar".
+export function harmonyPlayingLabel(id: string): string {
+  const playing = harmonyPlaying(id)
+  if (!playing) return id
+  const { kind, unit } = playing
+  return unit === 'note' ? kind.label : `${kind.label}, ${spanUnit(unit).short}`
 }
 
 // The melody harmonised by one kind (a HARMONY_KINDS id).

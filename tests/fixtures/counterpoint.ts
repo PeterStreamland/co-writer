@@ -18,6 +18,8 @@ export type CounterpointCheckFixture = {
   side: 'above' | 'below'
   mode: 'strict' | 'freer'
   value: string // the length of each word of the line: '1', '1/2'
+  melodyValue?: string // each word of the melody, a semibreve if unset
+  unit?: string // how often the line moves (SPAN_UNITS), each note if unset
   line: string
   // Every rule the line breaks, as rule@place (the line note's index),
   // in order; [] when it keeps every rule.
@@ -330,6 +332,40 @@ export const counterpointChecks: CounterpointCheckFixture[] = [
     value: '1/2',
     line: 'E4 C4 D4 G4 A4 E4 F#4 G#4 A4 -',
     breaks: [],
+  },
+  {
+    // Every bar against crotchets (David's request). Bar 1: C4 under
+    // C D E F: P1 to start, then D (M2) and F (P4) clash but are passing
+    // notes in the melody, reached and left by step. Bar 2: B3 under G F E
+    // D: m6 on the beat (contrary to the melody), then F (A4) and E (P4)
+    // pass, D is a m3. C4 under C4 to end: B rises a semitone as the
+    // melody falls D–C.
+    name: 'every bar against crotchets, the melody passing',
+    key: 'C major',
+    melody: 'C4 D4 E4 F4 G4 F4 E4 D4 C4 - - -',
+    melodyValue: '1/4',
+    unit: 'bar',
+    species: 1,
+    side: 'below',
+    mode: 'strict',
+    value: '1',
+    line: 'C4 B3 C4',
+    breaks: [],
+  },
+  {
+    // As above, but F is reached by a leap from C: C4 under F, a 4th, is a
+    // clash the melody doesn't pass through.
+    name: 'every bar, a clash with a melody note reached by a leap',
+    key: 'C major',
+    melody: 'C4 F4 E4 F4 G4 F4 E4 D4 C4 - - -',
+    melodyValue: '1/4',
+    unit: 'bar',
+    species: 1,
+    side: 'below',
+    mode: 'strict',
+    value: '1',
+    line: 'C4 B3 C4',
+    breaks: ['cp-melody-clash@0'],
   },
 ]
 
