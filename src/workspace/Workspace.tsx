@@ -131,7 +131,7 @@ import { addLensVoicings } from './lens-columns'
 import { StyleBlendControl } from './StyleBlendControl'
 import { loadStyles } from './style-editor'
 import { blendedWeights, loadBlend, saveBlend } from './style-blend'
-import { ProgressionStrip, type Pulse } from './ProgressionStrip'
+import { ProgressionStrip, TimeAndTempo, type Pulse } from './ProgressionStrip'
 import {
   EMPTY_PROGRESSION,
   addAfter,
@@ -1304,9 +1304,8 @@ export function Workspace() {
         const next = selectNode(progression, id)
         change(next, next.activePath.indexOf(id))
       }}
-      bpm={bpm}
-      onBpmChange={setBpm}
       pulse={pulse}
+      barCount={laneBars}
       time={time}
       timing={timing}
       onTimeChange={setTime}
@@ -1554,6 +1553,12 @@ export function Workspace() {
       <header class="top">
         <h1 class="app-name">Co-Writer</h1>
         <KeyPicker value={key} onChange={setKey} />
+        <TimeAndTempo
+          time={time}
+          bpm={bpm}
+          onTimeChange={setTime}
+          onBpmChange={setBpm}
+        />
         <StyleBlendControl styles={styles} value={blend} onChange={setBlend} />
       </header>
       <div class="layout">
@@ -1589,8 +1594,8 @@ export function Workspace() {
             shapesOn={instrument === 'guitar' ? 'keyboard' : 'guitar'}
             onShowShapes={showShapes}
           />
-          {strip}
           <Timeline>
+            {strip}
             <MelodyLane
               toolsOpen={focus === 'lane-bar'}
               onTools={() => setFocus('lane-bar')}

@@ -19,6 +19,7 @@ import {
   DEFAULT_CHORD_STYLE,
   ROLL_GAP,
   STAB_SOUNDS,
+  PATTERN_STYLES,
   STRUM_BAR_PATTERNS,
   STRUM_BEAT_PATTERNS,
   UP_STRUM_NOTES,
@@ -51,7 +52,18 @@ export function chordStyle(id: string | undefined): ChordStyleId {
 // What a slot of a style plays: every note, the bass alone, the notes
 // above it, a short stab, a strum down or up, a rest, or nothing new
 // (the hit before rings on).
-type Kind = 'all' | 'bass' | 'upper' | 'stab' | 'down' | 'up' | 'rest' | 'ring'
+// `p${n}` is one note: from the bottom (p0 the lowest) or, negative, from
+// the top (p-1 the highest).
+type Kind =
+  | 'all'
+  | 'bass'
+  | 'upper'
+  | 'stab'
+  | 'down'
+  | 'up'
+  | 'rest'
+  | 'ring'
+  | `p${number}`
 type Piece = { from: Dur; to: Dur; kind: Kind }
 
 // The counted beats the chord covers, whole, from the start of the section.
@@ -102,6 +114,47 @@ function split(start: Dur, length: Dur, kinds: Kind[]): Piece[] {
 
 const STROKES: Record<string, Kind> = { D: 'down', U: 'up', '.': 'ring' }
 
+// A pattern style's symbols (PATTERN_STYLES).
+function patternKind(c: string): Kind {
+  if (c >= '1' && c <= '9') return `p${Number(c) - 1}`
+  if (c >= 'a' && c <= 'f') return `p${-(c.charCodeAt(0) - 96)}`
+  const kinds: Record<string, Kind> = {
+    X: 'all',
+    B: 'bass',
+    U: 'upper',
+    S: 'stab',
+    '.': 'ring',
+    '-': 'rest',
+  }
+  return kinds[c] ?? 'all'
+}
+
+// A pattern laid over the beats a chord covers: each bar's own where its
+// time signature has one, else each beat's.
+function patterned(
+  beats: ReturnType<typeof beatsCovered>,
+  time: MeterMap,
+  bars: Record<string, string>,
+  perBeat: Record<number, string>,
+  kindOf: (c: string) => Kind,
+): Piece[] {
+  const pieces: Piece[] = []
+  const barsDone = new Set<number>()
+  for (const b of beats) {
+    const meter = meterOfBar(time, b.bar)
+    const own = bars[`${meter.num}/${meter.den}`]
+    if (own) {
+      if (barsDone.has(b.bar)) continue
+      barsDone.add(b.bar)
+      pieces.push(...split(b.barStart, barLength(meter), [...own].map(kindOf)))
+      continue
+    }
+    const pattern = perBeat[b.pulses] ?? perBeat[1]
+    pieces.push(...split(b.start, b.length, [...pattern].map(kindOf)))
+  }
+  return pieces
+}
+
 // The style's pieces over the beats the chord covers.
 function piecesOf(
   style: ChordStyleId,
@@ -147,34 +200,18 @@ function piecesOf(
         : split(b.start, b.length, ['rest', 'stab']),
     )
   }
-  // Down-up: a bar's own pattern where it has one, else each beat's.
-  const pieces: Piece[] = []
-  const barsDone = new Set<number>()
-  for (const b of beats) {
-    const meter = meterOfBar(time, b.bar)
-    const own = STRUM_BAR_PATTERNS[`${meter.num}/${meter.den}`]
-    if (own) {
-      if (barsDone.has(b.bar)) continue
-      barsDone.add(b.bar)
-      pieces.push(
-        ...split(
-          b.barStart,
-          barLength(meter),
-          [...own].map((c) => STROKES[c]),
-        ),
-      )
-      continue
-    }
-    const pattern = STRUM_BEAT_PATTERNS[b.pulses] ?? STRUM_BEAT_PATTERNS[1]
-    pieces.push(
-      ...split(
-        b.start,
-        b.length,
-        [...pattern].map((c) => STROKES[c]),
-      ),
-    )
+  const pattern = PATTERN_STYLES[style]
+  if (pattern) {
+    return patterned(beats, time, pattern.bar ?? {}, pattern.beat, patternKind)
   }
-  return pieces
+  // Down-up: a bar's own pattern where it has one, else each beat's.
+  return patterned(
+    beats,
+    time,
+    STRUM_BAR_PATTERNS,
+    STRUM_BEAT_PATTERNS,
+    (c) => STROKES[c],
+  )
 }
 
 const byPitch = (notes: Note[]) =>
@@ -190,6 +227,7 @@ export function chordHits(
   time: MeterMap,
 ): ChordHit[] {
   const style = chordStyle(styleId)
+  const restsFirst = CHORD_STYLES.find((x) => x.id === style)?.restsFirst
   const sorted = byPitch(notes)
   const length = placed.length
   if (style === 'broken') return rolled(sorted, length)
@@ -212,8 +250,23 @@ export function chordHits(
       last.sound = addDur(last.sound, slot)
       continue
     }
-    // A chord is struck as it starts, even on a stroke the pattern misses.
-    const kind = piece.kind === 'ring' ? 'down' : piece.kind
+    // Silence runs on as one rest.
+    if (piece.kind === 'rest' && last && !last.notes.length) {
+      last.length = addDur(last.length, slot)
+      continue
+    }
+    // A chord is struck as it starts, even on a stroke the pattern misses:
+    // strummed in the down-up style, whole in the others.
+    // A pattern's silence where a chord starts is struck too, except in
+    // the styles that rest first.
+    const kind =
+      piece.kind === 'ring'
+        ? style === 'down-up'
+          ? 'down'
+          : 'all'
+        : piece.kind === 'rest' && !hits.length && !restsFirst
+          ? 'all'
+          : piece.kind
     const hit: ChordHit = { onset, length: slot, sound: slot, notes: [] }
     if (kind === 'all') hit.notes = sorted
     else if (kind === 'bass') hit.notes = bass
@@ -221,7 +274,12 @@ export function chordHits(
     else if (kind === 'down')
       Object.assign(hit, { notes: sorted, strum: 'down' })
     else if (kind === 'up') Object.assign(hit, { notes: top, strum: 'up' })
-    else if (kind === 'stab') {
+    else if (kind.startsWith('p') && sorted.length) {
+      const n = Number(kind.slice(1))
+      hit.notes = [
+        sorted[((n % sorted.length) + sorted.length) % sorted.length],
+      ]
+    } else if (kind === 'stab') {
       hit.notes = sorted
       hit.sound = dur(slot.n * STAB_SOUNDS.n, slot.d * STAB_SOUNDS.d)
     }

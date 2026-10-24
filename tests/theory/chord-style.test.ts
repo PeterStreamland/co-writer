@@ -98,8 +98,8 @@ describe('chord styles (Phase 7 task 8)', () => {
               for (const n of h.notes) expect(notes).toContain(n)
             }
             expect(at, `${style.id} ${m} ${l} from ${s}`).toEqual(p.length)
-            // Struck as it starts, except off-beat stabs, which rest first.
-            if (style.id !== 'stabs')
+            // Struck as it starts, except the styles that rest first.
+            if (!style.restsFirst)
               expect(hits[0].notes.length).toBeGreaterThan(0)
           }
         }

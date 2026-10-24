@@ -1329,6 +1329,63 @@ body:has(.workspace) #app {
   padding: 0.25rem 0.6rem;
 }
 
+/* The chords on the timeline (David's request): each as wide as its bars,
+   lined up with the melody lane and the rows, in the progression's own
+   colour. */
+.chord-lane .lane-track {
+  height: 2.8rem;
+}
+
+.lane-note.chord-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.15;
+  border-color: #6366f1;
+  background: color-mix(in srgb, #6366f1 14%, var(--card));
+}
+
+.lane-note.chord-box.sounding {
+  background: color-mix(in srgb, #f59e0b 45%, var(--card));
+}
+
+.lane-note.chord-box .lane-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.chord-numeral {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.lane-note.chord-box.chord-add {
+  border-style: dashed;
+  color: var(--accent);
+  background: none;
+}
+
+.lane-note.chord-box.chord-add:disabled {
+  color: var(--muted);
+  cursor: default;
+}
+
+.strip .chord-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Time and tempo at the top, beside the key. */
+.time-tempo {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .strip-tools {
   display: flex;
   flex-wrap: wrap;
