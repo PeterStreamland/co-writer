@@ -368,6 +368,7 @@ type Part = {
   muted?: boolean
   octave?: number // the whole row moved by octaves (2026-10-23)
   octaves?: Record<string, number> // each bar's own, by chord node id
+  frozen?: string // a row frozen into notes: what it was frozen from (2026-10-24)
 }
 type PartRecipe =
   | {
@@ -377,7 +378,7 @@ type PartRecipe =
       density?: 'held' | 'strong' | 'beats' | 'split' // notes a bar (2026-10-23)
       count?: number // a bar's own number of notes, 1–16
       seed?: number // a bar's refreshes
-      notes?: { note: Note; at: Dur }[] // a bar edited by hand, from the chord's start
+      notes?: BarNote[] // a bar edited by hand, from the chord's start
     }
   | {
       kind: 'arpeggio'
@@ -385,6 +386,8 @@ type PartRecipe =
       from?: number
       gaps?: Record<number, 'rest' | 'hold'>
     } // rests and holds by place in the bar's pattern (2026-10-24)
+  | { kind: 'notes'; notes: BarNote[] } // a frozen row's bar (2026-10-24)
+type BarNote = { note: Note; at: Dur; length?: Dur } // lasts to the next note, or for its length with a rest after (2026-10-24)
 type MelodyNote = { note: Note; onset?: Dur; length?: Dur; holds?: Dur[] } // holds: where it was held over a note's place, from its onset (2026-10-24)
 type StyleBlend = { a: string; b?: string; mix: number } // mix 0–1, in 0.25 steps
 type Section = {
@@ -459,6 +462,6 @@ None of the 13 decisions change. The spec adds:
 7. **Passing chords** between two picked chords, in Phase 4 (added 2026-10-22).
 8. **An Arpeggio tab** for trying arpeggios and extensions without adding them to the progression, in Phase 6 after the beat grid (added 2026-10-22).
 9. **A Wildcard line** among the line modes, built afresh by chance on each roll, in Phase 6 (added 2026-10-23).
-10. **Rows of lines and arpeggios** under the progression strip, added with + from the Lines and Arpeggio tabs, in Phase 6 (added 2026-10-23). Rows keep their recipe and follow the chords; freezing a row's notes for hand editing comes later, with Phase 7's melody editing.
+10. **Rows of lines and arpeggios** under the progression strip, added with + from the Lines and Arpeggio tabs, in Phase 6 (added 2026-10-23). Rows keep their recipe and follow the chords. From Phase 7 (2026-10-24) they line up bar by bar with the melody lane, and a row can be frozen into its notes to edit by hand, after which it no longer follows the chords.
 
 These get dated entries in `docs/DECISIONS.md` in the next Phase 0 session.

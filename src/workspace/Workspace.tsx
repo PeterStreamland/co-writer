@@ -79,13 +79,16 @@ import {
   melodyAlong,
   rangeFromSetting,
 } from './melody-view'
-import { partLabel, partNotes } from './parts-view'
+import { freezeRow, frozenLine, partLabel, partNotes } from './parts-view'
+import { melodyStrips } from './melody-strips'
+import { Timeline } from './Timeline'
 import {
   addCell,
   addPart,
   clearCell,
   partsShown,
   removePart,
+  setFrozenBar,
   setPartMuted,
   shiftPart,
   type PartRecipe,
@@ -731,6 +734,16 @@ export function Workspace() {
     : chordsEnd.offset.n === 0
       ? chordsEnd.bar - 1
       : chordsEnd.bar
+  // The bars the lane and the rows show, the same for each so they line up
+  // (PLAN Phase 7 task 6): every bar the chords or the melody cover.
+  const laneBars = melodyStrips(melody, time, chordBars).length
+  const rowChords = path.map((n, i) => ({
+    node: n.id,
+    symbol: chordSymbol(n.chord),
+    start: timing[i].start,
+    length: timing[i].length,
+    bar: timing[i].bar,
+  }))
   // Plays one stretch of the song (a bar of the lane or of a row, David's
   // request): the chords sounding in it, cut to it, and the notes starting
   // in it, at the tempo, the note sounding lit.
@@ -1163,108 +1176,133 @@ export function Workspace() {
             onShowShapes={showShapes}
           />
           {strip}
-          <MelodyLane
-            melody={melody}
-            time={time}
-            sounding={melodySounding}
-            onOpen={() => {
-              setTab('melody')
-              setSheetOpen(true)
-            }}
-            selected={laneSelected}
-            onSelect={(i) => {
-              setLaneAt(i)
-              if (i !== undefined) {
-                const m = melody[i]
-                void playNote(m.note, secondsOf(m.length, bpm, time.meter))
+          <Timeline>
+            <MelodyLane
+              melody={melody}
+              time={time}
+              sounding={melodySounding}
+              onOpen={() => {
+                setTab('melody')
+                setSheetOpen(true)
+              }}
+              selected={laneSelected}
+              onSelect={(i) => {
+                setLaneAt(i)
+                if (i !== undefined) {
+                  const m = melody[i]
+                  void playNote(m.note, secondsOf(m.length, bpm, time.meter))
+                }
+              }}
+              options={laneOptions}
+              onSwap={(note) => {
+                if (laneSelected === undefined) return
+                const m = melody[laneSelected]
+                setMelody(swapMelodyNote(melody, laneSelected, note))
+                void playNote(note, secondsOf(m.length, bpm, time.meter))
+              }}
+              onSilence={() => {
+                if (laneSelected === undefined) return
+                setMelody(silenceNote(melody, laneSelected))
+                setLaneAt(undefined)
+              }}
+              onHold={() => {
+                if (laneSelected === undefined) return
+                setMelody(holdOver(melody, laneSelected))
+                setLaneAt(undefined)
+              }}
+              chords={rowChords}
+              barCount={laneBars}
+              onPlayBar={(start, length) =>
+                playSpan(start, length, [
+                  ...melody.map((m, ref) => ({ ...m, ref, look: MELODY_LOOK })),
+                  ...harmonyNotes,
+                ])
               }
-            }}
-            options={laneOptions}
-            onSwap={(note) => {
-              if (laneSelected === undefined) return
-              const m = melody[laneSelected]
-              setMelody(swapMelodyNote(melody, laneSelected, note))
-              void playNote(note, secondsOf(m.length, bpm, time.meter))
-            }}
-            onSilence={() => {
-              if (laneSelected === undefined) return
-              setMelody(silenceNote(melody, laneSelected))
-              setLaneAt(undefined)
-            }}
-            onHold={() => {
-              if (laneSelected === undefined) return
-              setMelody(holdOver(melody, laneSelected))
-              setLaneAt(undefined)
-            }}
-            chords={path.map((n, i) => ({
-              symbol: chordSymbol(n.chord),
-              start: timing[i].start,
-              length: timing[i].length,
-            }))}
-            barCount={chordBars}
-            onPlayBar={(start, length) =>
-              playSpan(start, length, [
-                ...melody.map((m, ref) => ({ ...m, ref, look: MELODY_LOOK })),
-                ...harmonyNotes,
-              ])
-            }
-            onRestAfter={() => {
-              if (laneSelected === undefined) return
-              const beat = countUnit(time.meter).length
-              if (laneSelected === melody.length - 1) {
-                // Nothing after it to move: the next note added waits.
-                setMelodyEntry((e) => ({ ...e, gap: addDur(e.gap, beat) }))
-                return
+              onRestAfter={() => {
+                if (laneSelected === undefined) return
+                const beat = countUnit(time.meter).length
+                if (laneSelected === melody.length - 1) {
+                  // Nothing after it to move: the next note added waits.
+                  setMelodyEntry((e) => ({ ...e, gap: addDur(e.gap, beat) }))
+                  return
+                }
+                setMelody(restBefore(melody, laneSelected + 1, beat))
+              }}
+              onLength={(length) => {
+                if (laneSelected === undefined) return
+                setMelody(setNoteLength(melody, laneSelected, length))
+                void playNote(
+                  melody[laneSelected].note,
+                  secondsOf(length, bpm, time.meter),
+                )
+              }}
+              onRestBefore={() => {
+                if (laneSelected === undefined) return
+                setMelody(
+                  restBefore(
+                    melody,
+                    laneSelected,
+                    countUnit(time.meter).length,
+                  ),
+                )
+              }}
+            />
+            <PartRows
+              rows={rows}
+              chords={rowChords}
+              time={time}
+              barCount={laneBars}
+              sounding={along?.source === rows ? alongAt : undefined}
+              onMute={(id, muted) =>
+                change(setPartMuted(progression, id, muted), selected)
               }
-              setMelody(restBefore(melody, laneSelected + 1, beat))
-            }}
-            onLength={(length) => {
-              if (laneSelected === undefined) return
-              setMelody(setNoteLength(melody, laneSelected, length))
-              void playNote(
-                melody[laneSelected].note,
-                secondsOf(length, bpm, time.meter),
-              )
-            }}
-            onRestBefore={() => {
-              if (laneSelected === undefined) return
-              setMelody(
-                restBefore(melody, laneSelected, countUnit(time.meter).length),
-              )
-            }}
-          />
-          <PartRows
-            rows={rows}
-            path={path}
-            bars={timing.map((t) => t.bar)}
-            sounding={along?.source === rows ? alongAt : undefined}
-            onMute={(id, muted) =>
-              change(setPartMuted(progression, id, muted), selected)
-            }
-            onRemove={(id) => change(removePart(progression, id), selected)}
-            onClearBar={(id, step) =>
-              change(clearCell(progression, id, path[step].id), selected)
-            }
-            onPlayBar={(id, step) => {
-              const row = rows.find((r) => r.part.id === id)
-              playSpan(
-                timing[step].start,
-                timing[step].length,
-                (row?.notes ?? []).filter((n) => n.step === step),
-              )
-            }}
-            onShift={(id, by, step) =>
-              change(
-                shiftPart(
-                  progression,
-                  id,
-                  by,
-                  step === undefined ? undefined : path[step].id,
-                ),
-                selected,
-              )
-            }
-          />
+              onRemove={(id) => change(removePart(progression, id), selected)}
+              onClearBar={(id, step) =>
+                change(clearCell(progression, id, path[step].id), selected)
+              }
+              onPlayBar={(id, step) => {
+                const row = rows.find((r) => r.part.id === id)
+                playSpan(
+                  timing[step].start,
+                  timing[step].length,
+                  (row?.notes ?? []).filter((n) => n.step === step),
+                )
+              }}
+              onShift={(id, by, step) =>
+                change(
+                  shiftPart(
+                    progression,
+                    id,
+                    by,
+                    step === undefined ? undefined : path[step].id,
+                  ),
+                  selected,
+                )
+              }
+              onFreeze={(id) => {
+                const part = partsShown(progression).find((r) => r.id === id)
+                if (part) {
+                  change(
+                    freezeRow(progression, part, key, timing, guitar),
+                    selected,
+                  )
+                }
+              }}
+              frozenLine={(id) => {
+                const part = partsShown(progression).find((r) => r.id === id)
+                return part && frozenLine(part, progression, key, timing)
+              }}
+              onEditBar={(id, step, notes) =>
+                change(
+                  setFrozenBar(progression, id, path[step].id, notes),
+                  selected,
+                )
+              }
+              onPlayNote={(note, length) =>
+                void playNote(note, secondsOf(length, bpm, time.meter))
+              }
+            />
+          </Timeline>
         </main>
         <SidePanel
           aside={

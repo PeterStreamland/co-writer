@@ -18,7 +18,7 @@ import {
 import { melodyStrips, type Strip } from './melody-strips'
 
 // How wide a bar of 4/4 is; other bars are in proportion to their length.
-const BAR_REM = 18
+export const BAR_REM = 18
 
 // The melody lane under the progression strip (SPEC 2, 7.2): each bar a
 // time strip (Phase 7 task 6, David's choice), with its chords on top, a

@@ -49,21 +49,28 @@ import { fillTemplate, makeSuggestion, type Suggestion } from './suggestion'
 export * from './line-edits-data'
 
 // A note of an edited bar: spelled with its octave, and when it starts,
-// from the start of the chord.
-export type BarNote = { note: Note; at: Dur }
+// from the start of the chord. It lasts to the next note unless it has a
+// length of its own, shorter, which leaves a rest after it (a frozen row's
+// arpeggio rests, 2026-10-24).
+export type BarNote = { note: Note; at: Dur; length?: Dur }
 
 const name = (n: Note) => formatNote({ ...n, octave: undefined })
 
 // A bar of a line as bar notes.
 export function barOf(
-  notes: LineNote[],
+  notes: Pick<LineNote, 'step' | 'onset' | 'length' | 'note'>[],
   step: number,
   steps: LineStep[],
 ): BarNote[] {
-  const start = steps[step].placed.start
-  return notes
-    .filter((n) => n.step === step)
-    .map((n) => ({ note: n.note, at: subDur(n.onset, start) }))
+  const { start, length } = steps[step].placed
+  const own = notes.filter((n) => n.step === step)
+  return own.map((n, k) => {
+    const at = subDur(n.onset, start)
+    const next = own[k + 1] ? subDur(own[k + 1].onset, start) : length
+    return compareDur(addDur(at, n.length), next) < 0
+      ? { note: n.note, at, length: n.length }
+      : { note: n.note, at }
+  })
 }
 
 // A bar's notes fitted to a chord's length: in order, none past the end,
@@ -74,7 +81,15 @@ function fitted(bar: BarNote[], length: Dur): BarNote[] {
     .filter((n) => compareDur(n.at, length) < 0)
     .filter((n, i, all) => compareDur(n.at, all[i + 1]?.at ?? length) < 0)
   if (sorted.length) sorted[0] = { ...sorted[0], at: ZERO }
-  return sorted
+  // A length of its own only while it stops before the next note.
+  return sorted.map((n, i) => {
+    if (!n.length) return n
+    const span = subDur(sorted[i + 1]?.at ?? length, n.at)
+    if (compareDur(n.length, span) < 0) return n
+    const held = { ...n }
+    delete held.length
+    return held
+  })
 }
 
 // A note tagged by what it is between the notes either side: a tone of
@@ -147,7 +162,7 @@ export function withBars(
     const fit = fitted(bar, length)
     fit.forEach((b, k) => {
       const onset = addDur(start, b.at)
-      const span = subDur(fit[k + 1]?.at ?? length, b.at)
+      const span = b.length ?? subDur(fit[k + 1]?.at ?? length, b.at)
       out.push({
         note: noteOver(step, i, b.note, onset, span, 'tone'),
         edited: true,
@@ -279,10 +294,12 @@ export function addOptions(
   const split = (added: Note[]): BarNote[] | undefined => {
     const part = dur(n.length.n, n.length.d * (added.length + 1))
     if (compareDur(part, shortest) < 0) return undefined
-    const parts = [n.note, ...added].map((note, k) => ({
+    const parts: BarNote[] = [n.note, ...added].map((note, k) => ({
       note,
       at: addDur(at, timesDur(part, k)),
     }))
+    // A rest after the note stays after the last of its parts.
+    if (bar[place].length) parts[parts.length - 1].length = part
     return [...bar.slice(0, place), ...parts, ...bar.slice(place + 1)]
   }
   const toward =
@@ -359,8 +376,16 @@ export function removeNote(
   const bar = barOf(notes, n.step, steps)
   if (bar.length < 2) return undefined
   const at = subDur(n.onset, steps[n.step].placed.start)
+  const place = bar.findIndex((b) => compareDur(b.at, at) === 0)
   return fitted(
-    bar.filter((b) => compareDur(b.at, at) !== 0),
+    bar.flatMap((b, k) => {
+      if (k === place) return []
+      if (k !== place - 1 || !b.length) return [b]
+      // The note before holds on through it.
+      const held = { ...b }
+      delete held.length
+      return [held]
+    }),
     steps[n.step].placed.length,
   )
 }
