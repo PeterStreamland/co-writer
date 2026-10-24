@@ -1830,3 +1830,13 @@ David asked me to settle the three open counterpoint questions as I judged best 
 - **Repeated notes in first species stay allowed but weighed against.** Fux repeats a note now and then, and the golden lines that repeat once stay as they are.
 
 All 120 lines against the textbook cantus firmi still keep every rule.
+
+## 2026-10-24 — A ✕ for each bar of the harmony and counterpoint rows (Phase 7 task 19, David's request)
+
+David asked for the harmony and counterpoint rows to match the rest of the UI. Besides the row's own × (which stops the whole row), each bar now has a ✕ in its header, as the melody lane does.
+
+- **✕ on a bar** takes that row's notes out of the bar. Each becomes a rest, as **× Take it out** does for one note. The rest of the row plays on, and a note ringing in from the bar before stays.
+- It is one change, so a single **Undo** brings the whole bar back. It counts in the row's **↺ Undo my n changes**.
+- The ✕ only shows on bars where the row has notes. Pressing it also makes that bar the active bar, as tapping anywhere in a bar does.
+- **A counterpoint line is checked again** without those notes. If taking them out breaks a rule (say, the line now starts on a 3rd in strict rules), that note turns red and says why.
+- This is added as Phase 7 task 19 and ticked, with tests that clearing a bar of a harmony and of a counterpoint line leaves every other bar unchanged.
