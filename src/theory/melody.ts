@@ -294,6 +294,20 @@ export function swapMelodyNote(
   return melody.map((m, i) => (i === index ? { ...m, note } : m))
 }
 
+// A note moved up (1) or down (-1) an octave (David's request), spelling,
+// place and length kept; no further than octaves 0 to 8 (the piano's
+// range and a little past it).
+export function shiftMelodyNote(
+  melody: MelodyNote[],
+  index: number,
+  by: number,
+): MelodyNote[] {
+  const target = melody[index]
+  const octave = (target?.note.octave ?? 4) + by
+  if (!target || octave < 0 || octave > 8) return melody
+  return swapMelodyNote(melody, index, { ...target.note, octave })
+}
+
 // Holds the note before through a note's place (David's request): no new
 // note is struck there, and the note before rings on to its end. The first
 // note has nothing before it, so it falls silent.

@@ -33,6 +33,7 @@ import {
   silenceNote,
   spellTapped,
   swapMelodyNote,
+  shiftMelodyNote,
 } from '../theory'
 import { OCTAVE_LIMIT, shiftNotes, shiftShape } from '../instruments/octave'
 import { playChord, playNote, preparePiano } from '../audio/player'
@@ -90,6 +91,7 @@ import {
   removePart,
   setFrozenBar,
   setPartMuted,
+  shiftArpeggioNote,
   shiftPart,
   type PartRecipe,
 } from '../sketch/parts'
@@ -1218,6 +1220,13 @@ export function Workspace() {
                   ...harmonyNotes,
                 ])
               }
+              onOctave={(by) => {
+                if (laneSelected === undefined) return
+                const moved = shiftMelodyNote(melody, laneSelected, by)
+                const m = moved[laneSelected]
+                setMelody(moved)
+                void playNote(m.note, secondsOf(m.length, bpm, time.meter))
+              }}
               onRestAfter={() => {
                 if (laneSelected === undefined) return
                 const beat = countUnit(time.meter).length
@@ -1295,6 +1304,12 @@ export function Workspace() {
               onEditBar={(id, step, notes) =>
                 change(
                   setFrozenBar(progression, id, path[step].id, notes),
+                  selected,
+                )
+              }
+              onShiftNote={(id, step, place, by) =>
+                change(
+                  shiftArpeggioNote(progression, id, path[step].id, place, by),
                   selected,
                 )
               }

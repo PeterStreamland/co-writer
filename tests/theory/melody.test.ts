@@ -14,6 +14,7 @@ import {
   removeLast,
   restBefore,
   setNoteLength,
+  shiftMelodyNote,
   silenceNote,
   swapMelodyNote,
   spellTapped,
@@ -263,5 +264,22 @@ describe('changing a note’s length (David’s request)', () => {
     const held = holdOver(melody(), 2) // D held over E's place
     const m = setNoteLength(held, 1, dur(1, 4))
     expect(m[1].holds).toBeUndefined()
+  })
+})
+
+describe('moving a note by octaves (David’s request)', () => {
+  const melody = () => typeMelody('C4 F#4 Bb4', dur(1, 4)).notes
+  it('moves one note up or down an octave, spelling and place kept', () => {
+    const up = shiftMelodyNote(melody(), 1, 1)
+    expect(up.map((n) => formatNote(n.note))).toEqual(['C4', 'F♯5', 'B♭4'])
+    expect(up[1].onset).toEqual(dur(1, 4))
+    const down = shiftMelodyNote(melody(), 2, -1)
+    expect(formatNote(down[2].note)).toBe('B♭3')
+  })
+  it('goes no lower than octave 0 or higher than octave 8', () => {
+    const low = typeMelody('C0', dur(1, 4)).notes
+    expect(shiftMelodyNote(low, 0, -1)).toBe(low)
+    const high = typeMelody('C8', dur(1, 4)).notes
+    expect(shiftMelodyNote(high, 0, 1)).toBe(high)
   })
 })

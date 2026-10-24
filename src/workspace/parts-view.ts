@@ -67,9 +67,11 @@ export function recipeLabel(recipe: PartRecipe): string {
   const gaps = Object.values(recipe.gaps ?? {})
   const rests = gaps.filter((g) => g === 'rest').length
   const holds = gaps.length - rests
+  const moved = Object.keys(recipe.shifts ?? {}).length
   const extra = [
     rests ? `${rests} rest${rests === 1 ? '' : 's'}` : '',
     holds ? `${holds} held` : '',
+    moved ? `${moved} note${moved === 1 ? '' : 's'} moved` : '',
   ].filter(Boolean)
   return `${what} arpeggios, ${how.toLowerCase()}, ${speed}${where}${extra.map((x) => `, ${x}`).join('')}`
 }
@@ -157,15 +159,20 @@ function unshiftedNotes(
       )
       voice = voiceOf(plan, 'position', nearest)
     }
-    return withGaps(voice.events, recipe.gaps).map((e) => ({
-      step: i,
-      onset: addDur(placed.start, e.onset),
-      length: e.length,
-      note: voice.notes[e.index].note,
-      ref: e.index,
-      label: voice.notes[e.index].label,
-      look: `role-${roleOf(voice.notes[e.index].number)}`,
-    }))
+    return withGaps(voice.events, recipe.gaps).map((e) => {
+      const note = voice.notes[e.index].note
+      const by = recipe.shifts?.[e.event] ?? 0
+      return {
+        step: i,
+        onset: addDur(placed.start, e.onset),
+        length: e.length,
+        note: by ? { ...note, octave: (note.octave ?? 4) + by } : note,
+        ref: e.index,
+        place: e.event,
+        label: voice.notes[e.index].label,
+        look: `role-${roleOf(voice.notes[e.index].number)}`,
+      }
+    })
   })
 }
 

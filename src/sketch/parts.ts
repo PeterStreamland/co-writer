@@ -50,6 +50,9 @@ export type PartRecipe =
       // Notes of the bar's pattern resting or held, by their place in it
       // (David's request, 2026-10-24).
       gaps?: Record<number, ArpeggioGap>
+      // Notes moved by octaves, by their place in the bar's pattern
+      // (David's request, 2026-10-24).
+      shifts?: Record<number, number>
     }
   // A frozen row's bar (David's request, 2026-10-24): the notes it played,
   // edited by hand from then on.
@@ -193,6 +196,29 @@ export function setFrozenBar(
   return setCell(p, id, node, { kind: 'notes', notes })
 }
 
+// Moves one note of an arpeggio row's bar up (1) or down (-1) an octave
+// (David's request): the bar gets its own setting, the row's or its own
+// as it was, with the note's place in the pattern moved; no further than
+// three octaves either way.
+export function shiftArpeggioNote(
+  p: Progression,
+  id: string,
+  node: string,
+  place: number,
+  by: number,
+): Progression {
+  const part = (p.parts ?? []).find((r) => r.id === id)
+  const recipe = part && recipeAt(part, node)
+  if (recipe?.kind !== 'arpeggio') return p
+  const shifts = { ...recipe.shifts }
+  const octave = clampOctave((shifts[place] ?? 0) + by)
+  if (octave) shifts[place] = octave
+  else delete shifts[place]
+  const moved: PartRecipe = { ...recipe, shifts }
+  if (!Object.keys(shifts).length) delete moved.shifts
+  return setCell(p, id, node, moved)
+}
+
 export function removePart(p: Progression, id: string): Progression {
   return { ...p, parts: (p.parts ?? []).filter((r) => r.id !== id) }
 }
@@ -306,6 +332,12 @@ function isRecipe(value: unknown): value is PartRecipe {
           Object.entries(recipe.gaps).every(
             ([k, g]) =>
               Number.isInteger(Number(k)) && (g === 'rest' || g === 'hold'),
+          ))) &&
+      (recipe.shifts === undefined ||
+        (typeof recipe.shifts === 'object' &&
+          recipe.shifts !== null &&
+          Object.entries(recipe.shifts).every(
+            ([k, o]) => Number.isInteger(Number(k)) && Number.isInteger(o),
           )))
     )
   }

@@ -39,7 +39,7 @@ import {
   partNotes,
   recipeLabel,
 } from '../../src/workspace/parts-view'
-import { setFrozenBar } from '../../src/sketch/parts'
+import { setFrozenBar, shiftArpeggioNote } from '../../src/sketch/parts'
 import { melodyStrips } from '../../src/workspace/melody-strips'
 import { swapNote } from '../../src/theory'
 
@@ -455,5 +455,65 @@ describe('rows lined up with the melody lane (Phase 7 task 6)', () => {
       }
     }
     expect(row[0].segments.filter((g) => g.kind === 'rest')).toHaveLength(1)
+  })
+})
+
+describe('moving one arpeggio note by octaves (David’s request)', () => {
+  const p = addPart(build('C', 'G'), {
+    kind: 'arpeggio',
+    settings: {
+      choice: 'triad',
+      pattern: 'up',
+      rate: '8ths',
+      octaves: 1,
+      guitar: 'position',
+    },
+    gaps: { 1: 'rest' },
+  })
+  const id = partsShown(p)[0].id
+  const notes = (q: Progression) =>
+    partNotes(partsShown(q)[0], q, C, timingOf(q, time), guitar)
+  const pitches = (q: Progression) => notes(q).map((n) => midiNumber(n.note))
+
+  it('moves just that note of that bar, the row still following the chords', () => {
+    const before = notes(p)
+    // The third note of bar 1 is at place 2 (place 1 is a rest).
+    const target = before.findIndex((n) => n.step === 0 && n.place === 2)
+    const q = shiftArpeggioNote(p, id, p.activePath[0], 2, 1)
+    expect(pitches(q)).toEqual(
+      before.map((n, k) => midiNumber(n.note)! + (k === target ? 12 : 0)),
+    )
+    expect(recipeLabel(partsShown(q)[0].cells![p.activePath[0]]!)).toMatch(
+      /1 note moved/,
+    )
+    // Changing the chord keeps the move, on the new chord's note.
+    const changed = changeAt(q, 0, parseChordSymbol('Am')!)
+    const moved = notes(changed).find((n) => n.step === 0 && n.place === 2)!
+    const plain = notes(changeAt(p, 0, parseChordSymbol('Am')!)).find(
+      (n) => n.step === 0 && n.place === 2,
+    )!
+    expect(midiNumber(moved.note)).toBe(midiNumber(plain.note)! + 12)
+  })
+
+  it('moves back to none, and no further than three octaves', () => {
+    const node = p.activePath[1]
+    const back = shiftArpeggioNote(
+      shiftArpeggioNote(p, id, node, 0, -1),
+      id,
+      node,
+      0,
+      1,
+    )
+    expect(pitches(back)).toEqual(pitches(p))
+    let far = p
+    for (let k = 0; k < 5; k++) far = shiftArpeggioNote(far, id, node, 0, 1)
+    const cell = partsShown(far)[0].cells![node]
+    expect(cell?.kind === 'arpeggio' && cell.shifts).toEqual({ 0: 3 })
+  })
+
+  it('keeps the move when the row is frozen', () => {
+    const q = shiftArpeggioNote(p, id, p.activePath[0], 0, -1)
+    const frozen = freezeRow(q, partsShown(q)[0], C, timingOf(q, time), guitar)
+    expect(pitches(frozen)).toEqual(pitches(q))
   })
 })

@@ -43,6 +43,7 @@ export function MelodyLane({
   onRestBefore,
   onLength,
   onRestAfter,
+  onOctave,
   chords,
   barCount,
   onPlayBar,
@@ -63,6 +64,8 @@ export function MelodyLane({
   // A new length for the tapped note; the notes after it move along.
   onLength: (length: Dur) => void
   onRestAfter: () => void
+  // Moves the tapped note up (1) or down (-1) an octave (David's request).
+  onOctave: (by: number) => void
   // Each chord's symbol and where it sounds, for the strips' tops.
   chords: { symbol: string; start: Dur; length: Dur }[]
   // How many bars the chords cover: the lane shows at least these.
@@ -221,6 +224,22 @@ export function MelodyLane({
                   </span>
                 </button>
               ))}
+            </div>
+            <div class="place-options" role="group" aria-label="Octave">
+              <button
+                type="button"
+                title="This note down an octave"
+                onClick={() => onOctave(-1)}
+              >
+                ▼ Octave
+              </button>
+              <button
+                type="button"
+                title="This note up an octave"
+                onClick={() => onOctave(1)}
+              >
+                ▲ Octave
+              </button>
             </div>
             <div class="place-options" role="group" aria-label="Length">
               <span class="muted">Length:</span>
