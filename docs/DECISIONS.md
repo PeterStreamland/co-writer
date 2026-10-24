@@ -1944,3 +1944,22 @@ The MIDI keyboard's controls (Connect, the notes held, the last chord's names, F
 
 - **While closed, the button still says enough** (my choice): off, or the last chord played once a keyboard is connected, and **● recording** while Record chords is on, so recording is never hidden.
 - **The keyboard stays connected and keeps working while the section is closed.** Notes still light the instrument and Record chords still adds chords; only the controls are hidden.
+
+## 2026-10-24 — A consistent look across the app (David's request, outside the plan)
+
+A visual pass only: no control was added, moved between sections or removed, and nothing behaves differently. David chose:
+
+- **Warm paper:** off-white page, charcoal text, hairline borders and soft card shadows. It follows the device into a matching dark theme.
+- **One deep ink-blue accent** for the chosen tab, pressed choices, selected chords and the Play button.
+- **Tidy and standardise:** one style for every button, menu and text box; the same headings and spacing in every tab.
+- **The voicings box stays where it is, beside the instrument and beside the tabs.**
+
+My choices within that:
+
+- **Button kinds:** an ordinary button is light with a fine border. A pressed choice (Walking, As the line plays, a note length) is tinted ink blue. **Play** in the progression is the one solid ink-blue button. Add buttons (+ on a suggestion, + G on the chord box) are tinted and fill in on hover.
+- **Two-way switches** (Keyboard / Guitar, Note names / Degrees / Chord tones) are a tray with the chosen option raised.
+- **Headings:** a tab's title is in the body size. Its sections (Diatonic, Tap or type, Write a phrase) are small grey capitals, the same in Suggest, Melody, Harmony and Counterpoint.
+- **Note colours keep their meaning, retuned to the palette:** root crimson, 3rd ochre, 5th blue, 7th plum, other tones teal, sounding amber.
+- **Rows:** they keep their layout; only their card surface matches the rest.
+
+All of it is in `src/index.css`: the colour tokens at the top, then the shared button and input styles.
