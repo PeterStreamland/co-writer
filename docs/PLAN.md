@@ -256,6 +256,7 @@ Goal: enter a few notes and get next-note options; add harmonies and countermelo
 20. How often a line moves (added 2026-10-24, David's request): a counterpoint line can move against each melody note or on a steady grid (every 2 bars, bar, ½ bar, ¼ bar or ⅛ bar), and so can a harmony, which then harmonises only the note sounding at each step. ✅
 21. More ways to harmonise, and tidier rows (added 2026-10-24, David's requests): harmonies on strong beats, on the beats, on each bar's first note, on long notes, held through each chord or on every beat; the progression as a row card with its less-used controls folded away; and only one set of options open at a time, closed by a click on the background. ✅
 22. The progression on the timeline, and more chord patterns (added 2026-10-24, David's requests): the chords laid out bar by bar like the other rows, time and tempo beside the key, and twelve more ways for chords to play. ✅
+23. MIDI controls fold away at the top (added 2026-10-24, David's request). ✅
 
 - [x] Every suggestion stays in range and is tagged (chord tone, passing, neighbour, leap, chromatic)
 - [x] A motif option appears whenever the melody contains a motif
