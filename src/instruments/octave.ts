@@ -3,7 +3,13 @@
 // guitar the same shape twelve frets along where the neck has room, else
 // the playable shape nearest the pitch asked for, so a shifted chord can
 // always be played; none when the neck has nothing further that way.
-import { midiNumber, type ChordName, type Note } from '../theory'
+import {
+  chordNotes,
+  midiNumber,
+  pitchClass,
+  type ChordName,
+  type Note,
+} from '../theory'
 import { findFingerings } from './fingering'
 import { MAX_FRET, type Guitar } from './guitar'
 
@@ -54,6 +60,57 @@ export function shiftShape(
     if (Math.sign(m - now) !== Math.sign(by)) continue
     if (Math.abs(m - target) < gap) {
       gap = Math.abs(m - target)
+      best = { frets: f.frets, notes: sounding }
+    }
+  }
+  return best
+}
+
+// What counts against a shape for the next inversion: each semitone its
+// bass is off the one asked for, each chord tone missing, each string not
+// played, each point less easy to play, and each fret the hand moves.
+const INVERT_COSTS = { bass: 10, missing: 8, string: 1.5, hard: 0.3, move: 1 }
+
+// A guitar shape for the next inversion (PLAN Phase 7 task 9, David's
+// request): of the playable shapes of the inverted chord, the one with the
+// bass asked for (the next chord tone above the bass now, or below), else
+// the nearest bass on that side; then a full shape (every chord tone, most
+// strings), easy to play and near where the hand is on the neck. None when
+// the neck has nothing that way.
+export function invertShape(
+  guitar: Guitar,
+  chord: ChordName,
+  shape: Shape,
+  bass: number,
+  by: number,
+): Shape | undefined {
+  const now = Math.min(...shape.notes.map(pitch))
+  const frets = (fs: (number | null)[]) => {
+    const pressed = fs.filter((f): f is number => f !== null && f > 0)
+    return pressed.length
+      ? pressed.reduce((a, b) => a + b, 0) / pressed.length
+      : 0
+  }
+  const here = frets(shape.frets)
+  const neck = { ...guitar, frets: { low: 0, high: MAX_FRET } }
+  const tones = [...new Set(chordNotes(chord).map(pitchClass))]
+  let best: Shape | undefined
+  let cost = Infinity
+  for (const f of findFingerings(neck, chord)) {
+    const sounding = f.notes.filter((n): n is Note => n !== null)
+    const low = Math.min(...sounding.map(pitch))
+    if (Math.sign(low - now) !== Math.sign(by)) continue
+    const missing = tones.filter(
+      (t) => !sounding.some((n) => pitchClass(n) === t),
+    ).length
+    const c =
+      Math.abs(low - bass) * INVERT_COSTS.bass +
+      missing * INVERT_COSTS.missing +
+      (guitar.strings.length - sounding.length) * INVERT_COSTS.string +
+      (100 - f.score) * INVERT_COSTS.hard +
+      Math.abs(frets(f.frets) - here) * INVERT_COSTS.move
+    if (c < cost) {
+      cost = c
       best = { frets: f.frets, notes: sounding }
     }
   }

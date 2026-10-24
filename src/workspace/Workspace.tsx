@@ -3,6 +3,7 @@ import {
   barLength,
   chordSymbol,
   chordHits,
+  stepInversion,
   formatNote,
   lengthLabel,
   meterOfBar,
@@ -36,7 +37,12 @@ import {
   swapMelodyNote,
   shiftMelodyNote,
 } from '../theory'
-import { OCTAVE_LIMIT, shiftNotes, shiftShape } from '../instruments/octave'
+import {
+  OCTAVE_LIMIT,
+  invertShape,
+  shiftNotes,
+  shiftShape,
+} from '../instruments/octave'
 import { playChord, playNote, preparePiano } from '../audio/player'
 import { SLOW_STRUM_GAP } from '../audio/sounds'
 import { useMidi } from '../midi/useMidi'
@@ -121,6 +127,7 @@ import {
   keyAfter,
   keyAt,
   pathNodes,
+  invertAt,
   setChordStyle,
   setStyleAt,
   styleAt,
@@ -594,6 +601,43 @@ export function Workspace() {
     const notes = shiftNotes(v.notes, by)
     return notes && { instrument: v.instrument, notes }
   }
+  // Steps a chord through its inversions (David's request): the next
+  // chord tone in the bass, the voicing stacked closely above it on
+  // keyboard, or the nearest playable shape with that bass on guitar. A
+  // slash chord over a note outside it moves a whole octave instead.
+  function stepChord(index: number, by: 1 | -1) {
+    const n = path[index]
+    const v = voicingOf(n)
+    const step = v && stepInversion(n.chord, v.notes, by)
+    if (!v || !step) {
+      shiftChord(index, by)
+      return
+    }
+    if (Math.abs((n.octave ?? 0) + step.octave) > OCTAVE_LIMIT) return
+    let voicing: ChordVoicing | undefined
+    if (v.instrument === 'guitar' && v.frets) {
+      const shape = invertShape(
+        guitar,
+        step.chord,
+        { frets: v.frets, notes: v.notes },
+        midiNumber(step.notes[0]) as number,
+        by,
+      )
+      voicing = shape && { instrument: 'guitar', ...shape }
+    } else {
+      voicing = shiftNotes(step.notes, 0) && {
+        instrument: v.instrument,
+        notes: step.notes,
+      }
+    }
+    if (!voicing) return
+    const next = invertAt(progression, index, step.chord, voicing, step.octave)
+    change(next, index)
+    const stepped = pathNodes(next)[index]
+    setChord(stepped.chord)
+    showNode(stepped)
+    playNode(stepped)
+  }
   function shiftChord(index: number, by: number) {
     const n = path[index]
     const voicing = shiftedVoicing(n, by)
@@ -1000,6 +1044,14 @@ export function Workspace() {
       onStyleAt={(index, style) =>
         change(setStyleAt(progression, index, style), index)
       }
+      onStep={stepChord}
+      onHear={(index) => {
+        spanTimers.current.forEach(clearTimeout)
+        stopSolo()
+        setPlayingAt(undefined)
+        showNode(path[index])
+        spanTimers.current = playStyled(index, false)
+      }}
       onBetween={(index) => {
         setBetweenAt(between === index ? undefined : index)
         setTab('suggest')

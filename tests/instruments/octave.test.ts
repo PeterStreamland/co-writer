@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { makeGuitar } from '../../src/instruments/guitar'
-import { shiftNotes, shiftShape } from '../../src/instruments/octave'
+import {
+  invertShape,
+  shiftNotes,
+  shiftShape,
+} from '../../src/instruments/octave'
 import { STANDARD_TUNING } from '../../src/instruments/tunings'
 import { findFingerings } from '../../src/instruments/fingering'
 import {
@@ -67,5 +71,36 @@ describe('moving a chord by octaves (David’s request)', () => {
       expect(mean(up.notes)).toBeGreaterThan(mean(shape.notes))
       expect(up.frets.every((f) => f === null || f <= 24)).toBe(true)
     }
+  })
+})
+
+describe('stepping a guitar shape through inversions (Phase 7 task 9)', () => {
+  const open = { frets: [null, 3, 2, 0, 1, 0], notes: notes('C3 E3 G3 C4 E4') }
+  const low = (s: { notes: Note[] }) =>
+    Math.min(...s.notes.map((n) => midiNumber(n)!))
+
+  it('finds a playable shape with the next chord tone in the bass', () => {
+    const e = invertShape(guitar, parseChordSymbol('C/E')!, open, 52, 1)!
+    expect(low(e)).toBe(52) // E3
+    const g = invertShape(guitar, parseChordSymbol('C/G')!, e, 55, 1)!
+    expect(low(g)).toBe(55) // G3
+    for (const s of [e, g]) {
+      expect(s.frets.filter((f) => f !== null).length).toBe(s.notes.length)
+    }
+  })
+
+  it('steps down to the 2nd inversion below, G in the bass', () => {
+    const g = invertShape(guitar, parseChordSymbol('C/G')!, open, 43, -1)!
+    expect(low(g)).toBe(43) // G2, the open C with the low G added
+  })
+
+  it('finds none past the bottom of the neck', () => {
+    const lowE = {
+      frets: [0, 2, 2, 1, 0, 0],
+      notes: notes('E2 B2 E3 G#3 B3 E4'),
+    }
+    expect(
+      invertShape(guitar, parseChordSymbol('E/B')!, lowE, 35, -1),
+    ).toBeUndefined()
   })
 })

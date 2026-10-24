@@ -5,6 +5,8 @@ import {
   CHORD_STYLES,
   chordStyle,
   chordSymbol,
+  inversionOf,
+  inversionStepLabel,
   durEquals,
   keyName,
   lengthChoices,
@@ -80,6 +82,8 @@ export function ProgressionStrip({
   onShiftAll,
   onChordStyle,
   onStyleAt,
+  onStep,
+  onHear,
 }: {
   progression: Progression
   sectionKey: Key
@@ -121,6 +125,11 @@ export function ProgressionStrip({
   // progression, and a chord's own, undefined to play as the rest do.
   onChordStyle: (style: string) => void
   onStyleAt: (index: number, style: string | undefined) => void
+  // Steps a chord up (1) or down (-1) an inversion: C, C/E, C/G, then C
+  // an octave up (David's request).
+  onStep: (index: number, by: 1 | -1) => void
+  // Plays a chord through its length in its style.
+  onHear: (index: number) => void
 }) {
   const [treeOpen, setTreeOpen] = useState(false)
   const path = pathNodes(progression)
@@ -302,30 +311,50 @@ export function ProgressionStrip({
                     }
                   </span>
                 )}
-                {n.octave ? (
+                {Boolean(n.octave || inversionOf(n.chord)) && (
                   <span class="octave-label">
-                    {n.octave > 0 ? '+' : '−'}
-                    {Math.abs(n.octave)} oct
+                    {inversionStepLabel(
+                      inversionOf(n.chord) ?? 0,
+                      n.octave ?? 0,
+                    )}
                   </span>
-                ) : null}
+                )}
               </button>
               {i === selected && (
                 <span class="octave-one">
                   <button
                     type="button"
-                    aria-label={`${chordSymbol(n.chord)} down an octave`}
-                    title="Down an octave"
-                    onClick={() => onShift(i, -1)}
+                    aria-label={`${chordSymbol(n.chord)} down an inversion`}
+                    title="Down an inversion: the chord tone below in the bass (C, C/G, C/E, then C an octave down)"
+                    onClick={() => onStep(i, -1)}
                   >
                     ▼
                   </button>
                   <button
                     type="button"
-                    aria-label={`${chordSymbol(n.chord)} up an octave`}
-                    title="Up an octave"
-                    onClick={() => onShift(i, 1)}
+                    aria-label={`${chordSymbol(n.chord)} up an inversion`}
+                    title="Up an inversion: the next chord tone in the bass (C, C/E, C/G, then C an octave up)"
+                    onClick={() => onStep(i, 1)}
                   >
                     ▲
+                  </button>
+                  <button
+                    type="button"
+                    class="octave-step"
+                    aria-label={`${chordSymbol(n.chord)} down an octave`}
+                    title="Down a whole octave"
+                    onClick={() => onShift(i, -1)}
+                  >
+                    ▼8ve
+                  </button>
+                  <button
+                    type="button"
+                    class="octave-step"
+                    aria-label={`${chordSymbol(n.chord)} up an octave`}
+                    title="Up a whole octave"
+                    onClick={() => onShift(i, 1)}
+                  >
+                    ▲8ve
                   </button>
                   <button
                     type="button"
@@ -438,6 +467,14 @@ export function ProgressionStrip({
               ))}
             </select>
           </label>
+          <button
+            type="button"
+            class="hear-style"
+            title="Hear this chord for its length, as it plays"
+            onClick={() => onHear(selected)}
+          >
+            ▶ Hear it
+          </button>
           <ChordTime
             time={time}
             placed={timing[selected]}

@@ -349,7 +349,7 @@ type ChordNode = {
   parent?: string
   children: string[]
   keyChange?: Key
-  octave?: number // octaves moved up or down; its voicing holds the moved notes (2026-10-23)
+  octave?: number // octaves moved up or down, by octave moves or inversion steps past root position; its voicing holds the moved notes (2026-10-23, 2026-10-24)
   style?: string // how this chord is played, over the progression's (2026-10-24)
 }
 type Progression = {
