@@ -71,7 +71,9 @@ describe('rows for the harmonies (Phase 7 task 11)', () => {
     expect(rows.map((r) => r.id)).toEqual(['counter', '3rd-above'])
     expect(rows.map((r) => r.label)).toEqual(['Countermelody', '3rds above'])
     for (const row of rows) {
-      expect(row.notes).toEqual(harmonise(ctx, row.id).notes)
+      expect(row.notes).toEqual(
+        harmonise(ctx, row.id).notes.map((n, place) => ({ ...n, place })),
+      )
     }
   })
 
@@ -86,6 +88,39 @@ describe('rows for the harmonies (Phase 7 task 11)', () => {
       thirds.notes.map((n) => n.note),
     )
     expect(thirds.along.map((n) => n.step)).toEqual([0, 0, 0, 0, 1, 1, 1, 1])
+  })
+
+  it('shows your own notes in a row, and counts them', () => {
+    const edits = {
+      '3rd-above': [
+        {
+          at: ctx.melody[1].onset,
+          under: ctx.melody[1].note,
+          note: parseNote('C5')!,
+        },
+        { at: ctx.melody[2].onset, under: ctx.melody[2].note },
+        // Under a melody note that has since changed: it no longer applies.
+        {
+          at: ctx.melody[3].onset,
+          under: parseNote('B4')!,
+          note: parseNote('D5')!,
+        },
+      ],
+    }
+    const [thirds, counter] = harmonyRows(
+      ['3rd-above', 'counter'],
+      ctx,
+      timing,
+      edits,
+    )
+    expect(thirds.edited).toBe(2)
+    expect(counter.edited).toBe(0)
+    expect(thirds.notes.map((n) => n.place)).toEqual([0, 1, 3, 4, 5, 6, 7])
+    expect(formatNote(thirds.notes[1].note)).toBe('C5')
+    expect(thirds.notes[1].edited).toBe(true)
+    expect(thirds.along.map((n) => n.note)).toEqual(
+      thirds.notes.map((n) => n.note),
+    )
   })
 
   it('has no rows with no harmonies chosen', () => {

@@ -2890,3 +2890,13 @@ button.octave-step {
 .lane-note.harmony-note.sounding {
   background: color-mix(in srgb, #f59e0b 45%, var(--card));
 }
+
+/* A harmony note you chose (David's request). */
+.lane-note.harmony-note.edited {
+  border-color: #7c3aed;
+  background: color-mix(in srgb, #7c3aed 14%, var(--card));
+}
+
+.lane-note.harmony-note.edited.sounding {
+  background: color-mix(in srgb, #f59e0b 45%, var(--card));
+}

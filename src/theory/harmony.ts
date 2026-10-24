@@ -22,6 +22,7 @@ import {
 import { parseInterval, transpose, transposeDown } from './interval'
 import { inKey } from './lines'
 import { barPosition, type MelodyNote } from './melody'
+import type { Dur } from './duration'
 import { accentAt, meterOfBar, type MeterMap } from './meter'
 import type { MelodyChord } from './next-note'
 import {
@@ -471,4 +472,151 @@ export function harmonyOptions(ctx: HarmonyContext): HarmonySuggestion[] {
       explanation: parts.join(' '),
     })
   })
+}
+
+// Your own notes in a harmony (David's request): a note of the harmony
+// changed, or taken out, while the harmony keeps following the melody. An
+// edit belongs to the melody note it was made under, by its onset and its
+// note; once that melody note changes, the edit no longer applies and the
+// harmony works the note out again.
+export type HarmonyEdit = { at: Dur; under: Note; note?: Note } // no note: taken out
+
+// A harmony note with the melody note it sits under (its place in the
+// melody), and whether it is your own.
+export type PlacedHarmonyNote = HarmonyNote & { place: number; edited?: true }
+
+const sameNote = (a: Note, b: Note) =>
+  a.letter === b.letter &&
+  a.accidental === b.accidental &&
+  (a.octave ?? 4) === (b.octave ?? 4)
+
+// The edit made under a melody note, if it still applies.
+export function harmonyEditAt(
+  melody: MelodyNote[],
+  edits: HarmonyEdit[],
+  place: number,
+): HarmonyEdit | undefined {
+  const m = melody[place]
+  if (!m) return undefined
+  return edits.find(
+    (e) => compareDur(e.at, m.onset) === 0 && sameNote(e.under, m.note),
+  )
+}
+
+// The edits that still apply to the melody as it is.
+export function pruneHarmonyEdits(
+  melody: MelodyNote[],
+  edits: HarmonyEdit[],
+): HarmonyEdit[] {
+  return edits.filter((e) =>
+    melody.some(
+      (m) => compareDur(e.at, m.onset) === 0 && sameNote(e.under, m.note),
+    ),
+  )
+}
+
+// Sets the edit under a melody note, over any made there before; with no
+// note given, the harmony's note there is taken out.
+export function setHarmonyEdit(
+  melody: MelodyNote[],
+  edits: HarmonyEdit[],
+  place: number,
+  note?: Note,
+): HarmonyEdit[] {
+  const m = melody[place]
+  if (!m) return edits
+  const rest = clearHarmonyEdit(melody, edits, place)
+  const edit: HarmonyEdit = { at: m.onset, under: m.note }
+  if (note) edit.note = note
+  return [...rest, edit]
+}
+
+// Takes away the edit under a melody note: the harmony's own note again.
+export function clearHarmonyEdit(
+  melody: MelodyNote[],
+  edits: HarmonyEdit[],
+  place: number,
+): HarmonyEdit[] {
+  const edit = harmonyEditAt(melody, edits, place)
+  return edit ? edits.filter((e) => e !== edit) : edits
+}
+
+// A harmony with your edits on it: notes changed are tagged edited and
+// explained, notes taken out are gone, and every note keeps its place.
+export function editHarmony(
+  ctx: HarmonyContext,
+  notes: HarmonyNote[],
+  edits: HarmonyEdit[],
+): PlacedHarmonyNote[] {
+  return notes.flatMap((n, place) => {
+    const edit = edits.length
+      ? harmonyEditAt(ctx.melody, edits, place)
+      : undefined
+    if (!edit) return [{ ...n, place }]
+    if (!edit.note) return []
+    const m = ctx.melody[place]
+    const { chord, key } = placeOf(ctx, m)
+    const tone = toneName(chord, edit.note)
+    const tags = ['edited']
+    if (tone) tags.push('chord-tone')
+    const values = {
+      note: name(edit.note),
+      was: name(n.note),
+      interval: intervalText(edit.note, m.note),
+      tone: tone ?? '',
+      chord: chord ? chordSymbol(chord) : '',
+    }
+    const reasons = [fillTemplate(tone ? T.editedTone : T.edited, values)]
+    if (!inKey(key, edit.note)) {
+      tags.push('chromatic')
+      reasons.push(fillTemplate(T.chromatic, values))
+    }
+    return [
+      {
+        ...n,
+        note: edit.note,
+        tags,
+        explanation: reasons.join(' '),
+        place,
+        edited: true as const,
+      },
+    ]
+  })
+}
+
+// Notes to play in place of a harmony's note: what each other harmony
+// would play under that melody note, one of each note, chord tones first
+// and notes outside the key last.
+export function harmonyAlternatives(
+  ctx: HarmonyContext,
+  place: number,
+  current: Note,
+): Suggestion<{ note: Note; kind: string }>[] {
+  if (!ctx.melody[place]) return []
+  const seen = new Set([formatNote(current)])
+  const out: Suggestion<{ note: Note; kind: string }>[] = []
+  HARMONY_KINDS.forEach((kind, order) => {
+    const n = harmonise(ctx, kind.id).notes[place]
+    if (!n) return
+    const text = formatNote(n.note)
+    if (seen.has(text)) return
+    seen.add(text)
+    const tags = n.tags.length ? n.tags : ['plain']
+    let score = -order / 100
+    if (tags.includes('chord-tone')) score += 2
+    if (tags.includes('chromatic')) score -= 2
+    out.push(
+      makeSuggestion({
+        candidate: { note: n.note, kind: kind.id },
+        score,
+        tags,
+        ruleIds: [`harmony-${kind.id}`],
+        explanation: fillTemplate(T.alternative, {
+          kind: kind.label.toLowerCase(),
+          why: n.explanation,
+        }),
+      }),
+    )
+  })
+  return out.sort((a, b) => b.score - a.score)
 }

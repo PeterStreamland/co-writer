@@ -5,12 +5,15 @@ import {
   DEFAULT_RANGE,
   addDur,
   compareDur,
+  editHarmony,
   harmonise,
   harmonyKind,
   melodyRange,
+  pruneHarmonyEdits,
   midiNumber,
   type HarmonyContext,
-  type HarmonyNote,
+  type HarmonyEdit,
+  type PlacedHarmonyNote,
   type MelodyNote,
   type MelodyRange,
   type Placement,
@@ -49,30 +52,35 @@ export function melodyAlong(
 }
 
 // A harmony of the melody as its own row under the chords (PLAN Phase 7
-// task 11): its notes, and the same notes playing along, each harmony
-// with a look of its own so its row knows which of its notes is sounding.
+// task 11): its notes with your edits on them (David's request), and the
+// same notes playing along, each harmony with a look of its own so its
+// row knows which of its notes is sounding.
 export type HarmonyRow = {
   id: string
   label: string
-  notes: HarmonyNote[]
+  notes: PlacedHarmonyNote[]
   along: AlongNote[]
+  edited: number // how many of its notes are your own, or taken out
 }
 
 export function harmonyRows(
   ids: string[],
   ctx: HarmonyContext,
   timing: Placement[],
+  edits: Record<string, HarmonyEdit[]> = {},
 ): HarmonyRow[] {
   return ids.flatMap((id) => {
     const kind = harmonyKind(id)
     if (!kind) return []
-    const { notes } = harmonise(ctx, id)
+    const own = pruneHarmonyEdits(ctx.melody, edits[id] ?? [])
+    const notes = editHarmony(ctx, harmonise(ctx, id).notes, own)
     return [
       {
         id,
         label: kind.label,
         notes,
         along: melodyAlong(notes, timing, harmonyLook(id)),
+        edited: own.length,
       },
     ]
   })

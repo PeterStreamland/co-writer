@@ -68,4 +68,31 @@ describe('saving the progression', () => {
     )
     expect(loadProgression(store)).toEqual(EMPTY_PROGRESSION)
   })
+
+  it('keeps your own notes in the harmonies', () => {
+    const store = memoryStore()
+    const melody = typeMelody('E4 F♯ G', dur(1, 4)).notes
+    const p = {
+      ...addAfter(EMPTY_PROGRESSION, -1, parseChordSymbol('Em')!),
+      melody,
+      harmonies: ['3rd-above'],
+      harmonyEdits: {
+        '3rd-above': [
+          {
+            at: melody[1].onset,
+            under: melody[1].note,
+            note: parseNote('D5')!,
+          },
+          { at: melody[2].onset, under: melody[2].note },
+        ],
+      },
+    }
+    saveProgression(p, store)
+    expect(loadProgression(store)).toEqual(p)
+    store.setItem(
+      'co-writer:progression',
+      JSON.stringify({ ...p, harmonyEdits: { '3rd-above': [{ at: 1 }] } }),
+    )
+    expect(loadProgression(store)).toEqual(EMPTY_PROGRESSION)
+  })
 })
