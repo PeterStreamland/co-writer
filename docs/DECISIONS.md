@@ -1716,4 +1716,3 @@ The strip's **▶ Play** lit only one note at a time across the melody, its harm
 - **Through a rest (my reading of David's note):** the last note stays lit until the next note on its row. When playback ends, every light goes out.
 - **Everywhere the rows play:** the strip's ▶ Play, the Melody tab's Play melody (the harmony rows now light too), and ▶ on a bar of the lane or a row.
 - Chords on the strip, and the Arpeggio and Lines tabs' own playback, already held their light until the next one, and are unchanged.
-
