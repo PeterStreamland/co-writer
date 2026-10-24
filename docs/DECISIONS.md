@@ -1809,7 +1809,7 @@ A **Counterpoint** tab sits beside Harmony. It writes a line against the melody 
   - a 2nd above held over and falling into a unison passed as a suspension (strict allows only a 9–8);
   - a melody rising a whole step to its last note, with the line falling a whole step, was called a cadence;
   - some break wording.
-- **Open, for David to decide (not built):**
+- **Open, for David to decide (not built; decided in the entry after this one):**
   - 5ths or octaves on successive off-beats in fourth species (for example C–C then D–D across a suspension that rises). Many texts count them as consecutive octaves. Adding the rule would change a golden case.
   - The nota cambiata in third species, and the raised 6th before the raised 7th in Dorian and Aeolian (6–7–8 rising into the cadence). Both are textbook; for now strict flags them.
   - A diminished 5th moving to a perfect 5th (unequal 5ths), which some strict texts forbid.
@@ -1818,3 +1818,15 @@ A **Counterpoint** tab sits beside Harmony. It writes a line against the melody 
   - a chromatic step inside the line (other than the leading note);
   - lines in more than two voices.
 - **Search:** a deterministic beam search, so the same melody always gives the same line. It looks one note ahead at the end so the cadence is never cut off. A line is worked out once per melody and kept, so rows don't search again while they play.
+
+## 2026-10-24 — Counterpoint's open questions settled (task 18 follow-up, David asked me to choose)
+
+David asked me to settle the three open counterpoint questions as I judged best for the app. In each case I chose the textbook answer for **strict** counterpoint and left **freer** looser:
+
+- **5ths or octaves on successive off-beats (fourth species) are a break in strict** (`cp-offbeat-parallel`). The ties don't hide them, as most texts say. With David's go-ahead, the golden case "a suspension that rises" now expects this break too: C–C, then D–D on the next off-beat.
+- **The nota cambiata is allowed in third and fifth species** (both modes). The figure: step down to a dissonance off the beat, leap a 3rd down, then step back up. The note after the leap must step up, or it's a break (`cp-cambiata`). Golden case: "third species, a nota cambiata".
+- **The raised 6th is allowed in strict** where the key lacks it, but only when it steps straight up to the raised leading note (F♯ to G♯ to A in A Aeolian). A line can then climb 6–7–8 into the cadence without an augmented 2nd. Golden case: "second species in A minor, the raised 6th and 7th". In Dorian the 6th is already raised, so nothing changes there.
+- **A diminished 5th moving to a perfect 5th, both voices moving, is a break in strict** (`cp-unequal`, unequal 5ths). Freer allows it.
+- **Repeated notes in first species stay allowed but weighed against.** Fux repeats a note now and then, and the golden lines that repeat once stay as they are.
+
+All 120 lines against the textbook cantus firmi still keep every rule.

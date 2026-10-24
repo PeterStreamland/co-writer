@@ -245,7 +245,9 @@ export const counterpointChecks: CounterpointCheckFixture[] = [
   },
   {
     // C held into D–C m7 rises to D5 instead of falling a step: the
-    // suspension isn't resolved.
+    // suspension isn't resolved. C–C on the off-beat, then D–D on the
+    // next, both voices rising: octaves on successive off-beats (David
+    // agreed, 2026-10-24, that strict counts these).
     name: 'fourth species, a suspension that rises',
     key: 'C major',
     melody: 'C4 D4 E4 D4 C4',
@@ -254,7 +256,7 @@ export const counterpointChecks: CounterpointCheckFixture[] = [
     mode: 'strict',
     value: '1/2',
     line: 'r C5 - D5 - C5 - B4 C5 -',
-    breaks: ['cp-suspension@0'],
+    breaks: ['cp-suspension@0', 'cp-offbeat-parallel@1'],
   },
   {
     // D5 starts against E4, a minor 7th, and is held into D–D, an octave:
@@ -298,6 +300,36 @@ export const counterpointChecks: CounterpointCheckFixture[] = [
     value: '1',
     line: 'A4 E4 D4',
     breaks: ['cp-cadence@2'],
+  },
+  {
+    // Quarters over C: C5 (P8), B4 (M7, stepping down), G4 (P5, a 3rd's
+    // leap down), A4 (M6, stepping back up): a nota cambiata. Over D: B4
+    // M6, C5 m7 passing B–C–D, D5 P8, B4 M6. C–C P8 to end, B rising a
+    // semitone as the melody falls.
+    name: 'third species, a nota cambiata',
+    key: 'C major',
+    melody: 'C4 D4 C4',
+    species: 3,
+    side: 'above',
+    mode: 'strict',
+    value: '1/4',
+    line: 'C5 B4 G4 A4 B4 C5 D5 B4 C5 - - -',
+    breaks: [],
+  },
+  {
+    // Halves: A–E P5, A–C m3 | B–D m3, B–G m6 | C–A M6, C–E M3 | B–F♯ P5
+    // (contrary), B–G♯ M6 | A–A P8. F♯ is the raised 6th, stepping up to
+    // G♯, the raised leading note, so the line climbs 6–7–8 into the
+    // cadence without an augmented 2nd.
+    name: 'second species in A minor, the raised 6th and 7th',
+    key: 'A natural-minor',
+    melody: 'A3 B3 C4 B3 A3',
+    species: 2,
+    side: 'above',
+    mode: 'strict',
+    value: '1/2',
+    line: 'E4 C4 D4 G4 A4 E4 F#4 G#4 A4 -',
+    breaks: [],
   },
 ]
 
