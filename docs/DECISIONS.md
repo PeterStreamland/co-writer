@@ -1583,3 +1583,26 @@ David asked to move a note up or down an octave when it is tapped in the melody 
   - A chord's own style overrides the progression's, and keeps it when the progression's style changes.
 - **What follows the style:** ▶ Play on the strip, and ▶ Bar n in the melody lane and in the rows (each plays its stretch of the chords in style). Tapping a chord still plays it once, as a block, so you hear it straight away.
 - **Saving:** the progression's style and each chord's own are saved with it, and changes can be undone (`chordStyle` on the progression and `style` on a chord; SPEC 12 updated).
+
+## 2026-10-24 — Inversions before octaves (Phase 7 task 9)
+
+▲ ▼ on a selected chord now step through its inversions. The theory is `stepInversion` and `inversionStepLabel` in `src/theory/inversion.ts`, with hand-worked cases in `tests/fixtures/inversion-steps.ts`. The guitar shapes come from `invertShape` in `src/instruments/octave.ts`.
+
+- **A step:**
+  - **▲** puts the next chord tone in the bass, the nearest above the bass now, and stacks the other tones closely above it. Any 9th, 11th or 13th stays on top.
+  - So C goes C, C/E, C/G, then C an octave up. A 7th chord has four positions (G7, G7/B, G7/D, G7/F), a power chord two.
+  - **▼** goes back the same way: C, C/G a little lower, C/E, then C an octave down.
+  - The chord's name changes with it (C/E), so numerals, lines and arpeggios read the new bass. Spelling is kept: A♭/C, then A♭/E♭.
+- **On guitar,** each step takes a playable shape of the inverted chord. In order, it looks for:
+  - the bass asked for, or the nearest bass on that side;
+  - every chord tone and as many strings as it can;
+  - an easy shape;
+  - the one nearest where the hand is.
+
+  So C goes open C, open C/E, the open C/G on the top four strings, then C at the 5th fret. When the neck has nothing further that way, the chord stays put.
+
+- **Labels (David's request):** the chip says which kind of move a chord has had: "1st inversion", "+1 octave", or both ("1st inversion, +1 octave"). Octaves are counted each time a step comes round past root position, and by octave moves.
+- **Whole octaves** are still a tap away: **▼8ve ▲8ve** beside ▲ ▼ move the chord an octave as before, and the strip's Octave ▼ ▲ still moves every chord.
+- **A slash chord over a note outside it** (F/G) has no inversions to step through, so ▲ ▼ move it a whole octave.
+- **Exit criterion ticked:** stepping ▲ or ▼ visits every inversion once before landing in root position an octave away. Each step is labelled as an inversion, an octave or both. Tested in both directions over twelve chords (triads, 7ths, half-diminished, sus2, power chord, m6, dim7).
+- **▶ Hear it (David's request):** beside **This chord plays**, it plays the selected chord through its length in its style, so a style can be heard before playing the progression.

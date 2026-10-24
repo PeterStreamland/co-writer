@@ -6,7 +6,7 @@ import { chordIntervals } from './chord'
 import type { ChordName } from './chord-symbol'
 import { transpose } from './interval'
 import type { Interval } from './interval'
-import { midiNumber, pitchClass, type Note } from './note'
+import { midiNumber, noteAtMidi, pitchClass, type Note } from './note'
 
 // A chord with one of its tones in the bass. inversion is 0 for root
 // position, 1 for the first inversion and so on; bassTone is the bass's
@@ -112,4 +112,62 @@ export function playbackVoicing(chord: ChordName): Note[] {
   const high = closeVoicing(chord, 4)
   const E4 = 64
   return (midiNumber(high[0]) as number) > E4 ? closeVoicing(chord, 3) : high
+}
+
+// One step through a chord's inversions (PLAN Phase 7 task 9, David's
+// request): ▲ (1) puts the next chord tone in the bass, the nearest above
+// the bass now, and ▼ (-1) the one before it, nearest below; the other
+// tones stack closely above it, any 9th, 11th or 13th on top. So C goes
+// C, C/E, C/G, then C an octave up. octave is 1 when a step up comes back
+// round to root position (-1 when a step down leaves it), so the octaves
+// moved can be counted. None for a slash chord over a note outside it.
+export type InversionStep = {
+  chord: ChordName
+  notes: Note[]
+  inversion: number
+  octave: number
+}
+
+export function stepInversion(
+  chord: ChordName,
+  notes: Note[],
+  by: 1 | -1,
+): InversionStep | undefined {
+  const at = inversionOf(chord)
+  if (at === undefined || !notes.length) return undefined
+  const { invertible } = splitTones(chord.root, chord.quality)
+  const count = invertible.length
+  const next = (((at + by) % count) + count) % count
+  const octave = by > 0 && next === 0 ? 1 : by < 0 && at === 0 ? -1 : 0
+  const bassNow = Math.min(...notes.map((n) => midiNumber(n) as number))
+  const tone = invertible[next].note
+  // The tone's pitch nearest the bass now, the way asked.
+  let midi = bassNow - ((((bassNow - pitchClass(tone)) % 12) + 12) % 12)
+  while (by > 0 ? midi <= bassNow : midi >= bassNow) midi += 12 * by
+  const bass = noteAtMidi(tone, midi) as Note
+  const name: ChordName = { root: chord.root, quality: chord.quality }
+  if (next > 0) name.bass = { letter: tone.letter, accidental: tone.accidental }
+  return {
+    chord: name,
+    notes: closeVoicing(name, bass.octave as number),
+    inversion: next,
+    octave,
+  }
+}
+
+const ORDINALS = ['', '1st', '2nd', '3rd', '4th', '5th']
+
+// What a chord's steps have made it (David's request: never mistake an
+// inversion for an octave): "1st inversion", "+1 octave", "2nd inversion,
+// −1 octave", or "root position" where it started.
+export function inversionStepLabel(inversion: number, octave: number): string {
+  const parts: string[] = []
+  if (inversion > 0)
+    parts.push(`${ORDINALS[inversion] ?? `${inversion}th`} inversion`)
+  if (octave) {
+    parts.push(
+      `${octave > 0 ? '+' : '−'}${Math.abs(octave)} octave${Math.abs(octave) === 1 ? '' : 's'}`,
+    )
+  }
+  return parts.join(', ') || 'root position'
 }

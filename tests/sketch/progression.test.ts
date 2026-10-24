@@ -20,6 +20,7 @@ import {
   switchAt,
   type Progression,
   shiftAt,
+  invertAt,
   setChordStyle,
   setStyleAt,
   styleAt,
@@ -494,5 +495,26 @@ describe('chord styles (Phase 7 task 8, David’s request)', () => {
     h = record(h, setChordStyle(p, 'pulse'))
     expect(styleAt(undo(h).present, 0)).toBe('block')
     expect(styleAt(redo(undo(h)).present, 0)).toBe('pulse')
+  })
+})
+
+describe('stepping a chord through its inversions (Phase 7 task 9)', () => {
+  const p = ['C', 'F'].reduce(
+    (q, s) => addAfter(q, q.activePath.length - 1, parse(s)),
+    EMPTY_PROGRESSION,
+  )
+  const voicing = (text: string) => ({
+    instrument: 'keyboard' as const,
+    notes: text.split(' ').map((n) => parseNote(n)!),
+  })
+  it('renames the chord, keeps its voicing and counts octaves', () => {
+    let q = invertAt(p, 0, parse('C/E'), voicing('E4 G4 C5'), 0)
+    expect(chordSymbol(pathNodes(q)[0].chord)).toBe('C/E')
+    expect(pathNodes(q)[0].octave).toBeUndefined()
+    q = invertAt(q, 0, parse('C'), voicing('C5 E5 G5'), 1)
+    expect(pathNodes(q)[0].octave).toBe(1)
+    q = invertAt(q, 0, parse('C/G'), voicing('G4 C5 E5'), -1)
+    expect(pathNodes(q)[0].octave).toBeUndefined()
+    expect(isProgression(JSON.parse(JSON.stringify(q)))).toBe(true)
   })
 })

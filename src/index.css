@@ -2527,6 +2527,16 @@ label.chord-style {
   font-size: 0.85rem;
 }
 
+button.hear-style {
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.5rem;
+}
+
+/* Inversion steps and whole-octave moves on a chord (Phase 7 task 9). */
+button.octave-step {
+  font-size: 0.7rem;
+}
+
 .style-label {
   font-size: 0.7rem;
   color: var(--accent);

@@ -562,6 +562,27 @@ export function styleAt(p: Progression, index: number): ChordStyleId {
   return chordStyle(p.nodes[id]?.style ?? p.chordStyle)
 }
 
+// A chord stepped to another inversion (David's request): its new name
+// (C/E), the voicing that plays it, and the octaves moved so far, which
+// change by one when a step comes round past root position.
+export function invertAt(
+  p: Progression,
+  index: number,
+  chord: ChordName,
+  voicing: ChordVoicing,
+  octaveBy: number,
+): Progression {
+  const own = materialise(p, index)
+  const id = own.activePath[index]
+  if (!id) return p
+  const before = node(own, id)
+  const octave = (before.octave ?? 0) + octaveBy
+  const stepped: ChordNode = { ...before, chord, voicing }
+  if (octave) stepped.octave = octave
+  else delete stepped.octave
+  return { ...own, nodes: { ...own.nodes, [id]: stepped } }
+}
+
 export function shiftAt(
   p: Progression,
   index: number,
