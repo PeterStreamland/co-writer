@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  barPosition,
   counterpoint,
   dur,
+  setCounterpointEdit,
+  setHarmonyEdit,
   formatNote,
   harmonise,
   layOut,
@@ -238,5 +241,62 @@ describe('counterpoint lines as rows', () => {
     expect(
       counterpointRows(['1-below-strict'], { ...ctx, melody: [] }, timing),
     ).toEqual([])
+  })
+})
+
+describe('clearing a bar of a harmony or counterpoint row', () => {
+  const key = { tonic: parseNote('C')!, mode: 'major' }
+  const time = { meter: { num: 4, den: 4 } }
+  const timing = layOut([undefined, undefined], time)
+  const ctx: HarmonyContext = {
+    melody: typeMelody('E4 F4 G4 A4 G4 F4 E4 D4 C4', dur(1, 4)).notes,
+    key,
+    chords: ['C', 'G7'].map((s, i) => ({
+      chord: parseChordSymbol(s)!,
+      key,
+      start: timing[i].start,
+      length: timing[i].length,
+    })),
+    time,
+  }
+  const barOf = (n: { onset: Parameters<typeof barPosition>[1] }) =>
+    barPosition(time, n.onset).bar
+
+  it('takes a harmony’s notes out of that bar only', () => {
+    const [row] = harmonyRows(['3rd-above'], ctx, timing)
+    const places = row.notes.filter((n) => barOf(n) === 2).map((n) => n.place)
+    const edits = places.reduce(
+      (e, place) => setHarmonyEdit(ctx.melody, e, place),
+      [] as ReturnType<typeof setHarmonyEdit>,
+    )
+    const [cleared] = harmonyRows(['3rd-above'], ctx, timing, {
+      '3rd-above': edits,
+    })
+    expect(cleared.notes.filter((n) => barOf(n) === 2)).toEqual([])
+    expect(cleared.notes.filter((n) => barOf(n) !== 2)).toEqual(
+      row.notes.filter((n) => barOf(n) !== 2),
+    )
+    expect(cleared.edited).toBe(4)
+  })
+
+  it('takes a counterpoint line’s notes out of that bar only', () => {
+    const id = '2-below-strict'
+    const line = counterpointLine(ctx, {
+      species: 2,
+      side: 'below',
+      mode: 'strict',
+    }).notes
+    const [row] = counterpointRows([id], ctx, timing)
+    const places = row.notes.filter((n) => barOf(n) === 1).map((n) => n.place)
+    const edits = places.reduce(
+      (e, place) => setCounterpointEdit(ctx.melody, line, e, place),
+      [] as ReturnType<typeof setCounterpointEdit>,
+    )
+    const [cleared] = counterpointRows([id], ctx, timing, { [id]: edits })
+    expect(cleared.notes.filter((n) => barOf(n) === 1)).toEqual([])
+    expect(
+      cleared.notes.filter((n) => barOf(n) !== 1).map((n) => n.note),
+    ).toEqual(row.notes.filter((n) => barOf(n) !== 1).map((n) => n.note))
+    expect(cleared.edited).toBe(places.length)
   })
 })

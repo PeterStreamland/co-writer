@@ -35,6 +35,7 @@ export function HarmonyRows({
   alternatives,
   onEdit,
   onRestore,
+  onClearBar,
   name = 'harmony',
   label = 'Harmonies',
   subtitle = 'follows the melody',
@@ -60,6 +61,9 @@ export function HarmonyRows({
   onEdit: (id: string, place: number, note?: Note) => void
   // The harmony's own note again, under one melody note or under all.
   onRestore: (id: string, place?: number) => void
+  // Takes out the row's notes starting in a bar (David's request: a ✕ for
+  // each bar, as the melody lane has), by their places.
+  onClearBar: (id: string, places: number[]) => void
   // The rows' wording: counterpoint lines use the same rows (task 18).
   name?: string // "harmony", "line"
   label?: string
@@ -108,6 +112,12 @@ export function HarmonyRows({
             <div class="lane-bars">
               {strips.map((strip) => {
                 const pct = (d: Dur) => `${ratioOf(d, strip.length) * 100}%`
+                // The notes starting in this bar (one ringing in stays).
+                const places = strip.segments.flatMap((g) =>
+                  g.kind === 'note' && !g.tiedIn
+                    ? [row.notes[g.index].place]
+                    : [],
+                )
                 return (
                   <div
                     key={strip.bar}
@@ -119,6 +129,25 @@ export function HarmonyRows({
                     }}
                     onClick={() => onActivate(strip.bar)}
                   >
+                    <div class="lane-head">
+                      <span class="muted">Bar {strip.bar}</span>
+                      {places.length > 0 && (
+                        <button
+                          type="button"
+                          class="lane-clear"
+                          aria-label={`Clear bar ${strip.bar} of ${row.label}`}
+                          title={`Take this ${name}’s notes out of bar ${strip.bar}; the rest of it plays on (Undo brings them back)`}
+                          onClick={() => {
+                            onClearBar(row.id, places)
+                            if (mine !== undefined && places.includes(mine)) {
+                              setPicked(undefined)
+                            }
+                          }}
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
                     <div class="lane-ruler">
                       {beatsOf(strip.meter).map((b, k) => (
                         <span key={k} style={{ left: pct(b.onset) }} />

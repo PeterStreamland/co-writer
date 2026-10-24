@@ -1686,6 +1686,15 @@ export function Workspace() {
                     : clearHarmonyEdit(melody, editsOf(id), place),
                 )
               }
+              onClearBar={(id, places) =>
+                setHarmonyEdits(
+                  id,
+                  places.reduce(
+                    (edits, place) => setHarmonyEdit(melody, edits, place),
+                    editsOf(id),
+                  ),
+                )
+              }
             />
             <HarmonyRows
               rows={lineRows}
@@ -1745,6 +1754,16 @@ export function Workspace() {
                         lineEditsOf(id),
                         place,
                       ),
+                )
+              }
+              onClearBar={(id, places) =>
+                setCounterpointEdits(
+                  id,
+                  places.reduce(
+                    (edits, place) =>
+                      setCounterpointEdit(melody, lineOf(id), edits, place),
+                    lineEditsOf(id),
+                  ),
                 )
               }
             />
