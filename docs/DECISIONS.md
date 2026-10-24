@@ -1728,3 +1728,7 @@ The harmonies and the countermelody have moved out of the Melody tab into a **Ha
 The tab also has its own **▶ Play melody** and **▶ Play with chords** (my choice), so a harmony can be heard without going back to the Melody tab. With no melody yet, it says so and offers **Add a melody**, which opens the Melody tab.
 
 **A fix to task 13:** the Melody tab's **▶ Play with chords** still lit one note at a time across the melody and its harmonies. It now uses a light for each row too, the same as the strip's ▶ Play.
+
+## 2026-10-24 — The Harmony cards' notes, bar by bar (Phase 7 task 15)
+
+Each Harmony card (3rds above, 6ths below, the countermelody, 3rds below and the rest) showed its notes as one long grey run of names. They are now laid out **bar by bar**, one bar to a line with "Bar n" in front (`notesByBar` in `src/workspace/melody-view.ts`). Each note is a teal chip like the notes on the harmony rows, and a note outside the key is dashed, as it is there. Hovering over a note says what it is (chord tone, passing, bent and so on). The card's explanation and ⓘ stay underneath.

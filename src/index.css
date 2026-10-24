@@ -2893,6 +2893,42 @@ button.octave-step {
   border-style: dashed;
 }
 
+/* A Harmony card's notes, a bar to a line (Phase 7 task 15). */
+.harmony-bars {
+  grid-column: 1 / -1;
+  list-style: none;
+  margin: 0.25rem 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.harmony-bars li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.harmony-bar-name {
+  min-width: 2.6rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.harmony-chip {
+  padding: 0 0.35rem;
+  border: 1px solid #0d9488;
+  border-radius: 0.3rem;
+  background: color-mix(in srgb, #0d9488 14%, var(--card));
+  font-size: 0.85rem;
+}
+
+.harmony-chip.chromatic {
+  border-style: dashed;
+}
+
 .lane-note.harmony-note.sounding {
   background: color-mix(in srgb, #f59e0b 45%, var(--card));
 }

@@ -4,6 +4,7 @@
 import {
   DEFAULT_RANGE,
   addDur,
+  barPosition,
   compareDur,
   editHarmony,
   harmonise,
@@ -17,6 +18,8 @@ import {
   type MelodyNote,
   type MelodyRange,
   type Placement,
+  type Dur,
+  type MeterMap,
 } from '../theory'
 import type { MelodyRangeSetting } from '../sketch/progression'
 import type { AlongNote } from './along'
@@ -103,4 +106,21 @@ export function rangeFromSetting(setting?: MelodyRangeSetting): MelodyRange {
     }
   }
   return melodyRange(setting?.preset ?? DEFAULT_RANGE)
+}
+
+// Notes grouped by the bar each starts in, for showing a line bar by bar
+// (the Harmony cards, Phase 7 task 15): each with its place in the line,
+// and only the bars that have notes.
+export function notesByBar<T extends { onset: Dur }>(
+  notes: T[],
+  time: MeterMap,
+): { bar: number; notes: (T & { place: number })[] }[] {
+  const bars: { bar: number; notes: (T & { place: number })[] }[] = []
+  notes.forEach((n, place) => {
+    const { bar } = barPosition(time, n.onset)
+    const last = bars.at(-1)
+    if (last?.bar === bar) last.notes.push({ ...n, place })
+    else bars.push({ bar, notes: [{ ...n, place }] })
+  })
+  return bars
 }

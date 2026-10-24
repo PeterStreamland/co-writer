@@ -5,7 +5,6 @@ import {
   formatNote,
   harmonyKind,
   harmonyOptions,
-  motifText,
   subDur,
   type HarmonySuggestion,
   type Key,
@@ -16,6 +15,7 @@ import {
 import { playNote } from '../audio/player'
 import { secondsOf } from '../sketch/time'
 import { InfoToggle } from './ChordInfo'
+import { notesByBar } from './melody-view'
 import type { MelodyLight } from './MelodyPanel'
 
 // The Harmony tab (Phase 7 task 14, David's note): harmonies and the
@@ -105,7 +105,6 @@ export function HarmonyPanel({
           }}
         >
           <span class="symbol">{kind.label}</span>
-          <span class="numeral">{motifText(notes)}</span>
           {on && <span class="badge">Playing</span>}
         </button>
         <button
@@ -132,6 +131,28 @@ export function HarmonyPanel({
         >
           {on ? '✓' : '+'}
         </button>
+        <ol class="harmony-bars" aria-label={`${kind.label}, bar by bar`}>
+          {notesByBar(notes, time).map((b) => (
+            <li key={b.bar}>
+              <span class="harmony-bar-name">Bar {b.bar}</span>
+              {b.notes.map((n) => (
+                <span
+                  key={n.place}
+                  class={
+                    n.tags.includes('chromatic')
+                      ? 'harmony-chip chromatic'
+                      : 'harmony-chip'
+                  }
+                  title={`${formatNote(n.note)}: ${n.tags
+                    .map((t) => HARMONY_TAG_TEXT[t] ?? t)
+                    .join(', ')}`}
+                >
+                  {formatNote(n.note)}
+                </span>
+              ))}
+            </li>
+          ))}
+        </ol>
         <p class="why">
           {s.explanation}{' '}
           <InfoToggle
