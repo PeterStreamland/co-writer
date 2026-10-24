@@ -1,18 +1,28 @@
 import {
+  addDur,
+  beatsOf,
+  compareDur,
   formatNote,
-  melodyBars,
-  valueFraction,
+  ratioOf,
+  subDur,
   valueName,
+  type Dur,
   type MelodyNote,
   type MeterMap,
   type NextNoteSuggestion,
   type Note,
 } from '../theory'
+import { melodyStrips, type Strip } from './melody-strips'
 
-// The melody lane under the progression strip (SPEC 2, 7.2): the melody's
-// notes bar by bar, each with its length as a fraction (1/4 a crotchet),
-// the one sounding lit. Lining the bars up under the chords comes with
-// Phase 7 task 6. Tapping a note (David's request) plays it and offers
+// How wide a bar of 4/4 is; other bars are in proportion to their length.
+const BAR_REM = 18
+
+// The melody lane under the progression strip (SPEC 2, 7.2): each bar a
+// time strip (Phase 7 task 6, David's choice), with its chords on top, a
+// ruler of its beats and how full it is. Each note is as wide as it lasts;
+// a held note marks where each hold began; rests are dashed and time not
+// filled yet is faint; a note over the barline is split and tied. The note
+// sounding is lit. Tapping a bar's name plays it. Tapping a note (David's request) plays it and offers
 // notes for its place, best first, and ways to leave a gap there: silence
 // it, hold the note before over it (no new note), or a beat's rest before
 // it.
@@ -28,6 +38,9 @@ export function MelodyLane({
   onSilence,
   onHold,
   onRestBefore,
+  chords,
+  barCount,
+  onPlayBar,
 }: {
   melody: MelodyNote[]
   time: MeterMap
@@ -42,8 +55,26 @@ export function MelodyLane({
   onSilence: () => void
   onHold: () => void
   onRestBefore: () => void
+  // Each chord's symbol and where it sounds, for the strips' tops.
+  chords: { symbol: string; start: Dur; length: Dur }[]
+  // How many bars the chords cover: the lane shows at least these.
+  barCount: number
+  // Plays a bar: its melody over its chords (David's request).
+  onPlayBar: (start: Dur, length: Dur) => void
 }) {
-  const bars = melodyBars(melody, time)
+  const strips = melodyStrips(melody, time, barCount)
+  // The chord names over a bar: every chord sounding in it.
+  const chordsIn = (strip: Strip) => {
+    const end = addDur(strip.start, strip.length)
+    return chords
+      .filter(
+        (c) =>
+          compareDur(c.start, end) < 0 &&
+          compareDur(addDur(c.start, c.length), strip.start) > 0,
+      )
+      .map((c) => c.symbol)
+      .join(' ')
+  }
   const chosen = selected === undefined ? undefined : melody[selected]
   return (
     <section class="part-rows melody-lane" aria-label="Melody">
@@ -60,37 +91,98 @@ export function MelodyLane({
             MIDI in the Melody tab.
           </p>
         ) : (
-          <ol class="line-chords part-chords">
-            {bars.map(({ bar, notes }) => (
-              <li key={bar} class="line-chord">
-                <div class="bar-head">
-                  <span class="line-chord-name muted">Bar {bar}</span>
-                </div>
-                <span class="line-notes">
-                  {notes.map((i) => (
+          <div class="lane-bars">
+            {strips.map((strip) => {
+              const pct = (d: Dur) => `${ratioOf(d, strip.length) * 100}%`
+              return (
+                <div
+                  key={strip.bar}
+                  class="lane-bar"
+                  style={{
+                    width: `${ratioOf(strip.length, { n: 1, d: 1 }) * BAR_REM}rem`,
+                  }}
+                >
+                  <div class="lane-chord">{chordsIn(strip) || '\u00a0'}</div>
+                  <div class="lane-head">
                     <button
                       type="button"
-                      key={i}
-                      class={[
-                        'line-note',
-                        'melody-note',
-                        i === sounding ? 'sounding' : '',
-                        i === selected ? 'selected' : '',
-                      ].join(' ')}
-                      aria-pressed={i === selected}
-                      title="Tap for notes to play in its place"
-                      onClick={() => onSelect(i === selected ? undefined : i)}
+                      class="lane-play"
+                      title={`Play bar ${strip.bar}`}
+                      onClick={() => onPlayBar(strip.start, strip.length)}
                     >
-                      <span class="label" title={valueName(melody[i].length)}>
-                        {valueFraction(melody[i].length)}
-                      </span>
-                      <span class="name">{formatNote(melody[i].note)}</span>
+                      ▶ Bar {strip.bar}
                     </button>
-                  ))}
-                </span>
-              </li>
-            ))}
-          </ol>
+                    <span class={strip.count === 'full' ? 'full' : 'muted'}>
+                      {strip.count}
+                    </span>
+                  </div>
+                  <div class="lane-ruler">
+                    {beatsOf(strip.meter).map((b, k) => (
+                      <span key={k} style={{ left: pct(b.onset) }}>
+                        {k + 1}
+                      </span>
+                    ))}
+                  </div>
+                  <div class="lane-track">
+                    {strip.segments.map((g, k) =>
+                      g.kind === 'note' ? (
+                        <button
+                          type="button"
+                          key={k}
+                          class={[
+                            'lane-note',
+                            g.tiedIn ? 'tied-in' : '',
+                            g.tiedOut ? 'tied-out' : '',
+                            g.index === sounding ? 'sounding' : '',
+                            g.index === selected ? 'selected' : '',
+                          ].join(' ')}
+                          style={{
+                            left: pct(g.from),
+                            width: pct(subDur(g.to, g.from)),
+                          }}
+                          aria-pressed={g.index === selected}
+                          title={`${formatNote(melody[g.index].note)}, ${valueName(melody[g.index].length)}: tap for notes to play in its place`}
+                          onClick={() =>
+                            onSelect(g.index === selected ? undefined : g.index)
+                          }
+                        >
+                          {(g.held ?? []).map((h, n) => (
+                            <span
+                              key={n}
+                              class="lane-hold"
+                              style={{
+                                left: `${(ratioOf(subDur(h, g.from), subDur(g.to, g.from)) * 100).toFixed(2)}%`,
+                              }}
+                              title="Held: no new note here"
+                            />
+                          ))}
+                          <span class="lane-name">
+                            {g.tiedIn ? '⌒' : ''}
+                            {formatNote(melody[g.index].note)}
+                            {g.tiedOut ? '⌒' : ''}
+                          </span>
+                        </button>
+                      ) : (
+                        <span
+                          key={k}
+                          class={g.kind === 'rest' ? 'lane-rest' : 'lane-empty'}
+                          style={{
+                            left: pct(g.from),
+                            width: pct(subDur(g.to, g.from)),
+                          }}
+                          title={
+                            g.kind === 'rest' ? 'A rest' : 'Not filled yet'
+                          }
+                        >
+                          {g.kind === 'rest' ? '𝄽' : ''}
+                        </span>
+                      ),
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         )}
         {chosen && (
           <div class="lane-place">

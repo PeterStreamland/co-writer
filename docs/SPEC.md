@@ -384,7 +384,7 @@ type PartRecipe =
       from?: number
       gaps?: Record<number, 'rest' | 'hold'>
     } // rests and holds by place in the bar's pattern (2026-10-24)
-type MelodyNote = { note: Note; onset?: Dur; length?: Dur }
+type MelodyNote = { note: Note; onset?: Dur; length?: Dur; holds?: Dur[] } // holds: where it was held over a note's place, from its onset (2026-10-24)
 type StyleBlend = { a: string; b?: string; mix: number } // mix 0–1, in 0.25 steps
 type Section = {
   id: string

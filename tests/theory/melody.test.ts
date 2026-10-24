@@ -214,6 +214,13 @@ describe('holds (David’s request)', () => {
     expect(m.map((n) => formatNote(n.note))).toEqual(['C4', 'D4', 'F4'])
     expect(m[1].length).toEqual(dur(1, 2))
     expect(m[2].onset).toEqual(dur(3, 4))
+    // It remembers where the hold began, a beat after D was struck.
+    expect(m[1].holds).toEqual([dur(1, 4)])
+  })
+  it('a held note held again keeps both holds', () => {
+    let m = typeMelody('C4 D E F', dur(1, 4)).notes
+    m = holdOver(holdOver(m, 2), 2)
+    expect(m[1].holds).toEqual([dur(1, 4), dur(1, 2)])
   })
   it('after a rest, the note before rings on to the end of the held note', () => {
     const m = holdOver(typeMelody('C4 r E', dur(1, 4)).notes, 1)

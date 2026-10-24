@@ -1436,3 +1436,17 @@ Next note and Motif in the Melody tab now work as the Suggest tab does for chord
   - **Alberti** (low–high–middle–high on the lowest three notes, the classic piano accompaniment)
   - **Pedal** on the lowest note (1–2–1–3–1–4…)
   - **Outside in** (lowest, highest, second lowest, second highest…)
+
+## 2026-10-24 — The melody lane as time strips (Phase 7 task 6, first half; David's choice)
+
+David asked for a way to see how much of each bar the melody fills, holds and silences included. From a mock-up of two ways, he chose Option A: each bar of the lane becomes a time strip. The layout is in `src/workspace/melody-strips.ts`, with the cases in `tests/fixtures/melody-strips.ts`.
+
+- **Each bar** is as wide as it lasts (a bar of 4/4 is 18rem; 3/4 is three-quarters of that). On top are the chords sounding in it, then ▶ Bar n and how full it is ("full", or "2½ of 4 beats", counted in the meter's beats: dotted crotchets in 6/8), then a ruler of its beats.
+- **Notes** are blocks as wide as they last.
+  - A note over the barline is split, with ⌒ and a dotted edge on each side.
+  - A held note shows a dashed line where each hold began, striped to its end. To keep this, a note now remembers where it was held over (`holds` on a melody note; SPEC 12 updated).
+  - Tapping a note opens its alternatives, as before.
+- **Gaps:** rests between notes are dashed boxes with 𝄽. Time after the melody's end is faint and empty.
+- **Bars:** the lane shows at least every bar the chords cover, so empty bars to come are visible.
+- **Playing one bar (David's request):** tapping ▶ Bar n plays that bar, its chords cut to it and its melody, with the note sounding lit. The bar names of the line and arpeggio rows under the progression ("C · bar 1") now play that bar of the row with its chord too.
+- **Still to do for task 6:** lining the rows up bar by bar in the same strips under the chords, and freezing a row into notes to edit by hand.

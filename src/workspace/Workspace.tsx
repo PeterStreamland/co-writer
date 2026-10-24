@@ -14,6 +14,7 @@ import {
   type Key,
   type NextChordSuggestion,
   type Note,
+  type Dur,
   type MelodyNote,
   type StyleBlend,
   ZERO,
@@ -21,6 +22,8 @@ import {
   appendNote,
   NOTE_VALUES,
   degreeLabel,
+  barPosition,
+  compareDur,
   countUnit,
   holdOver,
   rankNoteInPlace,
@@ -706,6 +709,59 @@ export function Workspace() {
   const lastPlaced = timing.at(-1)
   const sectionEnd = lastPlaced && addDur(lastPlaced.start, lastPlaced.length)
   const melodySounding = alongAt?.look === MELODY_LOOK ? alongAt.ref : soloAt
+  // How many bars the chords cover, so the lane shows each of them.
+  const chordsEnd = barPosition(time, sectionEnd ?? ZERO)
+  const chordBars = !sectionEnd
+    ? 0
+    : chordsEnd.offset.n === 0
+      ? chordsEnd.bar - 1
+      : chordsEnd.bar
+  // Plays one stretch of the song (a bar of the lane or of a row, David's
+  // request): the chords sounding in it, cut to it, and the notes starting
+  // in it, at the tempo, the note sounding lit.
+  const spanTimers = useRef<number[]>([])
+  function playSpan(
+    start: Dur,
+    length: Dur,
+    notes: (MelodyNote & { ref?: number; look?: string })[],
+  ) {
+    spanTimers.current.forEach(clearTimeout)
+    spanTimers.current = []
+    stopSolo()
+    setPlayingAt(undefined)
+    const end = addDur(start, length)
+    const ms = (d: Dur) => secondsOf(d, bpm, time.meter) * 1000
+    path.forEach((n, i) => {
+      const t = timing[i]
+      const tEnd = addDur(t.start, t.length)
+      if (compareDur(t.start, end) >= 0 || compareDur(tEnd, start) <= 0) return
+      const from = compareDur(t.start, start) > 0 ? t.start : start
+      const to = compareDur(tEnd, end) < 0 ? tEnd : end
+      spanTimers.current.push(
+        window.setTimeout(
+          () => playNode(n, ms(subDur(to, from)) / 1000, true),
+          ms(subDur(from, start)),
+        ),
+      )
+    })
+    for (const m of notes) {
+      if (compareDur(m.onset, start) < 0 || compareDur(m.onset, end) >= 0) {
+        continue
+      }
+      spanTimers.current.push(
+        window.setTimeout(
+          () => {
+            if (m.look === MELODY_LOOK && m.ref !== undefined) setSoloAt(m.ref)
+            void playNote(m.note, secondsOf(m.length, bpm, time.meter))
+          },
+          ms(subDur(m.onset, start)),
+        ),
+      )
+    }
+    spanTimers.current.push(
+      window.setTimeout(() => setSoloAt(undefined), ms(length)),
+    )
+  }
   // Tapping a note in the lane (David's request) offers notes for its
   // place and ways to leave a gap there.
   const melodyChords = path.map((n, i) => ({
@@ -1100,6 +1156,19 @@ export function Workspace() {
               setMelody(holdOver(melody, laneSelected))
               setLaneAt(undefined)
             }}
+            chords={path.map((n, i) => ({
+              symbol: chordSymbol(n.chord),
+              start: timing[i].start,
+              length: timing[i].length,
+            }))}
+            barCount={chordBars}
+            onPlayBar={(start, length) =>
+              playSpan(
+                start,
+                length,
+                melody.map((m, ref) => ({ ...m, ref, look: MELODY_LOOK })),
+              )
+            }
             onRestBefore={() => {
               if (laneSelected === undefined) return
               setMelody(
@@ -1119,6 +1188,14 @@ export function Workspace() {
             onClearBar={(id, step) =>
               change(clearCell(progression, id, path[step].id), selected)
             }
+            onPlayBar={(id, step) => {
+              const row = rows.find((r) => r.part.id === id)
+              playSpan(
+                timing[step].start,
+                timing[step].length,
+                (row?.notes ?? []).filter((n) => n.step === step),
+              )
+            }}
             onShift={(id, by, step) =>
               change(
                 shiftPart(

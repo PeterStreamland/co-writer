@@ -23,6 +23,7 @@ export function PartRows({
   onRemove,
   onClearBar,
   onShift,
+  onPlayBar,
 }: {
   rows: PartView[]
   path: ChordNode[]
@@ -35,6 +36,8 @@ export function PartRows({
   onClearBar: (id: string, step: number) => void
   // Moves a row, or one bar of it, up (1) or down (-1) an octave.
   onShift: (id: string, by: number, step?: number) => void
+  // Plays one bar of a row with its chord (David's request).
+  onPlayBar: (id: string, step: number) => void
 }) {
   if (rows.length === 0) return null
   return (
@@ -94,10 +97,15 @@ export function PartRows({
                   class={played.length ? 'line-chord' : 'line-chord silent'}
                 >
                   <div class="bar-head">
-                    <span class="line-chord-name">
+                    <button
+                      type="button"
+                      class="line-chord-name"
+                      title="Play this bar of the row with its chord"
+                      onClick={() => onPlayBar(part.id, i)}
+                    >
                       {chordSymbol(n.chord)}
                       <span class="muted"> · bar {bars[i]}</span>
-                    </span>
+                    </button>
                     {played.length > 0 && (
                       <span class="octave-one">
                         <button
