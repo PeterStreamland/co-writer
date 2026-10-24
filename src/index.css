@@ -2875,3 +2875,18 @@ button.octave-step {
   box-shadow: 0 0 0 1px var(--accent);
   font-weight: 700;
 }
+
+/* The harmonies and countermelody on rows of their own (Phase 7 task 11):
+   coloured apart from the melody, a note outside the key dashed. */
+.lane-note.harmony-note {
+  border-color: #0d9488;
+  background: color-mix(in srgb, #0d9488 14%, var(--card));
+}
+
+.lane-note.harmony-note.chromatic {
+  border-style: dashed;
+}
+
+.lane-note.harmony-note.sounding {
+  background: color-mix(in srgb, #f59e0b 45%, var(--card));
+}

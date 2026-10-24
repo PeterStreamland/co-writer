@@ -76,6 +76,8 @@ export function PartRows({
   onEditBar,
   onShiftNote,
   onPlayNote,
+  activeBar,
+  onActivate,
 }: {
   rows: PartView[]
   chords: RowChord[]
@@ -100,6 +102,10 @@ export function PartRows({
   // the bar's pattern (David's request).
   onShiftNote: (id: string, step: number, place: number, by: number) => void
   onPlayNote: (note: Note, length: Dur) => void
+  // The active bar, outlined; tapping anything in a bar makes it the
+  // active bar (David's request).
+  activeBar?: number
+  onActivate: (bar: number) => void
 }) {
   const [picked, setPicked] = useState<Picked>()
   if (rows.length === 0) return null
@@ -182,10 +188,13 @@ export function PartRows({
                 return (
                   <div
                     key={strip.bar}
-                    class="lane-bar"
+                    class={
+                      strip.bar === activeBar ? 'lane-bar active' : 'lane-bar'
+                    }
                     style={{
                       width: `${ratioOf(strip.length, { n: 1, d: 1 }) * BAR_REM}rem`,
                     }}
+                    onClick={() => onActivate(strip.bar)}
                   >
                     <div class="row-chords">
                       {starting.map((c) => (
