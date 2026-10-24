@@ -1937,3 +1937,10 @@ David asked for counterpoint lines and harmonies to move in bars and parts of a 
 A chord always sounds as it starts, even where a pattern rests (a Charleston chord starting halfway through a bar), except in the styles that rest first: off-beat stabs and reggae. Silences in a pattern run on as one rest.
 
 Every style still fills each chord exactly in every meter (the Phase 7 exit criterion). Six new golden cases cover Alberti, arpeggio up in 3/4, reggae, gallop, boom-chick and the Charleston.
+
+## 2026-10-24 — The MIDI controls fold away at the top (Phase 7 task 23, David's request)
+
+The MIDI keyboard's controls (Connect, the notes held, the last chord's names, Follow my playing and Record chords) now sit in a section under the top bar. **▸ 🎹 MIDI** beside the key, time and tempo opens and closes it. It starts closed.
+
+- **While closed, the button still says enough** (my choice): off, or the last chord played once a keyboard is connected, and **● recording** while Record chords is on, so recording is never hidden.
+- **The keyboard stays connected and keeps working while the section is closed.** Notes still light the instrument and Record chords still adds chords; only the controls are hidden.

@@ -960,6 +960,18 @@ body:has(.workspace) #app {
   margin: 0.75rem 0;
 }
 
+/* The MIDI controls fold away under the top bar (David's request). */
+.midi-toggle {
+  padding: 0.25rem 0.6rem;
+}
+
+.midi-drawer {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 0.75rem;
+  margin: 0.5rem 0;
+}
+
 .midi p {
   margin: 0.3rem 0;
 }

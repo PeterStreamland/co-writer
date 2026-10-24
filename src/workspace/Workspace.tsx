@@ -278,6 +278,8 @@ export function Workspace() {
   // request): the chord picked on the strip, a melody note or a bar's
   // clear menu in the lane, or a harmony, counterpoint or row note or bar.
   // A click on the background closes them.
+  // The MIDI keyboard's controls fold away at the top (David's request).
+  const [midiOpen, setMidiOpen] = useState(false)
   const [focus, setFocus] = useState<
     'chord' | 'lane-note' | 'lane-bar' | 'harmony' | 'counterpoint' | 'parts'
   >()
@@ -1560,7 +1562,44 @@ export function Workspace() {
           onBpmChange={setBpm}
         />
         <StyleBlendControl styles={styles} value={blend} onChange={setBlend} />
+        <button
+          type="button"
+          class="midi-toggle"
+          aria-expanded={midiOpen}
+          title={
+            midiOpen
+              ? 'Hide the MIDI keyboard controls'
+              : 'Show the MIDI keyboard controls: connect, follow and record chords'
+          }
+          onClick={() => setMidiOpen(!midiOpen)}
+        >
+          {midiOpen ? '▾' : '▸'} 🎹 MIDI{' '}
+          <span class="muted">
+            {midi.status === 'connected'
+              ? (last.names[0]?.symbol ?? 'on')
+              : midi.status === 'unsupported'
+                ? 'not in this browser'
+                : 'off'}
+            {recording ? ' · ● recording' : ''}
+          </span>
+        </button>
       </header>
+      {midiOpen && (
+        <div class="midi-drawer">
+          <MidiPanel
+            midi={midi}
+            playing={playing}
+            last={last}
+            follow={follow}
+            onFollowChange={setFollow}
+            recording={recording}
+            onRecordingChange={setRecording}
+            unnamed={unnamed}
+            shapesOn={instrument === 'guitar' ? 'keyboard' : 'guitar'}
+            onShowShapes={showShapes}
+          />
+        </div>
+      )}
       <div class="layout">
         <main class="stage">
           {!narrow && scale}
@@ -1581,18 +1620,6 @@ export function Workspace() {
             shapes={shapeList}
             voicings={voicingList}
             onTap={melodyTap}
-          />
-          <MidiPanel
-            midi={midi}
-            playing={playing}
-            last={last}
-            follow={follow}
-            onFollowChange={setFollow}
-            recording={recording}
-            onRecordingChange={setRecording}
-            unnamed={unnamed}
-            shapesOn={instrument === 'guitar' ? 'keyboard' : 'guitar'}
-            onShowShapes={showShapes}
           />
           <Timeline>
             {strip}
