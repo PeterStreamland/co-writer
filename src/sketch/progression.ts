@@ -77,6 +77,10 @@ export type Progression = {
   // Your own notes in them (David's request), by harmony id: each
   // harmony still follows the melody, with these on top.
   harmonyEdits?: Record<string, HarmonyEdit[]>
+  // Counterpoint lines against the melody (PLAN Phase 7 task 18), by id
+  // ('2-below-strict'), and your own notes in them, as for a harmony.
+  counterpoints?: string[]
+  counterpointEdits?: Record<string, HarmonyEdit[]>
   // How the chords are played (CHORD_STYLES id); block when unset.
   chordStyle?: string
 }
@@ -495,7 +499,11 @@ export function isProgression(value: unknown): value is Progression {
     (p.harmonies === undefined ||
       (Array.isArray(p.harmonies) &&
         p.harmonies.every((h) => typeof h === 'string'))) &&
-    (p.harmonyEdits === undefined || isHarmonyEdits(p.harmonyEdits))
+    (p.harmonyEdits === undefined || isHarmonyEdits(p.harmonyEdits)) &&
+    (p.counterpoints === undefined ||
+      (Array.isArray(p.counterpoints) &&
+        p.counterpoints.every((h) => typeof h === 'string'))) &&
+    (p.counterpointEdits === undefined || isHarmonyEdits(p.counterpointEdits))
   )
 }
 

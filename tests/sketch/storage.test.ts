@@ -95,4 +95,30 @@ describe('saving the progression', () => {
     )
     expect(loadProgression(store)).toEqual(EMPTY_PROGRESSION)
   })
+
+  it('keeps the counterpoint lines and your notes in them', () => {
+    const store = memoryStore()
+    const melody = typeMelody('E4 F♯ G', dur(1, 4)).notes
+    const p = {
+      ...addAfter(EMPTY_PROGRESSION, -1, parseChordSymbol('Em')!),
+      melody,
+      counterpoints: ['2-below-strict', '5-above-freer'],
+      counterpointEdits: {
+        '2-below-strict': [
+          {
+            at: melody[1].onset,
+            under: melody[1].note,
+            note: parseNote('D3')!,
+          },
+        ],
+      },
+    }
+    saveProgression(p, store)
+    expect(loadProgression(store)).toEqual(p)
+    store.setItem(
+      'co-writer:progression',
+      JSON.stringify({ ...p, counterpoints: [2] }),
+    )
+    expect(loadProgression(store)).toEqual(EMPTY_PROGRESSION)
+  })
 })

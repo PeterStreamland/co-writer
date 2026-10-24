@@ -116,6 +116,7 @@ function intervalText(note: Note, melody: Note): string {
         : number <= 7
           ? ORDINALS[number]
           : `${number}th`
+  if (number === 1) return `a unison with ${name(melody)}`
   const article = number === 8 || number === 11 || number === 18 ? 'an' : 'a'
   return `${article} ${word} ${up ? 'above' : 'below'} ${name(melody)}`
 }
@@ -619,4 +620,12 @@ export function harmonyAlternatives(
     )
   })
   return out.sort((a, b) => b.score - a.score)
+}
+
+// Shared with counterpoint.ts: what a note sounds over, which tone of a
+// chord a note is, and an interval in words ("a 6th below E").
+export {
+  placeOf as harmonyPlace,
+  toneName as chordToneName,
+  intervalText as intervalAgainst,
 }

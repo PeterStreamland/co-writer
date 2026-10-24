@@ -36,7 +36,13 @@ import {
   spellTapped,
   swapMelodyNote,
   shiftMelodyNote,
+  CP_TAG_TEXT,
+  clearCounterpointEdit,
   clearHarmonyEdit,
+  counterpointAlternatives,
+  counterpointOptions,
+  pruneCounterpointEdits,
+  setCounterpointEdit,
   clearSpan,
   harmonyAlternatives,
   pruneHarmonyEdits,
@@ -85,12 +91,19 @@ import { LinesPanel } from './LinesPanel'
 import type { LineBars, LineEdits } from './lines-view'
 import { lightsAt, type Along, type AlongNote } from './along'
 import { PartRows, type PartView } from './PartRows'
+import { CounterpointPanel } from './CounterpointPanel'
 import { HarmonyPanel } from './HarmonyPanel'
 import { HarmonyRows } from './HarmonyRows'
 import { MelodyLane } from './MelodyLane'
 import type { RowChoice } from './AddBarButton'
 import { MelodyPanel, type MelodyEntry, type MelodyLight } from './MelodyPanel'
-import { harmonyRows, melodyAlong, rangeFromSetting } from './melody-view'
+import {
+  counterpointLine,
+  counterpointRows,
+  harmonyRows,
+  melodyAlong,
+  rangeFromSetting,
+} from './melody-view'
 import { freezeRow, frozenLine, partLabels, partNotes } from './parts-view'
 import { melodyStrips } from './melody-strips'
 import { Timeline } from './Timeline'
@@ -184,6 +197,7 @@ const PREVIEW_GAP_MS = 900
 const MELODY_VOICE = 'melody'
 const rowVoice = (id: string) => `row:${id}`
 const harmonyVoice = (id: string) => `harmony:${id}`
+const counterpointVoice = (id: string) => `counterpoint:${id}`
 
 // Notes of the melody or a harmony as a row that lights: every note,
 // found by its place.
@@ -787,6 +801,14 @@ export function Workspace() {
       )
       if (Object.keys(edits).length) p.harmonyEdits = edits
       else delete p.harmonyEdits
+      // And in the counterpoint lines.
+      const lineEdits = Object.fromEntries(
+        Object.entries(h.present.counterpointEdits ?? {})
+          .map(([id, e]) => [id, pruneCounterpointEdits(next, e)] as const)
+          .filter(([, e]) => e.length),
+      )
+      if (Object.keys(lineEdits).length) p.counterpointEdits = lineEdits
+      else delete p.counterpointEdits
       return record(h, p)
     })
   }
@@ -972,12 +994,62 @@ export function Workspace() {
     })
   }
   const editsOf = (id: string) => progression.harmonyEdits?.[id] ?? []
-  const harmonyNotes = harmonies.flatMap((r) => r.notes)
-  // The melody and its harmonies as rows that light, every note on each.
+  // The counterpoint lines kept (Phase 7 task 18), each on a row of its
+  // own like a harmony, with your notes on top.
+  const counterpointIds = progression.counterpoints ?? []
+  const lineRows = counterpointRows(
+    counterpointIds,
+    harmonyCtx,
+    timing,
+    progression.counterpointEdits,
+  )
+  function setCounterpoints(ids: string[]) {
+    setHistory((h) => {
+      const p: Progression = { ...h.present, counterpoints: ids }
+      if (!ids.length) delete p.counterpoints
+      // A line stopped takes your notes in it with it.
+      const edits = Object.fromEntries(
+        Object.entries(h.present.counterpointEdits ?? {}).filter(([id]) =>
+          ids.includes(id),
+        ),
+      )
+      if (Object.keys(edits).length) p.counterpointEdits = edits
+      else delete p.counterpointEdits
+      return record(h, p)
+    })
+  }
+  function setCounterpointEdits(id: string, edits: HarmonyEdit[]) {
+    setHistory((h) => {
+      const all = { ...h.present.counterpointEdits, [id]: edits }
+      if (!edits.length) delete all[id]
+      const p: Progression = { ...h.present, counterpointEdits: all }
+      if (!Object.keys(all).length) delete p.counterpointEdits
+      return record(h, p)
+    })
+  }
+  const lineEditsOf = (id: string) => progression.counterpointEdits?.[id] ?? []
+  // A line's own notes, before your edits.
+  const lineOf = (id: string) => {
+    const o = counterpointOptions(id)
+    return o ? counterpointLine(harmonyCtx, o).notes : []
+  }
+  const harmonyNotes = [...harmonies, ...lineRows].flatMap((r) => r.notes)
+  // The harmonies' and lines' voices as they play along with the chords.
+  const alongVoices = (): Record<string, AlongNote[]> => ({
+    ...Object.fromEntries(harmonies.map((r) => [harmonyVoice(r.id), r.along])),
+    ...Object.fromEntries(
+      lineRows.map((r) => [counterpointVoice(r.id), r.along]),
+    ),
+  })
+  // The melody, its harmonies and lines as rows that light, every note on
+  // each.
   const melodyVoices = (): Record<string, AlongNote[]> => ({
     [MELODY_VOICE]: asVoice(melody),
     ...Object.fromEntries(
       harmonies.map((r) => [harmonyVoice(r.id), asVoice(r.notes)]),
+    ),
+    ...Object.fromEntries(
+      lineRows.map((r) => [counterpointVoice(r.id), asVoice(r.notes)]),
     ),
   })
   function setHarmonies(ids: string[]) {
@@ -1055,9 +1127,7 @@ export function Workspace() {
   function playMelodyAlong() {
     const voices: Record<string, AlongNote[]> = {
       [MELODY_VOICE]: melodyAlong(melody, timing),
-      ...Object.fromEntries(
-        harmonies.map((r) => [harmonyVoice(r.id), r.along]),
-      ),
+      ...alongVoices(),
     }
     playAlong({ source: melody, notes: Object.values(voices).flat(), voices })
   }
@@ -1071,6 +1141,31 @@ export function Workspace() {
       bpm={bpm}
       harmonies={harmonyIds}
       onHarmonies={setHarmonies}
+      onLight={setMelodyLight}
+      playing={playingAt !== undefined || soloAt !== undefined}
+      canPlayChords={sectionEnd !== undefined}
+      onPlay={(withChords) => {
+        stopSolo()
+        if (withChords) playMelodyAlong()
+        else playMelody()
+      }}
+      onStop={() => {
+        stopSolo()
+        setPlayingAt(undefined)
+      }}
+      onOpenMelody={() => setTab('melody')}
+    />
+  )
+  // The Counterpoint tab (Phase 7 task 18).
+  const counterpointPanel = (
+    <CounterpointPanel
+      melody={melody}
+      keyValue={key}
+      chords={melodyChords}
+      time={time}
+      bpm={bpm}
+      lines={counterpointIds}
+      onLines={setCounterpoints}
       onLight={setMelodyLight}
       playing={playingAt !== undefined || soloAt !== undefined}
       canPlayChords={sectionEnd !== undefined}
@@ -1108,9 +1203,7 @@ export function Workspace() {
             playing.map((r) => [rowVoice(r.part.id), r.notes]),
           ),
           [MELODY_VOICE]: melodyAlong(melody, timing),
-          ...Object.fromEntries(
-            harmonies.map((r) => [harmonyVoice(r.id), r.along]),
-          ),
+          ...alongVoices(),
         }
         const notes = Object.values(voices).flat()
         setAlong(notes.length ? { source: rows, notes, voices } : undefined)
@@ -1133,6 +1226,12 @@ export function Workspace() {
             }),
             ...(progression.harmonyEdits && {
               harmonyEdits: progression.harmonyEdits,
+            }),
+            ...(progression.counterpoints && {
+              counterpoints: progression.counterpoints,
+            }),
+            ...(progression.counterpointEdits && {
+              counterpointEdits: progression.counterpointEdits,
             }),
             ...(progression.chordStyle && {
               chordStyle: progression.chordStyle,
@@ -1305,7 +1404,8 @@ export function Workspace() {
   // A melody suggestion being previewed lights on the instrument, labelled
   // by degree, while the Melody or Harmony tab is open.
   const melodyShow: ArpeggioShow | undefined =
-    (tab === 'melody' || tab === 'harmony') && melodyLight
+    (tab === 'melody' || tab === 'harmony' || tab === 'counterpoint') &&
+    melodyLight
       ? {
           name: 'Melody',
           notes: melodyLight.notes.map((note) => ({
@@ -1587,6 +1687,67 @@ export function Workspace() {
                 )
               }
             />
+            <HarmonyRows
+              rows={lineRows}
+              name="line"
+              label="Counterpoint lines"
+              subtitle="against the melody"
+              tagText={CP_TAG_TEXT}
+              time={time}
+              barCount={laneBars}
+              sounding={Object.fromEntries(
+                lineRows.flatMap((r) => {
+                  const on = rowLights[counterpointVoice(r.id)]
+                  return on ? [[r.id, on.ref]] : []
+                }),
+              )}
+              activeBar={melodyEntry.phraseBar}
+              onActivate={setActiveBar}
+              onRemove={(id) =>
+                setCounterpoints(counterpointIds.filter((c) => c !== id))
+              }
+              onPlayNote={(note, length) =>
+                void playNote(note, secondsOf(length, bpm, time.meter))
+              }
+              alternatives={(id, place, current) => {
+                const o = counterpointOptions(id)
+                const row = lineRows.find((r) => r.id === id)
+                return o && row
+                  ? counterpointAlternatives(
+                      harmonyCtx,
+                      o,
+                      row.notes,
+                      place,
+                      current,
+                    )
+                  : []
+              }}
+              onEdit={(id, place, note) =>
+                setCounterpointEdits(
+                  id,
+                  setCounterpointEdit(
+                    melody,
+                    lineOf(id),
+                    lineEditsOf(id),
+                    place,
+                    note,
+                  ),
+                )
+              }
+              onRestore={(id, place) =>
+                setCounterpointEdits(
+                  id,
+                  place === undefined
+                    ? []
+                    : clearCounterpointEdit(
+                        melody,
+                        lineOf(id),
+                        lineEditsOf(id),
+                        place,
+                      ),
+                )
+              }
+            />
             <PartRows
               rows={rows}
               activeBar={melodyEntry.phraseBar}
@@ -1673,6 +1834,11 @@ export function Workspace() {
             { id: 'lines', label: 'Lines', content: lines },
             { id: 'melody', label: 'Melody', content: melodyPanel },
             { id: 'harmony', label: 'Harmony', content: harmonyPanel },
+            {
+              id: 'counterpoint',
+              label: 'Counterpoint',
+              content: counterpointPanel,
+            },
           ]}
           open={sheetOpen}
           onOpenChange={setSheetOpen}
