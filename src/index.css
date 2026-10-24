@@ -2750,6 +2750,16 @@ button.octave-step {
   font-size: 0.75rem;
 }
 
+/* The active bar (Phase 7 task 10): the one Write a phrase writes into. */
+.lane-bar.active .lane-track {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.lane-bar.active .lane-play {
+  font-weight: 700;
+}
+
 .lane-ruler {
   position: relative;
   height: 1rem;

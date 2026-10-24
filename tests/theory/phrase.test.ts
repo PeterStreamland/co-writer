@@ -17,7 +17,9 @@ import {
   parseChordSymbol,
   parseMeter,
   parseNote,
+  phraseSpan,
   phraseStart,
+  placePhrase,
   pitchClass,
   scaleNotes,
   subDur,
@@ -28,6 +30,7 @@ import {
   type NextNoteContext,
 } from '../../src/theory'
 import { phrases, type PhraseFixture } from '../fixtures/phrases'
+import { phrasesInto } from '../fixtures/phrases-into'
 
 function keyOf(text: string): Key {
   const [tonic, mode] = text.split(' ')
@@ -180,5 +183,140 @@ describe('generating a phrase (Phase 7 task 7)', () => {
         .map((s) => `${s.candidate.length.n}/${s.candidate.length.d}`),
     )
     expect(lengths.size).toBeGreaterThan(2)
+  })
+})
+
+const placed = (notes: MelodyNote[]) =>
+  notes.map((n) => `${formatNote(n.note)}@${n.onset.n}/${n.onset.d}`)
+const written = (text: string) =>
+  text
+    .split(' ')
+    .filter(Boolean)
+    .map((w) => {
+      const [note, at] = w.split('@')
+      const [n, d] = at.split('/').map(Number)
+      const onset = dur(n, d ?? 1)
+      return `${formatNote(parseNote(note)!)}@${onset.n}/${onset.d}`
+    })
+
+describe('writing a phrase into a chosen bar (Phase 7 task 10)', () => {
+  for (const f of phrasesInto) {
+    const ctx = context(f)
+    const scale = scaleNotes(ctx.key.tonic, ctx.key.mode).map(
+      (n) => `${n.letter}${n.accidental}`,
+    )
+    for (const size of PHRASE_SIZES) {
+      it(`${f.name}: ${size.label.toLowerCase()} replaces bar ${f.bar} and keeps every rule`, () => {
+        const span = phraseSpan(ctx, size.id, f.bar)
+        let barStart: Dur = dur(0, 1)
+        for (let b = 1; b < f.bar; b++)
+          barStart = addDur(barStart, barLength(meterOfBar(ctx.time, b)))
+        expect(span.start).toEqual(barStart)
+        for (let take = 0; take < TAKES; take++) {
+          const phrase = generatePhrase(ctx, size.id, take, f.bar)
+          expect(phrase.length).toBeGreaterThan(0)
+          const notes = phrase.map((s) => s.candidate)
+          const melody = placePhrase(ctx.melody, notes, span)
+          // The notes before and after stand as David chose.
+          const before = melody.filter(
+            (m) => compareDur(m.onset, span.start) < 0,
+          )
+          const after = melody.filter((m) => compareDur(m.onset, span.end) >= 0)
+          expect(placed(before)).toEqual(written(f.before))
+          const later = ctx.melody.filter(
+            (m) => compareDur(m.onset, span.end) >= 0,
+          )
+          expect(placed(after)).toEqual(placed(later))
+          if (size.id === 'bar') expect(placed(after)).toEqual(written(f.after))
+          // A note ringing in stops at the bar's start.
+          for (const m of before)
+            expect(
+              compareDur(addDur(m.onset, m.length), span.start),
+            ).toBeLessThanOrEqual(0)
+          expect(melody).toHaveLength(
+            before.length + notes.length + after.length,
+          )
+          // One after another from the bar's start to the span's end.
+          let at = span.start
+          for (const n of notes) {
+            expect(n.onset).toEqual(at)
+            at = addDur(n.onset, n.length)
+          }
+          expect(at).toEqual(span.end)
+          const all = [...before, ...notes]
+          const low = midiNumber(ctx.range.low)!
+          const high = midiNumber(ctx.range.high)!
+          notes.forEach((n, k) => {
+            expect(midi(n)).toBeGreaterThanOrEqual(low)
+            expect(midi(n)).toBeLessThanOrEqual(high)
+            expect(scale).toContain(`${n.note.letter}${n.note.accidental}`)
+            for (const s of strongBeats(
+              ctx,
+              n.onset,
+              addDur(n.onset, n.length),
+            )) {
+              const under = ctx.chords.find(
+                (c) =>
+                  compareDur(c.start, s) <= 0 &&
+                  compareDur(s, addDur(c.start, c.length)) < 0,
+              )
+              if (!under) continue
+              expect(chordNotes(under.chord).map(pitchClass)).toContain(
+                pitchClass(n.note),
+              )
+            }
+            const i = before.length + k
+            if (i >= 2) {
+              const leap = midi(all[i - 1]) - midi(all[i - 2])
+              if (Math.abs(leap) >= 5)
+                expect(Math.sign(midi(n) - midi(all[i - 1]))).toBe(
+                  -Math.sign(leap),
+                )
+            }
+          })
+          // It leads into the note after: within a 3rd, and turning back
+          // after a leap.
+          const next = after[0]
+          if (next) {
+            const last = notes[notes.length - 1]
+            expect(Math.abs(midi(next) - midi(last))).toBeLessThan(5)
+            const prev = all[all.length - 2]
+            if (prev && Math.abs(midi(last) - midi(prev)) >= 5)
+              expect(Math.sign(midi(next) - midi(last))).toBe(
+                -Math.sign(midi(last) - midi(prev)),
+              )
+          }
+        }
+      })
+    }
+  }
+
+  it('starts an empty bar after the melody with a rest', () => {
+    const f = phrasesInto.find((p) => p.after === '' && p.bar > 1)!
+    const ctx = context(f)
+    const [first] = generatePhrase(ctx, 'bar', 0, f.bar)
+    expect(first.candidate.onset).toEqual(dur(2, 1))
+    expect(compareDur(melodyEnd(ctx.melody), dur(2, 1))).toBeLessThan(0)
+  })
+
+  it('writes after the melody as before when no bar is chosen', () => {
+    const ctx = context(phrases[3])
+    expect(phraseSpan(ctx, 'notes').start).toEqual(phraseStart(ctx))
+    const text = (s: ReturnType<typeof generatePhrase>) =>
+      placed(s.map((p) => p.candidate)).join(' ')
+    expect(text(generatePhrase(ctx, 'bar', 2))).toBe(
+      text(generatePhrase(ctx, 'bar', 2, undefined)),
+    )
+  })
+
+  it('gives other bars other phrases, the same bar the same take', () => {
+    const ctx = context(phrasesInto[0])
+    const text = (bar: number, take: number) =>
+      placed(generatePhrase(ctx, 'bar', take, bar).map((p) => p.candidate))
+        .map((w) => w.split('@')[0])
+        .join(' ')
+    expect(text(2, 1)).toBe(text(2, 1))
+    const takes = new Set(Array.from({ length: 8 }, (_, k) => text(2, k)))
+    expect(takes.size).toBeGreaterThan(3)
   })
 })

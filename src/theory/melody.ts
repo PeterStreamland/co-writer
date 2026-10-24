@@ -235,6 +235,14 @@ export function barPosition(
   }
 }
 
+// Where a bar starts, counted from 1.
+export function barStart(map: MeterMap, bar: number): Dur {
+  let start = ZERO
+  for (let b = 1; b < bar; b++)
+    start = addDur(start, barLength(meterOfBar(map, b)))
+  return start
+}
+
 // The melody's notes grouped by the bar each starts in, in order.
 export function melodyBars(
   melody: MelodyNote[],

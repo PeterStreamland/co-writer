@@ -49,6 +49,7 @@ export function MelodyLane({
   barCount,
   onPlayBar,
   onClearBar,
+  activeBar,
 }: {
   melody: MelodyNote[]
   time: MeterMap
@@ -73,7 +74,10 @@ export function MelodyLane({
   // How many bars the chords cover: the lane shows at least these.
   barCount: number
   // Plays a bar: its melody over its chords (David's request).
-  onPlayBar: (start: Dur, length: Dur) => void
+  // Tapping it also makes it the active bar, the one Write a phrase
+  // writes into (Phase 7 task 10, David's choice).
+  onPlayBar: (start: Dur, length: Dur, bar: number) => void
+  activeBar?: number
   // Clears a bar (David's request): its melody, its rows, or both.
   onClearBar: (start: Dur, length: Dur, what: BarClear) => void
 }) {
@@ -114,7 +118,9 @@ export function MelodyLane({
               return (
                 <div
                   key={strip.bar}
-                  class="lane-bar"
+                  class={
+                    strip.bar === activeBar ? 'lane-bar active' : 'lane-bar'
+                  }
                   style={{
                     width: `${ratioOf(strip.length, { n: 1, d: 1 }) * BAR_REM}rem`,
                   }}
@@ -124,8 +130,11 @@ export function MelodyLane({
                     <button
                       type="button"
                       class="lane-play"
-                      title={`Play bar ${strip.bar}`}
-                      onClick={() => onPlayBar(strip.start, strip.length)}
+                      title={`Play bar ${strip.bar}, and make it the bar Write a phrase writes into`}
+                      aria-pressed={strip.bar === activeBar}
+                      onClick={() =>
+                        onPlayBar(strip.start, strip.length, strip.bar)
+                      }
                     >
                       ▶ Bar {strip.bar}
                     </button>
