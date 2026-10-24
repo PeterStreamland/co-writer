@@ -36,7 +36,7 @@ import {
   type Note,
 } from './note'
 import { scaleNotes, type Key } from './scale'
-import { isSpanUnit, spanUnit, type SpanUnit } from './spans'
+import { harmonyStepShort, isHarmonyStep, type HarmonyStep } from './spans'
 import { fillTemplate, makeSuggestion, type Suggestion } from './suggestion'
 
 export * from './harmony-data'
@@ -429,14 +429,14 @@ export function harmonyKind(id: string): HarmonyKind | undefined {
 // harmonises the note sounding at each half bar, held for the half bar).
 export function harmonyPlaying(
   id: string,
-): { kind: HarmonyKind; unit: SpanUnit } | undefined {
+): { kind: HarmonyKind; unit: HarmonyStep } | undefined {
   const [kindId, unit = 'note', ...more] = id.split('@')
   const kind = harmonyKind(kindId)
-  if (!kind || more.length || !isSpanUnit(unit)) return undefined
+  if (!kind || more.length || !isHarmonyStep(unit)) return undefined
   return { kind, unit }
 }
 
-export function harmonyPlayingId(kind: string, unit: SpanUnit): string {
+export function harmonyPlayingId(kind: string, unit: HarmonyStep): string {
   return unit === 'note' ? kind : `${kind}@${unit}`
 }
 
@@ -445,7 +445,9 @@ export function harmonyPlayingLabel(id: string): string {
   const playing = harmonyPlaying(id)
   if (!playing) return id
   const { kind, unit } = playing
-  return unit === 'note' ? kind.label : `${kind.label}, ${spanUnit(unit).short}`
+  return unit === 'note'
+    ? kind.label
+    : `${kind.label}, ${harmonyStepShort(unit)}`
 }
 
 // The melody harmonised by one kind (a HARMONY_KINDS id).

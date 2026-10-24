@@ -1305,8 +1305,28 @@ body:has(.workspace) #app {
 }
 
 .strip h2 {
-  font-size: 1.1rem;
+  font-size: 1rem;
   margin: 0;
+}
+
+/* The progression as a row card like the melody and its harmonies, with
+   the less-used controls folded under ▸ More (David's request). */
+.strip.part-row {
+  padding: 0.4rem 0.6rem;
+}
+
+.strip-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 1rem;
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px dashed var(--line);
+}
+
+.strip-more button {
+  padding: 0.25rem 0.6rem;
 }
 
 .strip-tools {

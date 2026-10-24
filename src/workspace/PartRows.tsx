@@ -78,6 +78,8 @@ export function PartRows({
   onPlayNote,
   activeBar,
   onActivate,
+  open = true,
+  onOpen,
 }: {
   rows: PartView[]
   chords: RowChord[]
@@ -108,15 +110,25 @@ export function PartRows({
   // active bar (David's request).
   activeBar?: number
   onActivate: (bar: number) => void
+  // Whether these rows hold the one set of options open, and taking it.
+  open?: boolean
+  onOpen?: () => void
 }) {
   const [picked, setPicked] = useState<Picked>()
+  // Only one set of options is open at a time (David's request): these
+  // rows' show while they hold it, and taking it tells the workspace.
+  const shown = open ? picked : undefined
+  const pick = (p: typeof picked) => {
+    setPicked(p)
+    if (p) onOpen?.()
+  }
   if (rows.length === 0) return null
   return (
     <section class="part-rows" aria-label="Rows">
       {rows.map(({ part, label, notes }) => {
         const frozen = part.frozen !== undefined
         const strips = melodyStrips(notes, time, barCount)
-        const mine = picked?.id === part.id ? picked : undefined
+        const mine = shown?.id === part.id ? shown : undefined
         const pickedNote =
           mine?.note === undefined ? undefined : notes[mine.note]
         return (
@@ -212,7 +224,7 @@ export function PartRows({
                           aria-pressed={mine?.step === c.step}
                           title={`${c.symbol}, bar ${c.bar}: tap for this bar’s tools`}
                           onClick={() =>
-                            setPicked(
+                            pick(
                               mine?.step === c.step
                                 ? undefined
                                 : { id: part.id, step: c.step },
@@ -269,7 +281,7 @@ export function PartRows({
                                 setPicked(undefined)
                                 return
                               }
-                              setPicked({ id: part.id, note: g.index })
+                              pick({ id: part.id, note: g.index })
                               onPlayNote(n.note, n.length)
                             }}
                           >

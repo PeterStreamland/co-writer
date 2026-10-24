@@ -85,6 +85,7 @@ export function ProgressionStrip({
   onStyleAt,
   onStep,
   onHear,
+  showInfo = true,
 }: {
   progression: Progression
   sectionKey: Key
@@ -133,8 +134,13 @@ export function ProgressionStrip({
   onStep: (index: number, by: 1 | -1) => void
   // Plays a chord through its length in its style.
   onHear: (index: number) => void
+  // The selected chord's options show (only one set of options is open
+  // at a time, David's request).
+  showInfo?: boolean
 }) {
   const [treeOpen, setTreeOpen] = useState(false)
+  // The less-used controls fold away (David's request).
+  const [moreOpen, setMoreOpen] = useState(false)
   const path = pathNodes(progression)
   // The selected chord's reading in its key, with an ⓘ panel comparing it
   // with the chord before (SPEC 6.3: every chord, suggested or not).
@@ -148,11 +154,48 @@ export function ProgressionStrip({
       selected > 0 ? path[selected - 1].chord : undefined,
     )
   return (
-    <section class="strip" aria-label="Progression">
-      <div class="strip-bar">
-        <h2>Progression</h2>
+    <section class="strip part-row" aria-label="Progression">
+      <div class="part-head strip-bar">
+        <h2>♬ Progression</h2>
         <div class="strip-tools">
           <BeatLights pulse={pulse} />
+          {playingAt === undefined ? (
+            <button
+              type="button"
+              class="play"
+              onClick={onPlay}
+              disabled={path.length === 0}
+            >
+              ▶ Play
+            </button>
+          ) : (
+            <button type="button" class="play" onClick={onStop}>
+              ■ Stop
+            </button>
+          )}
+          <button type="button" onClick={onUndo} disabled={!canUndo}>
+            ⟲ Undo
+          </button>
+          <button type="button" onClick={onRedo} disabled={!canRedo}>
+            ⟳ Redo
+          </button>
+          <button
+            type="button"
+            class="strip-more-toggle"
+            aria-expanded={moreOpen}
+            title={
+              moreOpen
+                ? 'Hide the time, tempo, octave, tree and clear controls'
+                : 'Show the time, tempo, octave, tree and clear controls'
+            }
+            onClick={() => setMoreOpen(!moreOpen)}
+          >
+            {moreOpen ? '▾ Less' : '▸ More'}
+          </button>
+        </div>
+      </div>
+      {moreOpen && (
+        <div class="strip-more">
           <label class="time-signature">
             Time
             <select
@@ -186,26 +229,6 @@ export function ProgressionStrip({
             />
             BPM
           </label>
-          {playingAt === undefined ? (
-            <button
-              type="button"
-              class="play"
-              onClick={onPlay}
-              disabled={path.length === 0}
-            >
-              ▶ Play
-            </button>
-          ) : (
-            <button type="button" class="play" onClick={onStop}>
-              ■ Stop
-            </button>
-          )}
-          <button type="button" onClick={onUndo} disabled={!canUndo}>
-            ⟲ Undo
-          </button>
-          <button type="button" onClick={onRedo} disabled={!canRedo}>
-            ⟳ Redo
-          </button>
           <span class="octave-all" role="group" aria-label="Every chord">
             Octave
             <button
@@ -264,29 +287,29 @@ export function ProgressionStrip({
           >
             Clear everything
           </button>
+          {path.length > 0 && (
+            <label
+              class="chord-style"
+              title={
+                CHORD_STYLES.find(
+                  (s) => s.id === chordStyle(progression.chordStyle),
+                )?.explanation
+              }
+            >
+              Chords play
+              <select
+                value={chordStyle(progression.chordStyle)}
+                onChange={(e) => onChordStyle(e.currentTarget.value)}
+              >
+                {CHORD_STYLES.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
-      </div>
-      {path.length > 0 && (
-        <label
-          class="chord-style"
-          title={
-            CHORD_STYLES.find(
-              (s) => s.id === chordStyle(progression.chordStyle),
-            )?.explanation
-          }
-        >
-          Chords play
-          <select
-            value={chordStyle(progression.chordStyle)}
-            onChange={(e) => onChordStyle(e.currentTarget.value)}
-          >
-            {CHORD_STYLES.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </label>
       )}
       <ol class="chips">
         {path.map((n, i) => {
@@ -342,7 +365,7 @@ export function ProgressionStrip({
                   </span>
                 )}
               </button>
-              {i === selected && (
+              {i === selected && showInfo && (
                 <span class="octave-one">
                   <button
                     type="button"
@@ -409,7 +432,7 @@ export function ProgressionStrip({
                 </span>
               )}
             </li>,
-            i === selected && i + 1 < path.length && (
+            i === selected && showInfo && i + 1 < path.length && (
               <li key={`between-${i}`} class="between">
                 <button
                   type="button"
@@ -450,7 +473,7 @@ export function ProgressionStrip({
         }
         onAdd={onAddTyped}
       />
-      {selectedNode && (
+      {selectedNode && showInfo && (
         <div class="strip-info">
           <p>
             <strong>{chordSymbol(selectedNode.chord)}</strong> ·{' '}

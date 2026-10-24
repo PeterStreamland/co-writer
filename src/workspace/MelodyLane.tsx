@@ -55,6 +55,8 @@ export function MelodyLane({
   onClear,
   activeBar,
   onActivate,
+  toolsOpen = true,
+  onTools,
 }: {
   melody: MelodyNote[]
   time: MeterMap
@@ -92,8 +94,13 @@ export function MelodyLane({
   rowNames: RowChoice[]
   // Clears the whole melody, and only the melody (Phase 7 task 12).
   onClear: () => void
+  // Whether the lane holds the one set of options open (David's request),
+  // and taking it.
+  toolsOpen?: boolean
+  onTools?: () => void
 }) {
-  const [clearing, setClearing] = useState<number>()
+  const [menuAt, setClearing] = useState<number>()
+  const clearing = toolsOpen ? menuAt : undefined
   const strips = melodyStrips(melody, time, barCount)
   // The chord names over a bar: every chord sounding in it.
   const chordsIn = (strip: Strip) => {
@@ -173,11 +180,12 @@ export function MelodyLane({
                       aria-expanded={clearing === strip.bar}
                       aria-label={`Clear bar ${strip.bar}`}
                       title={`Clear bar ${strip.bar}: its melody, a row, or everything in it`}
-                      onClick={() =>
-                        setClearing(
-                          clearing === strip.bar ? undefined : strip.bar,
-                        )
-                      }
+                      onClick={() => {
+                        const bar =
+                          clearing === strip.bar ? undefined : strip.bar
+                        setClearing(bar)
+                        if (bar !== undefined) onTools?.()
+                      }}
                     >
                       ✕
                     </button>

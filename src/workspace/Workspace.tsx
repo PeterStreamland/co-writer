@@ -200,6 +200,23 @@ const rowVoice = (id: string) => `row:${id}`
 const harmonyVoice = (id: string) => `harmony:${id}`
 const counterpointVoice = (id: string) => `counterpoint:${id}`
 
+// What a click can land on without closing the open options.
+const KEEPS_OPTIONS = [
+  'button',
+  'select',
+  'input',
+  'textarea',
+  'label',
+  'a',
+  '.row-tools',
+  '.lane-place',
+  '.strip-info',
+  '.lane-clear-menu',
+  '.info-panel',
+  '.instrument',
+  '.tree',
+].join(', ')
+
 // Notes of the melody or a harmony as a row that lights: every note,
 // found by its place.
 function asVoice(notes: MelodyNote[]): AlongNote[] {
@@ -257,6 +274,17 @@ export function Workspace() {
   const path = pathNodes(progression)
   const [selectedAt, setSelectedAt] = useState(() => path.length - 1)
   const selected = Math.min(selectedAt, path.length - 1)
+  // Which part shows its options under it: only one at a time (David's
+  // request): the chord picked on the strip, a melody note or a bar's
+  // clear menu in the lane, or a harmony, counterpoint or row note or bar.
+  // A click on the background closes them.
+  const [focus, setFocus] = useState<
+    'chord' | 'lane-note' | 'lane-bar' | 'harmony' | 'counterpoint' | 'parts'
+  >()
+  // A chord newly picked (on the strip, or added) shows its options.
+  useEffect(() => {
+    if (selectedAt >= 0) setFocus('chord')
+  }, [selectedAt])
   const selectedChord = selected >= 0 ? path[selected].chord : undefined
   const freeChord =
     chord && (!selectedChord || chordKey(chord) !== chordKey(selectedChord))
@@ -778,6 +806,7 @@ export function Workspace() {
   useEffect(() => setPlayingAt(undefined), [progression, time])
   function selectSlot(index: number) {
     setSelectedAt(index)
+    setFocus('chord')
     setBetweenAt(undefined)
     setPlaceAt(index)
     setChord(path[index].chord)
@@ -1081,7 +1110,9 @@ export function Workspace() {
   }
   const [laneAt, setLaneAt] = useState<number>()
   const laneSelected =
-    laneAt !== undefined && laneAt < melody.length ? laneAt : undefined
+    laneAt !== undefined && laneAt < melody.length && focus === 'lane-note'
+      ? laneAt
+      : undefined
   const laneOptions =
     laneSelected === undefined
       ? []
@@ -1195,6 +1226,7 @@ export function Workspace() {
   )
   const strip = (
     <ProgressionStrip
+      showInfo={focus === 'chord'}
       progression={progression}
       sectionKey={key}
       selected={selected}
@@ -1510,7 +1542,15 @@ export function Workspace() {
     </>
   )
   return (
-    <div class={sheetOpen ? 'workspace sheet-open' : 'workspace'}>
+    <div
+      class={sheetOpen ? 'workspace sheet-open' : 'workspace'}
+      onClick={(e) => {
+        // A click on the background closes the open options; one on a
+        // control, the instrument or the options themselves doesn't.
+        const target = e.target as Element
+        if (!target.closest(KEEPS_OPTIONS)) setFocus(undefined)
+      }}
+    >
       <header class="top">
         <h1 class="app-name">Co-Writer</h1>
         <KeyPicker value={key} onChange={setKey} />
@@ -1552,6 +1592,8 @@ export function Workspace() {
           {strip}
           <Timeline>
             <MelodyLane
+              toolsOpen={focus === 'lane-bar'}
+              onTools={() => setFocus('lane-bar')}
               melody={melody}
               time={time}
               sounding={melodySounding}
@@ -1563,6 +1605,7 @@ export function Workspace() {
               onSelect={(i) => {
                 setLaneAt(i)
                 if (i !== undefined) {
+                  setFocus('lane-note')
                   const m = melody[i]
                   void playNote(m.note, secondsOf(m.length, bpm, time.meter))
                 }
@@ -1664,6 +1707,8 @@ export function Workspace() {
               }}
             />
             <HarmonyRows
+              open={focus === 'harmony'}
+              onOpen={() => setFocus('harmony')}
               rows={harmonies}
               time={time}
               barCount={laneBars}
@@ -1713,6 +1758,8 @@ export function Workspace() {
               }
             />
             <HarmonyRows
+              open={focus === 'counterpoint'}
+              onOpen={() => setFocus('counterpoint')}
               rows={lineRows}
               name="line"
               label="Counterpoint lines"
@@ -1784,6 +1831,8 @@ export function Workspace() {
               }
             />
             <PartRows
+              open={focus === 'parts'}
+              onOpen={() => setFocus('parts')}
               rows={rows}
               activeBar={melodyEntry.phraseBar}
               onActivate={setActiveBar}

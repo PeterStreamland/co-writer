@@ -1861,3 +1861,48 @@ David asked for counterpoint lines and harmonies to move in bars and parts of a 
   - Every bar against semibreves gives the same line as each note.
   - Two hand-checked golden cases: every bar against crotchets, with the melody passing (no breaks), and a clash with a melody note reached by a leap (one break).
   - Every species on every grid against four melodies with rhythm: first species has a note on every step, lines stay on their side, end with the melody, never have parallels, and every break is tagged and explained.
+
+## 2026-10-24 — More ways to harmonise, the progression as a row, one set of options at a time (Phase 7 task 21, David's requests)
+
+**More ways to harmonise** (David's ideas, and mine; `HARMONY_FILTERS` and `SPAN_UNITS` in `src/theory/spans.ts`). The Harmonise menu now has two groups:
+
+- **Moving in steps:**
+  - each melody note;
+  - **every chord, held until it changes** (David's idea; a step to each bar where there are no chords);
+  - every 2 bars, bar or ½ bar;
+  - **every beat** (new, my choice; in 6/8 a beat is a dotted crotchet);
+  - every ¼ or ⅛ bar.
+
+  Every chord and every beat are offered in the Counterpoint tab's Against menu too.
+
+- **Only some notes, each for its own length** (harmony only):
+  - **notes on strong beats** (David's idea; beats 1 and 3 in 4/4, the downbeat in 3/4);
+  - **notes on a beat** (not the notes between beats);
+  - **the first note of each bar**;
+  - **long notes**, a beat or more.
+
+  These leave the other notes without a harmony. Your edits and a bar's ✕ work as before.
+
+**The progression as a row** (David's question; my view: yes).
+
+- It is now a card like the melody, harmony and counterpoint rows.
+- Play, Undo and Redo stay in its header.
+- **▸ More** shows the rest, and **▾ Less** folds them away again:
+  - time signature and tempo;
+  - octave;
+  - Tree;
+  - Clear chords and Clear everything;
+  - how the chords play.
+- It starts folded. The chords and Type chords stay as they were, since they're the progression itself.
+- I kept the chords as chips rather than stretching them bar by bar like the rows. The melody lane already names each bar's chord above it, so they still line up.
+
+**One set of options at a time** (David's request).
+
+- Only one of these shows its options at once; opening one closes the others:
+  - the picked chord (its info, its ▼ ▲ buttons and + between);
+  - a melody note;
+  - a bar's clear menu;
+  - a harmony or counterpoint note;
+  - a note or bar of a line or arpeggio row.
+- A click on the background closes them. Clicks on buttons, menus, the instrument and the options themselves don't.
+- Picking or adding a chord opens its options, as before.

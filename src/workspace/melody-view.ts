@@ -15,7 +15,7 @@ import {
   harmonise,
   harmonyPlaying,
   harmonyPlayingLabel,
-  spanMelody,
+  harmonyHeard,
   melodyRange,
   pruneHarmonyEdits,
   midiNumber,
@@ -162,7 +162,7 @@ export function harmonyContext(
   const unit = harmonyPlaying(id)?.unit ?? 'note'
   return unit === 'note'
     ? ctx
-    : { ...ctx, melody: spanMelody(ctx.melody, ctx.time, unit) }
+    : { ...ctx, melody: harmonyHeard(ctx.melody, ctx.time, unit, ctx.chords) }
 }
 
 // The look a harmony's notes play along with: harmony-3rd-above.

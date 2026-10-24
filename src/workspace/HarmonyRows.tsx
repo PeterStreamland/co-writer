@@ -36,6 +36,8 @@ export function HarmonyRows({
   onEdit,
   onRestore,
   onClearBar,
+  open = true,
+  onOpen,
   name = 'harmony',
   label = 'Harmonies',
   subtitle = 'follows the melody',
@@ -64,6 +66,9 @@ export function HarmonyRows({
   // Takes out the row's notes starting in a bar (David's request: a ✕ for
   // each bar, as the melody lane has), by their places.
   onClearBar: (id: string, places: number[]) => void
+  // Whether these rows hold the one set of options open, and taking it.
+  open?: boolean
+  onOpen?: () => void
   // The rows' wording: counterpoint lines use the same rows (task 18).
   name?: string // "harmony", "line"
   label?: string
@@ -73,12 +78,19 @@ export function HarmonyRows({
   // The note tapped, by its place in the melody, so it stays picked as
   // it's changed.
   const [picked, setPicked] = useState<{ id: string; place: number }>()
+  // Only one set of options is open at a time (David's request): these
+  // rows' show while they hold it, and taking it tells the workspace.
+  const shown = open ? picked : undefined
+  const pick = (p: typeof picked) => {
+    setPicked(p)
+    if (p) onOpen?.()
+  }
   if (rows.length === 0) return null
   return (
     <section class="part-rows" aria-label={label}>
       {rows.map((row) => {
         const strips = melodyStrips(row.notes, time, barCount)
-        const mine = picked?.id === row.id ? picked.place : undefined
+        const mine = shown?.id === row.id ? shown.place : undefined
         const chosen =
           mine === undefined
             ? undefined
@@ -197,7 +209,7 @@ export function HarmonyRows({
                                 setPicked(undefined)
                                 return
                               }
-                              setPicked({ id: row.id, place: n.place })
+                              pick({ id: row.id, place: n.place })
                               onPlayNote(n.note, n.length)
                             }}
                           >
