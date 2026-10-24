@@ -285,8 +285,8 @@ export function rankNextNotes(ctx: NextNoteContext): NextNoteSuggestion[] {
       score += S.move * size
       const top = Math.max(...used)
       const bottom = Math.min(...used)
-      if (m > top) score += S.beyondUsed * (m - top)
-      if (m < bottom) score += S.beyondUsed * (bottom - m)
+      if (m > top) add(S.beyondUsed * (m - top), 'beyond-used')
+      if (m < bottom) add(S.beyondUsed * (bottom - m), 'beyond-used')
     }
     if (outside) {
       tags.push('chromatic')

@@ -265,7 +265,8 @@ export function motifOptions(
     }).sort((a, b) => b.score - a.score)
     out.push(...sequences.slice(0, SEQUENCES_SHOWN))
   }
-  // A changed ending: the best next note for the last note's place.
+  // A changed ending: the best next note of the key for the last note's
+  // place, so the motif answers inside the key.
   const head = placed(notes).slice(0, -1)
   const lastPlaced = placed(notes).at(-1)!
   const prefix = [...melody, ...head]
@@ -274,7 +275,11 @@ export function motifOptions(
     melody: prefix,
     length: lastPlaced.length,
     gap: subDur(lastPlaced.onset, melodyEnd(prefix)),
-  }).find((s) => midiOf(s.candidate.note) !== midiOf(lastPlaced.note))
+  }).find(
+    (s) =>
+      midiOf(s.candidate.note) !== midiOf(lastPlaced.note) &&
+      !s.tags.includes('chromatic'),
+  )
   if (ending) {
     const changed = make(
       'changed-ending',

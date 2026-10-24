@@ -31,7 +31,7 @@ const QUALITY_WORDS: Record<string, string> = {
 
 const NUMBER_WORDS = ['unison', '2nd', '3rd', '4th', '5th', '6th', '7th']
 
-function intervalWords(interval: Interval): string {
+export function intervalWords(interval: Interval): string {
   const quality =
     QUALITY_WORDS[interval.quality] ??
     (interval.quality[0] === 'A' ? 'doubly augmented' : 'doubly diminished')
