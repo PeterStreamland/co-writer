@@ -115,6 +115,11 @@ export const HARMONY_TEXT = {
   obliqueHold: 'It holds while the melody moves.',
   obliqueMove: 'It moves {way} while the melody holds.',
   similar: 'It moves {way} with the melody.',
+  // A note you chose in place of the harmony's own (David's request).
+  edited: 'Your choice: {note} in place of {was}, {interval}.',
+  editedTone:
+    'Your choice: {note} in place of {was}, {interval}: the {tone} of {chord}.',
+  alternative: 'From {kind}: {why}',
 }
 
 // How each tag reads.
@@ -127,4 +132,5 @@ export const HARMONY_TAG_TEXT: Record<string, string> = {
   contrary: 'contrary',
   oblique: 'oblique',
   similar: 'similar',
+  edited: 'your choice',
 }

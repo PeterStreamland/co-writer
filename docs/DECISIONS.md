@@ -1671,3 +1671,17 @@ Write a phrase in the Melody tab can now write into a bar you pick, not only aft
   The active bar is outlined on every row. It is still the bar Write a phrase writes into, so tapping a chord also points Write a phrase's **Into** menu at that chord's bar.
 
 - **Task 16 added (David's note):** more control for Write a phrase: more **How much** choices, a set number of notes, and ways of varying how long the notes are. It joins Phase 7 before its gate, for a session of its own.
+
+## 2026-10-24 — Editing a harmony's notes (task 17, David's request and choice)
+
+David asked for a harmony note to be deletable once it's tapped, and agreed each note should be changeable too. He chose that **edits sit on top of a harmony that keeps following the melody**, rather than freezing it into fixed notes. The logic is in `editHarmony`, `harmonyAlternatives` and the edit helpers in `src/theory/harmony.ts`, with the cases in `tests/fixtures/harmony-edits.ts`.
+
+- **Tapping a note** in a harmony or countermelody row plays it, says why it's there and offers:
+  - **▼ Octave ▲ Octave**;
+  - **Play instead:** what each other harmony would play under that melody note (3rds below, 6ths below, the countermelody and so on), one of each note, chord tones first and notes outside the key last, each explained (my choice of what to offer);
+  - **× Take it out**, which leaves a rest;
+  - **↺ The harmony's own note**, on a note you've changed.
+- **Your notes are purple.** The row's head says **↺ Undo my n changes** to put back every note the harmony worked out. Undo covers each change.
+- **An edit belongs to the melody note it was made under** (its onset and its note). If that melody note changes, the edit there goes and the harmony works the note out again. Every other edit stays.
+- Stopping a harmony drops its edits; **Clear chords** keeps them along with the melody; **Clear everything** clears them. They're saved with the song (`harmonyEdits` on the progression).
+- **Added as Phase 7 task 17**, built in the same session as task 11 at David's request, and ticked as its check passes.

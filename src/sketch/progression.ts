@@ -12,6 +12,7 @@ import {
   type ChordStyleId,
   type ChordName,
   type Dur,
+  type HarmonyEdit,
   type Key,
   type MelodyNote,
   type MeterMap,
@@ -73,6 +74,9 @@ export type Progression = {
   // Harmonies that play with the melody (SPEC 7.4), by HARMONY_KINDS id:
   // each follows the melody as it changes.
   harmonies?: string[]
+  // Your own notes in them (David's request), by harmony id: each
+  // harmony still follows the melody, with these on top.
+  harmonyEdits?: Record<string, HarmonyEdit[]>
   // How the chords are played (CHORD_STYLES id); block when unset.
   chordStyle?: string
 }
@@ -490,7 +494,8 @@ export function isProgression(value: unknown): value is Progression {
     (p.chordStyle === undefined || typeof p.chordStyle === 'string') &&
     (p.harmonies === undefined ||
       (Array.isArray(p.harmonies) &&
-        p.harmonies.every((h) => typeof h === 'string')))
+        p.harmonies.every((h) => typeof h === 'string'))) &&
+    (p.harmonyEdits === undefined || isHarmonyEdits(p.harmonyEdits))
   )
 }
 
@@ -520,6 +525,22 @@ const isPitch = (n: unknown): boolean =>
   typeof (n as Note).letter === 'string' &&
   Number.isInteger((n as Note).accidental) &&
   Number.isInteger((n as Note).octave)
+
+function isHarmonyEdits(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null) return false
+  return Object.values(value).every(
+    (edits) =>
+      Array.isArray(edits) &&
+      edits.every(
+        (e: HarmonyEdit) =>
+          typeof e === 'object' &&
+          e !== null &&
+          isDur(e.at) &&
+          isPitch(e.under) &&
+          (e.note === undefined || isPitch(e.note)),
+      ),
+  )
+}
 
 function isRangeSetting(value: unknown): value is MelodyRangeSetting {
   if (typeof value !== 'object' || value === null) return false

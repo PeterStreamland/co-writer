@@ -17,6 +17,7 @@ import {
   type NextChordSuggestion,
   type Note,
   type Dur,
+  type HarmonyEdit,
   type MelodyNote,
   type StyleBlend,
   ZERO,
@@ -35,7 +36,11 @@ import {
   spellTapped,
   swapMelodyNote,
   shiftMelodyNote,
+  clearHarmonyEdit,
   clearSpan,
+  harmonyAlternatives,
+  pruneHarmonyEdits,
+  setHarmonyEdit,
 } from '../theory'
 import {
   OCTAVE_LIMIT,
@@ -752,6 +757,15 @@ export function Workspace() {
     setHistory((h) => {
       const p: Progression = { ...h.present, melody: next }
       if (!next.length) delete p.melody
+      // Your notes in the harmonies go where the melody note under them
+      // changed.
+      const edits = Object.fromEntries(
+        Object.entries(h.present.harmonyEdits ?? {})
+          .map(([id, e]) => [id, pruneHarmonyEdits(next, e)] as const)
+          .filter(([, e]) => e.length),
+      )
+      if (Object.keys(edits).length) p.harmonyEdits = edits
+      else delete p.harmonyEdits
       return record(h, p)
     })
   }
@@ -915,11 +929,24 @@ export function Workspace() {
   // changes.
   const harmonyIds = progression.harmonies ?? []
   // Each on a row of its own (PLAN Phase 7 task 11).
+  const harmonyCtx = { melody, key, chords: melodyChords, time }
   const harmonies = harmonyRows(
     harmonyIds,
-    { melody, key, chords: melodyChords, time },
+    harmonyCtx,
     timing,
+    progression.harmonyEdits,
   )
+  // Your own notes in a harmony (David's request), undoable.
+  function setHarmonyEdits(id: string, edits: HarmonyEdit[]) {
+    setHistory((h) => {
+      const all = { ...h.present.harmonyEdits, [id]: edits }
+      if (!edits.length) delete all[id]
+      const p: Progression = { ...h.present, harmonyEdits: all }
+      if (!Object.keys(all).length) delete p.harmonyEdits
+      return record(h, p)
+    })
+  }
+  const editsOf = (id: string) => progression.harmonyEdits?.[id] ?? []
   const harmonyNotes = harmonies.flatMap((r) => r.notes)
   const harmonyAlong = harmonies.flatMap((r) => r.along)
   const harmonySounding = harmonies.find(
@@ -929,6 +956,14 @@ export function Workspace() {
     setHistory((h) => {
       const p: Progression = { ...h.present, harmonies: ids }
       if (!ids.length) delete p.harmonies
+      // A harmony stopped takes your notes in it with it.
+      const edits = Object.fromEntries(
+        Object.entries(h.present.harmonyEdits ?? {}).filter(([id]) =>
+          ids.includes(id),
+        ),
+      )
+      if (Object.keys(edits).length) p.harmonyEdits = edits
+      else delete p.harmonyEdits
       return record(h, p)
     })
   }
@@ -1031,6 +1066,9 @@ export function Workspace() {
             }),
             ...(progression.harmonies && {
               harmonies: progression.harmonies,
+            }),
+            ...(progression.harmonyEdits && {
+              harmonyEdits: progression.harmonyEdits,
             }),
             ...(progression.chordStyle && {
               chordStyle: progression.chordStyle,
@@ -1449,6 +1487,23 @@ export function Workspace() {
               }
               onPlayNote={(note, length) =>
                 void playNote(note, secondsOf(length, bpm, time.meter))
+              }
+              alternatives={(_, place, current) =>
+                harmonyAlternatives(harmonyCtx, place, current)
+              }
+              onEdit={(id, place, note) =>
+                setHarmonyEdits(
+                  id,
+                  setHarmonyEdit(melody, editsOf(id), place, note),
+                )
+              }
+              onRestore={(id, place) =>
+                setHarmonyEdits(
+                  id,
+                  place === undefined
+                    ? []
+                    : clearHarmonyEdit(melody, editsOf(id), place),
+                )
               }
             />
             <PartRows
