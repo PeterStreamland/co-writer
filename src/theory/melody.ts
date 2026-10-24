@@ -33,7 +33,14 @@ import {
 
 export * from './melody-data'
 
-export type MelodyNote = { note: Note; onset: Dur; length: Dur }
+export type MelodyNote = {
+  note: Note
+  onset: Dur
+  length: Dur
+  // Where it was held on over a note's place (David's request), from its
+  // onset: no new note there, but the lane shows where the hold began.
+  holds?: Dur[]
+}
 
 // Where the melody ends: the end of its last note, or the start.
 export function melodyEnd(melody: MelodyNote[]): Dur {
@@ -296,8 +303,14 @@ export function holdOver(melody: MelodyNote[], index: number): MelodyNote[] {
   return melody.flatMap((m, i) => {
     if (i === index) return []
     if (i === index - 1) {
+      const at = subDur(gone.onset, m.onset)
+      const theirs = (gone.holds ?? []).map((h) => addDur(h, at))
       return [
-        { ...m, length: subDur(addDur(gone.onset, gone.length), m.onset) },
+        {
+          ...m,
+          length: subDur(addDur(gone.onset, gone.length), m.onset),
+          holds: [...(m.holds ?? []), at, ...theirs],
+        },
       ]
     }
     return [m]

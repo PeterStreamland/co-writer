@@ -494,7 +494,8 @@ function isMelodyNote(value: unknown): value is MelodyNote {
     Number.isInteger(m.note.accidental) &&
     Number.isInteger(m.note.octave) &&
     isDur(m.onset) &&
-    isDur(m.length)
+    isDur(m.length) &&
+    (m.holds === undefined || (Array.isArray(m.holds) && m.holds.every(isDur)))
   )
 }
 
