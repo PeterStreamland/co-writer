@@ -51,11 +51,15 @@ export type PartRecipe =
       // (David's request, 2026-10-24).
       gaps?: Record<number, ArpeggioGap>
     }
+  // A frozen row's bar (David's request, 2026-10-24): the notes it played,
+  // edited by hand from then on.
+  | { kind: 'notes'; notes: BarNote[] }
 
 // A row plays its recipe over every chord, except where a bar has its own
 // (David's request: + on a single bar): a cell keyed by the chord's node
 // id, with its own recipe, or null for a bar left silent. A row made bar
-// by bar has cells only. Its kind says which tab's + adds bars to it.
+// by bar has cells only. Its kind says which tab's + adds bars to it; a
+// frozen row ('notes') takes no bars from the tabs, and says what it was.
 export type Part = {
   id: string
   anchor: string
@@ -67,6 +71,7 @@ export type Part = {
   // own on top, by chord node id (David's request).
   octave?: number
   octaves?: Record<string, number>
+  frozen?: string
 }
 
 export function partKind(part: Part): PartRecipe['kind'] {
@@ -146,6 +151,48 @@ function setCell(
   }
 }
 
+// Freezes a row into the notes it plays now, bar by bar (David's
+// request): each chord of the active path keeps its notes, or is silent,
+// and the row no longer follows the chords. Its octave moves are in the
+// notes, so they go; `was` names what it was frozen from.
+export function freezePart(
+  p: Progression,
+  id: string,
+  bars: Record<string, BarNote[]>,
+  was: string,
+): Progression {
+  return {
+    ...p,
+    parts: (p.parts ?? []).map((r) => {
+      if (r.id !== id) return r
+      const cells: Record<string, PartRecipe | null> = {}
+      for (const node of p.activePath) {
+        const notes = bars[node]
+        cells[node] = notes?.length ? { kind: 'notes', notes } : null
+      }
+      const frozen: Part = {
+        id: r.id,
+        anchor: r.anchor,
+        kind: 'notes',
+        cells,
+        frozen: was,
+      }
+      if (r.muted) frozen.muted = true
+      return frozen
+    }),
+  }
+}
+
+// A frozen row's bar with notes edited by hand.
+export function setFrozenBar(
+  p: Progression,
+  id: string,
+  node: string,
+  notes: BarNote[],
+): Progression {
+  return setCell(p, id, node, { kind: 'notes', notes })
+}
+
 export function removePart(p: Progression, id: string): Progression {
   return { ...p, parts: (p.parts ?? []).filter((r) => r.id !== id) }
 }
@@ -222,14 +269,19 @@ export function isPart(value: unknown, nodes: string[]): value is Part {
   ) {
     return false
   }
+  if (r.frozen !== undefined && typeof r.frozen !== 'string') return false
   if (r.recipe !== undefined && !isRecipe(r.recipe)) return false
   if (r.cells === undefined) return true
   if (typeof r.cells !== 'object' || r.cells === null) return false
   return Object.values(r.cells).every((c) => c === null || isRecipe(c))
 }
 
+const isNotes = (notes: unknown) =>
+  Array.isArray(notes) && notes.length > 0 && notes.every(isBarNote)
+
 function isRecipe(value: unknown): value is PartRecipe {
   const recipe = value as PartRecipe | undefined
+  if (recipe?.kind === 'notes') return isNotes(recipe.notes)
   if (recipe?.kind === 'line') {
     return (
       typeof recipe.mode === 'string' &&
@@ -242,10 +294,7 @@ function isRecipe(value: unknown): value is PartRecipe {
           recipe.count <= MOST_NOTES)) &&
       (recipe.seed === undefined ||
         (Number.isInteger(recipe.seed) && recipe.seed >= 0)) &&
-      (recipe.notes === undefined ||
-        (Array.isArray(recipe.notes) &&
-          recipe.notes.length > 0 &&
-          recipe.notes.every(isBarNote)))
+      (recipe.notes === undefined || isNotes(recipe.notes))
     )
   }
   if (recipe?.kind === 'arpeggio') {
@@ -274,6 +323,11 @@ function isBarNote(value: unknown): value is BarNote {
     Number.isInteger(b.at?.n) &&
     Number.isInteger(b.at?.d) &&
     b.at.n >= 0 &&
-    b.at.d > 0
+    b.at.d > 0 &&
+    (b.length === undefined ||
+      (Number.isInteger(b.length.n) &&
+        Number.isInteger(b.length.d) &&
+        b.length.n > 0 &&
+        b.length.d > 0))
   )
 }

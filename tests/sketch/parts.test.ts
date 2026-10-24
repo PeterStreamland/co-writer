@@ -13,7 +13,10 @@ import {
   addCell,
   addPart,
   clearCell,
+  freezePart,
+  partKind,
   recipeAt,
+  setFrozenBar,
   partsShown,
   removePart,
   setPartMuted,
@@ -242,5 +245,85 @@ describe('rows when a chord is removed (David’s request)', () => {
   it('drops a row when no chords are left', () => {
     const p = addPart(build('C'), WALKING)
     expect(removeAt(p, 0).parts).toEqual([])
+  })
+})
+
+describe('freezing a row into notes (David’s request)', () => {
+  const c4 = { letter: 'C' as const, accidental: 0, octave: 4 }
+  const e4 = { letter: 'E' as const, accidental: 0, octave: 4 }
+  const p = build('C', 'Am', 'F')
+  const [n1, n2, n3] = p.activePath
+  const withRow = shiftPart(addPart(p, WALKING), 'r1', 1)
+  const frozen = freezePart(
+    withRow,
+    'r1',
+    {
+      [n1]: [{ note: c4, at: { n: 0, d: 1 } }],
+      [n3]: [
+        { note: e4, at: { n: 0, d: 1 }, length: { n: 1, d: 8 } },
+        { note: c4, at: { n: 1, d: 2 } },
+      ],
+    },
+    'Walking',
+  )
+  const row = partsShown(frozen)[0]
+
+  it('keeps every bar’s notes, the bars without notes silent', () => {
+    expect(partKind(row)).toBe('notes')
+    expect(row.frozen).toBe('Walking')
+    expect(row.recipe).toBeUndefined()
+    expect(recipeAt(row, n1)).toEqual({
+      kind: 'notes',
+      notes: [{ note: c4, at: { n: 0, d: 1 } }],
+    })
+    expect(recipeAt(row, n2)).toBeUndefined()
+    expect(row.cells?.[n2]).toBeNull()
+    // The octaves it was moved are in its notes now.
+    expect(row.octave).toBeUndefined()
+  })
+
+  it('no longer follows chords added after it', () => {
+    const more = addAfter(frozen, 2, parseChordSymbol('G')!)
+    expect(recipeAt(partsShown(more)[0], more.activePath[3])).toBeUndefined()
+  })
+
+  it('takes no bars from the tabs', () => {
+    const q = addCell(frozen, n2, WALKING)
+    expect(partsShown(q).map((r) => partKind(r))).toEqual(['notes', 'line'])
+  })
+
+  it('edits a bar by hand', () => {
+    const q = setFrozenBar(frozen, 'r1', n2, [{ note: e4, at: { n: 0, d: 1 } }])
+    expect(recipeAt(partsShown(q)[0], n2)).toEqual({
+      kind: 'notes',
+      notes: [{ note: e4, at: { n: 0, d: 1 } }],
+    })
+  })
+
+  it('saves and reads back, rejecting broken notes', () => {
+    expect(isProgression(JSON.parse(JSON.stringify(frozen)))).toBe(true)
+    const broken = (notes: unknown) =>
+      isProgression({
+        ...p,
+        parts: [
+          {
+            id: 'r1',
+            anchor: n1,
+            kind: 'notes',
+            cells: { [n1]: { kind: 'notes', notes } },
+          },
+        ],
+      })
+    expect(broken([{ note: c4, at: { n: 0, d: 1 } }])).toBe(true)
+    expect(broken([])).toBe(false)
+    expect(
+      broken([{ note: c4, at: { n: 0, d: 1 }, length: { n: 0, d: 4 } }]),
+    ).toBe(false)
+  })
+
+  it('undoes back to the row as it was', () => {
+    let h = startHistory(withRow)
+    h = record(h, frozen)
+    expect(partKind(partsShown(undo(h).present)[0])).toBe('line')
   })
 })

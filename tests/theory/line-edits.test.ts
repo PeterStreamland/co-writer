@@ -353,3 +353,63 @@ describe('removing notes', () => {
     expect(removeNote(roots, 0, steps)).toBeUndefined()
   })
 })
+
+describe('rests in edited bars (frozen rows)', () => {
+  // Arpeggio-like quavers over C, with a rest after the second note.
+  const steps = stepsOf('C major', 'C F')
+  const line = lineFor('roots', steps).notes
+  const bar = [
+    { note: note('C4'), at: dur(0, 1) },
+    { note: note('E4'), at: dur(1, 8), length: dur(1, 8) },
+    { note: note('G4'), at: dur(1, 2) },
+  ]
+  const notes = withBars(line, steps, { 0: bar })
+  const first = notes.filter((n) => n.step === 0)
+
+  it('lets a note stop before the next, leaving a rest', () => {
+    expect(first.map((n) => n.length)).toEqual([
+      dur(1, 8),
+      dur(1, 8),
+      dur(1, 2),
+    ])
+    expect(first[2].onset).toEqual(dur(1, 2))
+  })
+
+  it('reads the rest back from the notes', () => {
+    expect(barOf(notes, 0, steps)).toEqual(bar)
+  })
+
+  it('never lets a note sound past the next one', () => {
+    const long = withBars(line, steps, {
+      0: [
+        { note: note('C4'), at: dur(0, 1), length: dur(1, 1) },
+        { note: note('E4'), at: dur(1, 2) },
+      ],
+    }).filter((n) => n.step === 0)
+    expect(long[0].length).toEqual(dur(1, 2))
+    expect(barOf(long, 0, steps)[0].length).toBeUndefined()
+  })
+
+  it('keeps the rest when a note is swapped or notes are added', () => {
+    expect(swapNote(notes, 1, steps, note('F4'))[1].length).toEqual(dur(1, 8))
+    const repeat = addOptions(notes, 1, steps).find(
+      (o) => o.tags[1] === 'repeat',
+    )!
+    const added = withBars(line, steps, { 0: repeat.candidate }).filter(
+      (n) => n.step === 0,
+    )
+    expect(added.map((n) => n.onset)).toEqual([
+      dur(0, 1),
+      dur(1, 8),
+      dur(3, 16),
+      dur(1, 2),
+    ])
+    expect(added[2].length).toEqual(dur(1, 16))
+  })
+
+  it('lets the note before hold on through a note taken out', () => {
+    const removed = removeNote(notes, 2, steps)!
+    expect(removed.map((b) => b.at)).toEqual([dur(0, 1), dur(1, 8)])
+    expect(removed[1].length).toBeUndefined()
+  })
+})

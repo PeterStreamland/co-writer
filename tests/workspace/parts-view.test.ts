@@ -33,10 +33,15 @@ import {
 } from '../../src/theory'
 import { lineSteps } from '../../src/workspace/lines-view'
 import {
+  freezeRow,
+  frozenLine,
   partLabel,
   partNotes,
   recipeLabel,
 } from '../../src/workspace/parts-view'
+import { setFrozenBar } from '../../src/sketch/parts'
+import { melodyStrips } from '../../src/workspace/melody-strips'
+import { swapNote } from '../../src/theory'
 
 const C: Key = { tonic: parseNote('C')!, mode: 'major' }
 const time = { meter: { num: 4, den: 4 } }
@@ -333,5 +338,122 @@ describe('moving rows by octaves (David’s request)', () => {
       p.activePath[0],
     )
     expect(partsShown(bar)[0].octaves).toBeUndefined()
+  })
+})
+
+describe('freezing a row into notes (David’s request)', () => {
+  const rowOf = (q: Progression) => partsShown(q)[0]
+  const play = (q: Progression) =>
+    partNotes(rowOf(q), q, C, timingOf(q, time), guitar).map((n) => ({
+      step: n.step,
+      onset: n.onset,
+      length: n.length,
+      midi: midiNumber(n.note),
+    }))
+  const freeze = (q: Progression) =>
+    freezeRow(q, rowOf(q), C, timingOf(q, time), guitar)
+
+  it('plays a frozen line as it played before', () => {
+    const p = addPart(build('C', 'Am', 'F', 'G7'), {
+      kind: 'line',
+      mode: 'walking',
+      roll: 0,
+    })
+    const frozen = freeze(p)
+    expect(play(frozen)).toEqual(play(p))
+    expect(partLabel(rowOf(frozen))).toBe('Walking, frozen')
+    expect(rowOf(frozen).cells?.[p.activePath[0]]?.kind).toBe('notes')
+  })
+
+  it('keeps an arpeggio’s rests and holds, and the octaves it was moved', () => {
+    let p = addPart(build('C', 'G'), {
+      kind: 'arpeggio',
+      settings: {
+        choice: 'triad',
+        pattern: 'up',
+        rate: '8ths',
+        octaves: 1,
+        guitar: 'position',
+      },
+      gaps: { 1: 'rest', 3: 'hold' },
+    })
+    p = shiftPart(p, rowOf(p).id, 1)
+    const before = play(p)
+    expect(before.length).toBeLessThan(16)
+    const frozen = freeze(p)
+    expect(play(frozen)).toEqual(before)
+    expect(rowOf(frozen).octave).toBeUndefined()
+  })
+
+  it('keeps a silenced bar silent, and stays put when the chords change', () => {
+    let p = addPart(build('C', 'Am', 'F'), {
+      kind: 'line',
+      mode: 'roots',
+      roll: 0,
+    })
+    p = clearCell(p, rowOf(p).id, p.activePath[1])
+    const frozen = freeze(p)
+    expect(play(frozen).some((n) => n.step === 1)).toBe(false)
+    const changed = changeAt(frozen, 2, parseChordSymbol('Dm')!)
+    expect(play(changed).map((n) => n.midi)).toEqual(
+      play(frozen).map((n) => n.midi),
+    )
+  })
+
+  it('edits a frozen bar note by note', () => {
+    const p = freeze(
+      addPart(build('C', 'F'), { kind: 'line', mode: 'walking', roll: 0 }),
+    )
+    const row = rowOf(p)
+    const { notes, steps } = frozenLine(row, p, C, timingOf(p, time))
+    expect(notes.length).toBe(play(p).length)
+    const edited = setFrozenBar(
+      p,
+      row.id,
+      p.activePath[0],
+      swapNote(notes, 1, steps, parseNote('A3')!),
+    )
+    expect(play(edited)[1].midi).toBe(57)
+    expect(
+      frozenLine(rowOf(edited), edited, C, timingOf(edited, time)).notes[1]
+        .label,
+    ).toBeTruthy()
+  })
+})
+
+describe('rows lined up with the melody lane (Phase 7 task 6)', () => {
+  it('lays every row out in the lane’s bars, each note where it sounds', () => {
+    const p = setLengthAt(
+      addPart(build('C', 'Am', 'F', 'G'), {
+        kind: 'arpeggio',
+        settings: {
+          choice: 'triad',
+          pattern: 'up',
+          rate: '8ths',
+          octaves: 1,
+          guitar: 'position',
+        },
+        gaps: { 2: 'rest' },
+      }),
+      2,
+      dur(1, 2),
+    )
+    const notes = partNotes(partsShown(p)[0], p, C, timingOf(p, time), guitar)
+    const melody = [
+      { note: parseNote('C5')!, onset: dur(0, 1), length: dur(5, 1) },
+    ]
+    const bars = melodyStrips(melody, time, 4).length
+    expect(bars).toBe(5)
+    const row = melodyStrips(notes, time, bars)
+    const lane = melodyStrips(melody, time, bars)
+    expect(row.map((s) => s.start)).toEqual(lane.map((s) => s.start))
+    // Each note in its bar where it sounds, the rests between.
+    for (const s of row) {
+      for (const g of s.segments) {
+        if (g.kind !== 'note') continue
+        expect(addDur(s.start, g.from)).toEqual(notes[g.index].onset)
+      }
+    }
+    expect(row[0].segments.filter((g) => g.kind === 'rest')).toHaveLength(1)
   })
 })

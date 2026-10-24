@@ -10,6 +10,7 @@ import {
   LINE_DENSITIES,
   LINE_MODES,
   addDur,
+  barOf,
   lineFor,
   lineSeed,
   seededRandom,
@@ -19,11 +20,13 @@ import {
   type Key,
   type LineModeId,
   type LineNote,
+  type LineStep,
   type Placement,
 } from '../theory'
 import { roleOf } from '../instruments/chord-tones'
 import type { Guitar } from '../instruments/guitar'
 import {
+  freezePart,
   octaveAt,
   partKind,
   recipeAt,
@@ -55,6 +58,7 @@ export function recipeLabel(recipe: PartRecipe): string {
       ...(recipe.notes ? ['edited'] : []),
     ].join(', ')
   }
+  if (recipe.kind === 'notes') return 'Frozen notes'
   const { choice, pattern, rate } = recipe.settings
   const what = ARPEGGIO_CHOICES.find((c) => c.id === choice)?.label ?? choice
   const how = ARPEGGIO_PATTERNS.find((p) => p.id === pattern)?.label ?? pattern
@@ -74,6 +78,7 @@ export function recipeLabel(recipe: PartRecipe): string {
 // built bar by bar, what kind it is.
 export function partLabel(part: Part): string {
   const bars = Object.keys(part.cells ?? {}).length
+  if (part.frozen !== undefined) return `${part.frozen}, frozen`
   if (part.recipe) {
     return bars
       ? `${recipeLabel(part.recipe)}, with ${bars === 1 ? 'one bar' : `${bars} bars`} of its own`
@@ -114,7 +119,7 @@ function unshiftedNotes(
   guitar?: Guitar,
 ): AlongNote[] {
   const nodes = pathNodes(progression)
-  if (partKind(part) === 'line') {
+  if (partKind(part) !== 'arpeggio') {
     return rowLine(part, progression, sectionKey, timing).map((note, ref) => ({
       step: note.step,
       onset: note.onset,
@@ -164,9 +169,50 @@ function unshiftedNotes(
   })
 }
 
+// Freezes a row into the notes it plays now (David's request), as heard:
+// each bar's notes, where each starts and, before a rest, how long it
+// sounds, with the row's octave moves in them.
+export function freezeRow(
+  progression: Progression,
+  part: Part,
+  sectionKey: Key,
+  timing: Placement[],
+  guitar?: Guitar,
+): Progression {
+  const notes = partNotes(part, progression, sectionKey, timing, guitar)
+  const steps = lineSteps(progression, sectionKey, timing)
+  const bars: Record<string, BarNote[]> = {}
+  pathNodes(progression).forEach((n, i) => {
+    const bar = barOf(notes, i, steps)
+    if (bar.length) bars[n.id] = bar
+  })
+  return freezePart(progression, part.id, bars, partLabel(part))
+}
+
+// A frozen row as the line tools edit it (David's request): its notes,
+// tagged, in the order they play (a note's ref is its place here), the
+// chords they sound over, and the range to look for other notes in.
+export function frozenLine(
+  part: Part,
+  progression: Progression,
+  sectionKey: Key,
+  timing: Placement[],
+): { notes: LineNote[]; steps: LineStep[]; range: number[] } {
+  const notes = rowLine(part, progression, sectionKey, timing)
+  const steps = lineSteps(progression, sectionKey, timing)
+  const pitches = notes.map((n) => n.midi)
+  const range = pitches.length
+    ? [Math.min(...pitches) - FROZEN_REACH, Math.max(...pitches) + FROZEN_REACH]
+    : [0, 127]
+  return { notes, steps, range }
+}
+
+// How far past a frozen row's lowest and highest notes others are offered.
+const FROZEN_REACH = 5
+
 // A line row's notes: each bar the line of its recipe's mode, with as many
-// notes as the recipe sets, or the notes it keeps if edited by hand. Lines
-// of a mode are worked out once, over the whole progression.
+// notes as the recipe sets, or the notes it keeps if edited by hand or
+// frozen. Lines of a mode are worked out once, over the whole progression.
 function rowLine(
   part: Part,
   progression: Progression,
@@ -176,11 +222,11 @@ function rowLine(
   const nodes = pathNodes(progression)
   const recipes = nodes.map((n) => {
     const r = recipeAt(part, n.id)
-    return r?.kind === 'line' ? r : undefined
+    return r?.kind === 'line' || r?.kind === 'notes' ? r : undefined
   })
   const steps = lineSteps(progression, sectionKey, timing).map((s, i) => ({
     ...s,
-    density: recipes[i]?.density,
+    density: recipes[i]?.kind === 'line' ? recipes[i].density : undefined,
   }))
   const lines = new Map<string, LineNote[]>()
   const lineNotes = (mode: LineModeId, roll: number) => {
@@ -192,7 +238,7 @@ function rowLine(
     return lines.get(id) as LineNote[]
   }
   const played = recipes.flatMap((r, i) =>
-    r && !r.notes
+    r?.kind === 'line' && !r.notes
       ? lineNotes(r.mode, r.roll).filter((note) => note.step === i)
       : [],
   )
@@ -201,10 +247,12 @@ function rowLine(
     const own =
       r &&
       (r.notes ??
-        filledBar(lineNotes(r.mode, r.roll), steps, i, r.mode, r.roll, {
-          count: r.count,
-          roll: r.seed,
-        }))
+        (r.kind === 'line'
+          ? filledBar(lineNotes(r.mode, r.roll), steps, i, r.mode, r.roll, {
+              count: r.count,
+              roll: r.seed,
+            })
+          : undefined))
     if (own) bars[i] = own
   })
   const silent = new Set(recipes.flatMap((r, i) => (r ? [] : [i])))

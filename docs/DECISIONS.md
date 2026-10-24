@@ -1493,3 +1493,38 @@ The Melody tab has a new **Harmony** section. The theory is in `src/theory/harmo
 - **Playing them (my choice; easy to change):** + on a harmony plays it with the melody from then on: with ▶ Play melody, with the chords, with ▶ Play on the strip, and in a lane bar's ▶. Several can play at once (3rds above and 6ths below make three parts). The progression saves which are on, not their notes, so each harmony follows the melody as it changes, as rows follow the chords (`harmonies` on the progression; SPEC 12 updated). ✓ stops one. Tapping a card plays it with the melody once, and ⓘ explains it note by note.
 - **Not yet:** harmonies don't show in the melody lane, and can't be edited note by note. Both fit task 6's work on the lane and on freezing rows into notes.
 - **Exit criterion:** "Twin-harmony lines stay diatonic unless tagged" is tested across 16 keys and modes (major, minors, modes, pentatonics, blues), random melodies with notes outside the key, and chords that aren't in the key. Every harmony note is in the key or tagged chromatic.
+
+## 2026-10-24 — Rows line up with the melody lane, and freeze into notes (Phase 7 task 6, second half)
+
+Task 6 is finished. The rows under the progression now share the melody lane's time strips, and any row can be frozen into its notes to edit by hand. The layout is in `src/workspace/PartRows.tsx` and `Timeline.tsx`. Freezing is in `freezeRow` and `frozenLine` in `src/workspace/parts-view.ts` and `freezePart` in `src/sketch/parts.ts`.
+
+- **Bar by bar under the chords:**
+  - Each row is laid out in the same strips as the lane: every bar as wide as it lasts, the same bars in every row (all the bars the chords or the melody cover).
+  - Each note is a block as wide as it lasts, labelled by interval and note name, and coloured as the Lines and Arpeggio tabs colour it. Rests are dashed.
+  - The lane and the rows scroll sideways together, so the bars stay under each other on a phone too.
+- **Each chord's name sits where it starts in a row (my choice; easy to change).** Tapping it opens that bar's tools, which used to sit in each box:
+  - ▶ Play
+  - ▼ ▲ Octave
+  - 𝄽 Silence it
+  - the bar's own setting, when it has one
+
+  This keeps short chords readable: a one-beat chord's strip is too narrow for all the buttons.
+
+- **❄ Freeze** on a row keeps the notes it plays now, exactly as heard:
+  - the octave moves are written into the notes
+  - silenced bars stay silent
+  - an arpeggio keeps its rests and holds
+
+  From then on the row no longer follows the chords: a changed chord keeps the old notes, and a chord added later gets nothing from the row. If a chord gets shorter or longer, its notes are fitted to it, as an edited bar in the Lines tab always was. The row is named after what it was, with "frozen": "Walking, frozen". Undo brings back the row as it was.
+
+- **Editing a frozen row:**
+  - Tapping a note plays it and shows what it is (chord tone, passing, your own…) and why.
+  - Then come the Lines tab's tools: **Play instead** (ranked notes for its place), **Add after it** (passing note, approach, another chord tone, runs, strike it again) and **× Take it out**.
+  - The other notes offered go no more than a 5th past the row's lowest or highest note.
+  - Tapping a note in a row that isn't frozen explains it and offers ❄ Freeze.
+- **Rests in edited bars:** a hand-edited bar's note used to always last until the next one. To keep an arpeggio's rests, a note can now stop earlier, leaving a rest (`length` on `BarNote` in `src/theory/line-edits.ts`).
+  - Swapping a note or adding notes after it keeps its rest.
+  - Taking a note out lets the note before ring on through, as the button says.
+  - Tested in `tests/theory/line-edits.test.ts`; SPEC 12 is updated.
+- **Frozen rows take no bars from the tabs:** a bar's **+ Row** in the Lines or Arpeggio tab goes to an unfrozen row of its kind, or starts a new row.
+- **Not yet:** harmonies still don't show in the lane as their own strips.

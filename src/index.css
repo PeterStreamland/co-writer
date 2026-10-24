@@ -2180,23 +2180,28 @@ body:has(.workspace) #app {
   cursor: pointer;
 }
 
-.line-note.role-root {
+.line-note.role-root,
+.row-note.role-root {
   --tag: #dc2626;
 }
 
-.line-note.role-third {
+.line-note.role-third,
+.row-note.role-third {
   --tag: #ea580c;
 }
 
-.line-note.role-fifth {
+.line-note.role-fifth,
+.row-note.role-fifth {
   --tag: #2563eb;
 }
 
-.line-note.role-seventh {
+.line-note.role-seventh,
+.row-note.role-seventh {
   --tag: #9333ea;
 }
 
-.line-note.role-extension {
+.line-note.role-extension,
+.row-note.role-extension {
   --tag: #0d9488;
 }
 
@@ -2251,12 +2256,6 @@ button.add-bar {
   color: var(--accent);
 }
 
-button.clear-bar {
-  padding: 0 0.3rem;
-  font-size: 0.75rem;
-  line-height: 1.2;
-}
-
 .bar-head {
   display: flex;
   align-items: center;
@@ -2264,8 +2263,8 @@ button.clear-bar {
   gap: 0.4rem;
 }
 
-/* Rows show each bar in a box, as the Lines and Arpeggio tabs do. Their
-   notes take the Lines tab's tag colours and the arpeggio tone colours. */
+/* Rows show each bar as a time strip, as the melody lane does. Their notes
+   take the Lines tab's tag colours and the arpeggio tone colours. */
 .part-rows {
   --tag-chord-tone: #2563eb;
   --tag-passing: #16a34a;
@@ -2276,25 +2275,64 @@ button.clear-bar {
   --tag-chromatic: #dc2626;
 }
 
-.part-chords.line-chords {
-  flex-wrap: nowrap;
-  overflow-x: auto;
+/* A row's bars line up with the melody lane's (Phase 7 task 6): the same
+   widths, scrolled together. Each chord's name sits where it starts. */
+.timeline {
+  min-width: 0;
 }
 
-.part-chords .line-chord {
-  flex: none;
+.row-chords {
+  position: relative;
+  height: 1.4rem;
 }
 
-.part-chords .line-chord.silent {
-  opacity: 0.5;
+.row-chord {
+  position: absolute;
+  top: 0;
+  padding: 0 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
-.part-chords .line-note {
-  cursor: default;
+.row-chord.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
-.part-chords .line-note.sounding {
-  background: color-mix(in srgb, #f59e0b 35%, transparent);
+.lane-note.row-note {
+  border-color: var(--tag, var(--accent));
+  background: color-mix(in srgb, var(--tag, var(--accent)) 14%, var(--card));
+}
+
+.lane-note.row-note.chromatic {
+  box-shadow: inset 0 -3px 0 var(--tag-chromatic);
+}
+
+.row-note .lane-name {
+  font-size: 0.7rem;
+  font-weight: 400;
+}
+
+.row-note .lane-name b {
+  font-size: 0.75rem;
+}
+
+.row-rest {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  box-sizing: border-box;
+  border: 1px dashed var(--muted);
+  border-radius: 5px;
+}
+
+.row-tools .close-tools {
+  padding: 0 0.4rem;
+}
+
+.row-tools .line-why {
+  margin: 0.3rem 0;
 }
 
 /* Editing lines (David's request): notes a bar for the whole line, − and +
