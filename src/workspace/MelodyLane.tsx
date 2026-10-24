@@ -2,8 +2,11 @@ import {
   addDur,
   beatsOf,
   compareDur,
+  NOTE_VALUES,
+  durEquals,
   formatNote,
   ratioOf,
+  valueFraction,
   subDur,
   valueName,
   type Dur,
@@ -38,6 +41,8 @@ export function MelodyLane({
   onSilence,
   onHold,
   onRestBefore,
+  onLength,
+  onRestAfter,
   chords,
   barCount,
   onPlayBar,
@@ -55,6 +60,9 @@ export function MelodyLane({
   onSilence: () => void
   onHold: () => void
   onRestBefore: () => void
+  // A new length for the tapped note; the notes after it move along.
+  onLength: (length: Dur) => void
+  onRestAfter: () => void
   // Each chord's symbol and where it sounds, for the strips' tops.
   chords: { symbol: string; start: Dur; length: Dur }[]
   // How many bars the chords cover: the lane shows at least these.
@@ -214,6 +222,22 @@ export function MelodyLane({
                 </button>
               ))}
             </div>
+            <div class="place-options" role="group" aria-label="Length">
+              <span class="muted">Length:</span>
+              {NOTE_VALUES.map((v) => (
+                <button
+                  type="button"
+                  key={v.id}
+                  class="lane-length"
+                  aria-pressed={durEquals(v.length, chosen.length)}
+                  title={`Make it a ${v.name}; the notes after it move along`}
+                  onClick={() => onLength(v.length)}
+                >
+                  {v.symbol}
+                  <small>{valueFraction(v.length)}</small>
+                </button>
+              ))}
+            </div>
             <div class="place-options">
               <button
                 type="button"
@@ -236,6 +260,17 @@ export function MelodyLane({
                 onClick={onRestBefore}
               >
                 + A beat’s rest before it
+              </button>
+              <button
+                type="button"
+                title={
+                  selected === melody.length - 1
+                    ? 'A beat’s rest after the last note: the next note you add comes a beat later'
+                    : 'A beat’s rest after this note: the notes after it move later'
+                }
+                onClick={onRestAfter}
+              >
+                + A beat’s rest after it
               </button>
             </div>
           </div>
