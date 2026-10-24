@@ -125,6 +125,12 @@ export const CP_RULES: CounterpointRule[] = [
     text: '{note} starts {interval} and is held over the beat; a note held over starts as a consonance, so the tie prepares what follows.',
   },
   {
+    id: 'cp-melody-clash',
+    modes: ['strict', 'freer'],
+    label: 'clash only with passing melody notes',
+    text: '{note} is held against {melody}, {interval}: a clash, and {melody} isn’t a passing or neighbour note in the melody (reached and left by step), so the line should move.',
+  },
+  {
     id: 'cp-dissonance-step',
     modes: ['strict', 'freer'],
     label: 'dissonances move by step',
@@ -146,7 +152,7 @@ export const CP_RULES: CounterpointRule[] = [
   {
     id: 'cp-beat-parallel',
     modes: ['strict'],
-    species: [2, 3],
+    species: [1, 2, 3],
     label: 'no 5ths or octaves on successive beats',
     text: '{note} makes {interval} on this beat and on the last one too: {kind} on successive beats.',
   },

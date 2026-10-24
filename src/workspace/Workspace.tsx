@@ -100,6 +100,7 @@ import { MelodyPanel, type MelodyEntry, type MelodyLight } from './MelodyPanel'
 import {
   counterpointLine,
   counterpointRows,
+  harmonyContext,
   harmonyRows,
   melodyAlong,
   rangeFromSetting,
@@ -796,7 +797,16 @@ export function Workspace() {
       // changed.
       const edits = Object.fromEntries(
         Object.entries(h.present.harmonyEdits ?? {})
-          .map(([id, e]) => [id, pruneHarmonyEdits(next, e)] as const)
+          .map(
+            ([id, e]) =>
+              [
+                id,
+                pruneHarmonyEdits(
+                  harmonyContext(id, { ...harmonyCtx, melody: next }).melody,
+                  e,
+                ),
+              ] as const,
+          )
           .filter(([, e]) => e.length),
       )
       if (Object.keys(edits).length) p.harmonyEdits = edits
@@ -994,6 +1004,8 @@ export function Workspace() {
     })
   }
   const editsOf = (id: string) => progression.harmonyEdits?.[id] ?? []
+  // The melody as a harmony hears it: on a grid, a note to each step.
+  const heardBy = (id: string) => harmonyContext(id, harmonyCtx).melody
   // The counterpoint lines kept (Phase 7 task 18), each on a row of its
   // own like a harmony, with your notes on top.
   const counterpointIds = progression.counterpoints ?? []
@@ -1669,13 +1681,17 @@ export function Workspace() {
               onPlayNote={(note, length) =>
                 void playNote(note, secondsOf(length, bpm, time.meter))
               }
-              alternatives={(_, place, current) =>
-                harmonyAlternatives(harmonyCtx, place, current)
+              alternatives={(id, place, current) =>
+                harmonyAlternatives(
+                  harmonyContext(id, harmonyCtx),
+                  place,
+                  current,
+                )
               }
               onEdit={(id, place, note) =>
                 setHarmonyEdits(
                   id,
-                  setHarmonyEdit(melody, editsOf(id), place, note),
+                  setHarmonyEdit(heardBy(id), editsOf(id), place, note),
                 )
               }
               onRestore={(id, place) =>
@@ -1683,14 +1699,14 @@ export function Workspace() {
                   id,
                   place === undefined
                     ? []
-                    : clearHarmonyEdit(melody, editsOf(id), place),
+                    : clearHarmonyEdit(heardBy(id), editsOf(id), place),
                 )
               }
               onClearBar={(id, places) =>
                 setHarmonyEdits(
                   id,
                   places.reduce(
-                    (edits, place) => setHarmonyEdit(melody, edits, place),
+                    (edits, place) => setHarmonyEdit(heardBy(id), edits, place),
                     editsOf(id),
                   ),
                 )

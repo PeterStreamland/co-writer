@@ -16,6 +16,7 @@ import {
 import {
   counterpointLine,
   counterpointRows,
+  harmonyContext,
   harmonyLook,
   harmonyRows,
   melodyAlong,
@@ -298,5 +299,57 @@ describe('clearing a bar of a harmony or counterpoint row', () => {
       cleared.notes.filter((n) => barOf(n) !== 1).map((n) => n.note),
     ).toEqual(row.notes.filter((n) => barOf(n) !== 1).map((n) => n.note))
     expect(cleared.edited).toBe(places.length)
+  })
+})
+
+describe('harmonies on a grid (every ½ bar and so on)', () => {
+  const key = { tonic: parseNote('C')!, mode: 'major' }
+  const time = { meter: { num: 4, den: 4 } }
+  const timing = layOut([undefined, undefined], time)
+  const ctx: HarmonyContext = {
+    melody: typeMelody('E4 F4 G4 A4 G4 F4 E4 D4', dur(1, 4)).notes,
+    key,
+    chords: ['C', 'G7'].map((s, i) => ({
+      chord: parseChordSymbol(s)!,
+      key,
+      start: timing[i].start,
+      length: timing[i].length,
+    })),
+    time,
+  }
+
+  it('harmonises the note at each step, held for the step', () => {
+    const [row] = harmonyRows(['3rd-above@half'], ctx, timing)
+    expect(row.label).toBe('3rds above, every ½ bar')
+    // The last note, D on beat 4, gets a step of its own to end on.
+    expect(row.notes.map((n) => formatNote(n.note))).toEqual([
+      'G4',
+      'C5',
+      'B4',
+      'G4',
+      'F4',
+    ])
+    expect(
+      row.notes.slice(0, 3).every((n) => n.length.n * 2 === n.length.d),
+    ).toBe(true)
+  })
+
+  it('each note still, as before, without a grid', () => {
+    expect(harmonyContext('3rd-above', ctx)).toBe(ctx)
+    expect(harmonyRows(['3rd-above@note'], ctx, timing)[0].notes).toEqual(
+      harmonyRows(['3rd-above'], ctx, timing)[0].notes,
+    )
+    expect(harmonyRows(['3rd-above@fortnight'], ctx, timing)).toEqual([])
+  })
+
+  it('takes a step out, as a bar ✕ does', () => {
+    const heard = harmonyContext('6th-below@bar', ctx).melody
+    const edits = setHarmonyEdit(heard, [], 1)
+    const [row] = harmonyRows(['6th-below@bar'], ctx, timing, {
+      '6th-below@bar': edits,
+    })
+    // Bar 1, bar 2 to beat 4, and the last note: the middle step goes.
+    expect(row.notes.map((n) => n.place)).toEqual([0, 2])
+    expect(row.edited).toBe(1)
   })
 })

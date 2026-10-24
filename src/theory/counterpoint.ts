@@ -46,6 +46,13 @@ import {
   type Note,
 } from './note'
 import { scaleNotes } from './scale'
+import {
+  isSpanUnit,
+  melodySpans,
+  spanUnit,
+  type Span,
+  type SpanUnit,
+} from './spans'
 import { fillTemplate, makeSuggestion, type Suggestion } from './suggestion'
 
 export * from './counterpoint-data'
@@ -54,6 +61,9 @@ export type CounterpointOptions = {
   species: Species['id']
   side: CounterpointSide
   mode: CounterpointMode
+  // How often the line moves (David's request): each melody note when
+  // unset, or a steady grid of bars and parts of a bar.
+  unit?: SpanUnit
 }
 
 export type CounterpointBreak = { ruleId: string; place: number; text: string }
@@ -66,29 +76,38 @@ export type CounterpointLine = {
 
 export type CounterpointSuggestion = Suggestion<CounterpointLine>
 
-// A line as options: '2-below-strict'.
+// A line as options: '2-below-strict', '2-below-strict-half'.
 export function counterpointId(o: CounterpointOptions): string {
-  return `${o.species}-${o.side}-${o.mode}`
+  const unit = o.unit && o.unit !== 'note' ? `-${o.unit}` : ''
+  return `${o.species}-${o.side}-${o.mode}${unit}`
 }
 
 export function counterpointOptions(
   id: string,
 ): CounterpointOptions | undefined {
-  const [s, side, mode] = id.split('-')
+  const [s, side, mode, unit, ...more] = id.split('-')
   const species = Number(s)
   if (!SPECIES.some((x) => x.id === species)) return undefined
   if (side !== 'above' && side !== 'below') return undefined
   if (mode !== 'strict' && mode !== 'freer') return undefined
-  return { species: species as Species['id'], side, mode }
+  if (more.length || (unit !== undefined && !isSpanUnit(unit))) return undefined
+  const o: CounterpointOptions = {
+    species: species as Species['id'],
+    side,
+    mode,
+  }
+  if (unit && unit !== 'note') o.unit = unit as SpanUnit
+  return o
 }
 
 export function speciesOf(id: number): Species {
   return SPECIES.find((s) => s.id === id) ?? SPECIES[0]
 }
 
-// "Two against one, below, strict".
+// "Two against one, below, strict", "…, strict, every ½ bar".
 export function counterpointLabel(o: CounterpointOptions): string {
-  return `${speciesOf(o.species).label}, ${o.side}, ${o.mode}`
+  const unit = o.unit && o.unit !== 'note' ? `, ${spanUnit(o.unit).short}` : ''
+  return `${speciesOf(o.species).label}, ${o.side}, ${o.mode}${unit}`
 }
 
 const name = (n: Note) => formatNote({ ...n, octave: undefined })
@@ -221,10 +240,32 @@ class Setting {
   readonly fits = new Map<string, { tone?: string; outside: boolean }>()
   readonly ctx: HarmonyContext
   readonly o: CounterpointOptions
+  // The steps the line moves in (each melody note, or a grid), and where
+  // each starts: the line's beats.
+  readonly spans: Span[]
+  private readonly starts: Set<string>
   constructor(ctx: HarmonyContext, o: CounterpointOptions) {
     this.ctx = ctx
     this.o = o
     this.melodyMidi = ctx.melody.map((m) => midiOf(m.note))
+    this.spans = melodySpans(ctx.melody, ctx.time, o.unit ?? 'note')
+    this.starts = new Set(this.spans.map((sp) => durKey(sp.onset)))
+  }
+  isBeat(t: Dur): boolean {
+    return this.starts.has(durKey(t))
+  }
+  // A melody note reached and left by step, with no gap: one that passes
+  // or steps back while the line holds.
+  melodyPasses(j: number): boolean {
+    const melody = this.ctx.melody
+    const [a, b, c] = [melody[j - 1], melody[j], melody[j + 1]]
+    if (!a || !b || !c) return false
+    if (!same(end(a), b.onset) || !same(end(b), c.onset)) return false
+    const step = (x: Note, y: Note) =>
+      Math.abs(letterSteps(x) - letterSteps(y)) === 1 &&
+      Math.abs(midiOf(x) - midiOf(y)) <= 2 &&
+      midiOf(x) !== midiOf(y)
+    return step(a.note, b.note) && step(b.note, c.note)
   }
   // The melody note sounding at a time, by its place, or -1.
   melodyAt(t: Dur): number {
@@ -336,7 +377,7 @@ class Setting {
 type Point = {
   t: Dur
   m: number // the melody note, by place
-  strong: boolean // a melody note starts here
+  strong: boolean // one of the line's beats: a step starts here
   held: boolean // the line's note started earlier
   v: Vertical
 }
@@ -348,26 +389,38 @@ function pointsOf(s: Setting, n: LineNote): Point[] {
   s.points.set(n, out)
   const at = s.melodyAt(n.onset)
   if (at >= 0) {
-    const m = s.ctx.melody[at]
     out.push({
       t: n.onset,
       m: at,
-      strong: same(m.onset, n.onset),
+      strong: s.isBeat(n.onset),
       held: false,
-      v: vertical(n.note, m.note),
+      v: vertical(n.note, s.ctx.melody[at].note),
     })
   }
+  // While it's held: each melody note that starts, and each of the
+  // line's beats.
   const stop = end(n)
-  for (let j = at >= 0 ? at + 1 : 0; j < s.ctx.melody.length; j++) {
-    const m = s.ctx.melody[j]
+  const times = new Map<string, Dur>()
+  for (const m of s.ctx.melody) {
     if (compareDur(m.onset, n.onset) <= 0) continue
     if (compareDur(m.onset, stop) >= 0) break
+    times.set(durKey(m.onset), m.onset)
+  }
+  for (const sp of s.spans) {
+    if (compareDur(sp.onset, n.onset) <= 0) continue
+    if (compareDur(sp.onset, stop) >= 0) break
+    times.set(durKey(sp.onset), sp.onset)
+  }
+  const inside = [...times.values()].sort(compareDur)
+  for (const t of inside) {
+    const j = s.melodyAt(t)
+    if (j < 0) continue
     out.push({
-      t: m.onset,
+      t,
       m: j,
-      strong: true,
+      strong: s.isBeat(t),
       held: true,
-      v: vertical(n.note, m.note),
+      v: vertical(n.note, s.ctx.melody[j].note),
     })
   }
   return out
@@ -509,6 +562,10 @@ function judge(
       } else if (v.perfect === 'unison' && v.semis === 0 && !first && !last) {
         add('cp-unison', {}, p)
       }
+    } else if (v.kind === 'dissonant' && p.held) {
+      // The melody moves while the line holds: a clash is fine where the
+      // melody note passes or steps back (David's choice).
+      if (!s.melodyPasses(p.m)) add('cp-melody-clash', {}, p)
     } else if (v.kind === 'dissonant' && !p.held && heldOver) {
       add('cp-preparation', {}, p)
     } else if (v.kind === 'dissonant' && !p.held) {
@@ -650,7 +707,6 @@ function judge(
     if (
       was &&
       !was.strong &&
-      was.m === onset.m - 1 &&
       onset.v.perfect &&
       was.v.perfect === onset.v.perfect &&
       s.melodyMidi[was.m] !== s.melodyMidi[onset.m] &&
@@ -680,7 +736,6 @@ function judge(
     if (
       last1 &&
       !immediate &&
-      last1.m === onset.m - 1 &&
       onset.v.perfect &&
       last1.v.perfect === onset.v.perfect &&
       s.melodyMidi[last1.m] !== s.melodyMidi[onset.m]
@@ -820,8 +875,11 @@ function judge(
   if (last && onset) {
     const v = onset.v
     if (v.perfect !== 'unison') {
-      // No cadence closes on anything but a unison or an octave.
+      // No cadence closes on anything but a unison or an octave. Where
+      // the rules break either way, ending on the melody's note (with no
+      // cadence) still sounds more finished than ending elsewhere.
       if (!add('cp-end', {}, onset)) prefer += W.notPerfectEnd + W.noCadence
+      else prefer += W.notPerfectEnd
     } else {
       let why = ''
       const mi = onset.m
@@ -938,10 +996,10 @@ type Planned = {
   key: string
 }
 
-function plans(ctx: HarmonyContext, species: Species, i: number): Planned[] {
-  const m = ctx.melody[i]
-  const lastNote = i === ctx.melody.length - 1
-  const joined = i > 0 && same(end(ctx.melody[i - 1]), m.onset)
+function plans(spans: Span[], species: Species, i: number): Planned[] {
+  const m = spans[i]
+  const lastNote = i === spans.length - 1
+  const joined = i > 0 && same(end(spans[i - 1]), m.onset)
   const shortest = dur(SHORTEST_PIECE[0], SHORTEST_PIECE[1])
   const whole: Piece[] = [{ share: [1, 1] }]
   const options = lastNote
@@ -1113,10 +1171,10 @@ export function counterpoint(
   const s = new Setting(ctx, o)
   const species = speciesOf(o.species)
   let states: State[] = [{ cost: 0 }]
-  const lastMel = ctx.melody.length - 1
-  ctx.melody.forEach((_, i) => {
+  const lastMel = s.spans.length - 1
+  s.spans.forEach((_, i) => {
     const next: State[] = []
-    for (const plan of plans(ctx, species, i)) {
+    for (const plan of plans(s.spans, species, i)) {
       let partial: State[] = states.map((st) => ({
         last: st.last,
         cost:

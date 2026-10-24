@@ -3,6 +3,7 @@ import {
   CP_RULES,
   CP_TAG_TEXT,
   CP_TEXT,
+  SPAN_UNITS,
   SPECIES,
   ZERO,
   counterpointId,
@@ -17,6 +18,7 @@ import {
   type MelodyChord,
   type MelodyNote,
   type MeterMap,
+  type SpanUnit,
 } from '../theory'
 import { playNote } from '../audio/player'
 import { secondsOf } from '../sketch/time'
@@ -173,6 +175,27 @@ export function CounterpointPanel({
             {SPECIES.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.id} · {s.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Against
+          <select
+            value={choice.unit ?? 'note'}
+            title="How often the line moves: with each melody note, or a steady grid of bars and parts of a bar"
+            onChange={(e) => {
+              setChoice({
+                ...choice,
+                unit: e.currentTarget.value as SpanUnit,
+              })
+              setPreviewing(false)
+              onLight(undefined)
+            }}
+          >
+            {SPAN_UNITS.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.label}
               </option>
             ))}
           </select>

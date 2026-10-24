@@ -1840,3 +1840,24 @@ David asked for the harmony and counterpoint rows to match the rest of the UI. B
 - The ✕ only shows on bars where the row has notes. Pressing it also makes that bar the active bar, as tapping anywhere in a bar does.
 - **A counterpoint line is checked again** without those notes. If taking them out breaks a rule (say, the line now starts on a 3rd in strict rules), that note turns red and says why.
 - This is added as Phase 7 task 19 and ticked, with tests that clearing a bar of a harmony and of a counterpoint line leaves every other bar unchanged.
+
+## 2026-10-24 — How often a line moves: Against and Harmonise (Phase 7 task 20, David's request and choices)
+
+David asked for counterpoint lines and harmonies to move in bars and parts of a bar as well as note by note, and for as many options as possible. The steps are worked out in `src/theory/spans.ts` (`melodySpans`, `spanMelody`).
+
+- **The choices:** each melody note (as before, and the default), every 2 bars, every bar, every ½ bar, every ¼ bar or every ⅛ bar.
+  - The grid follows the bars, including a change of meter. Every 2 bars counts from bar 1.
+  - Where the melody rests, the line rests too.
+  - **The melody's last note always starts a step of its own, to the end** (my choice), so a line can close with it and a harmony harmonises the final note.
+- **Counterpoint: an Against menu (David's choice: alongside the old way).**
+  - The species divide each step: two against one, every bar, plays two half-bar notes per bar. Fourth species ties across the steps, and the shortest-piece rule still applies.
+  - The line's beats are the steps.
+  - **A held line note may clash with a melody note that passes or steps back** (David's choice): one reached and left by step, with no gap. Any other clash is a break (`cp-melody-clash`), outlined and explained.
+  - 5ths or octaves on successive beats are now checked in first species too. With a melody note on each beat, as before, that is the same as parallel 5ths and octaves.
+- **Harmony: a Harmonise menu.** On a grid, a harmony harmonises only the melody note sounding at each step, held for the step, so not every note gets a harmony. It is saved as, for example, "3rds above, every ½ bar" (`3rd-above@half`). Each step can be changed, moved an octave or taken out, and cleared with a bar's ✕.
+- **Endings:** where a line can't make a cadence whatever it does (for example the melody's last moves fall between steps), it now prefers to end on the melody's note rather than elsewhere. One rule still breaks and is explained, but the line sounds finished.
+- **What's proven:**
+  - Each melody note gives exactly the lines it gave before (all 120 textbook lines unchanged).
+  - Every bar against semibreves gives the same line as each note.
+  - Two hand-checked golden cases: every bar against crotchets, with the melody passing (no breaks), and a clash with a melody note reached by a leap (one break).
+  - Every species on every grid against four melodies with rhythm: first species has a note on every step, lines stay on their side, end with the melody, never have parallels, and every break is tagged and explained.
