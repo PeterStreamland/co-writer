@@ -1624,3 +1624,16 @@ David asked for clear buttons for everything and bar by bar. He chose **Everythi
   Chords aren't cleared by bar, because taking one out moves every bar after it; the chord's own ✕ on the strip does that. The lane now shows its bars whenever there are chords, even before a melody, so bars can be cleared from the start. Each one can be undone.
 
 - **Row names:** a row with bars left silent now says so ("Walking, one bar silent") rather than counting them as bars of its own.
+
+## 2026-10-24 — David's notes join Phase 7 as tasks 10 to 15
+
+David wrote down six things to do after trying the app. They join Phase 7 before its gate:
+
+10. Write a phrase into a bar he picks.
+11. Rows for the melody, harmonies and countermelody.
+12. Separate rows, each with its own clear: melody, arpeggios and lines apart.
+13. The playing note's or chord's box stays dark until the next one takes over.
+14. Harmonies and countermelody move to their own tab beside Melody.
+15. The Harmony cards' note lists are laid out so they read clearly. His screenshot shows them as long grey runs of notes.
+
+None of them has an exit criterion of its own; each is checked when it's built and in David's play-test.

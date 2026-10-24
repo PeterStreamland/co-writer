@@ -243,6 +243,12 @@ Goal: enter a few notes and get next-note options; add harmonies and countermelo
 7. Generate a phrase: one button that writes the next few notes, or a bar or two, by choosing from the next-note suggestions with a little chance, following every next-note rule; another press gives another take, and the phrase can be kept, trimmed or undone (added 2026-10-23, David's request). ✅
 8. Chord styles (added 2026-10-24, David's request): how chords are played, from a menu above the chord names, for the whole progression and changeable on any single chord. Block (all together, as now), strum, pulse on every beat, bass then chord ("oom-pah"), broken (rolled), off-beat stabs, and a down-up strum pattern. Playback, rows and saving follow it. ✅
 9. Inversions before octaves (added 2026-10-24, David's request): ▲ ▼ on a chord step through its inversions before moving a whole octave (C, C/E, C/G, then C an octave up), on keyboard and guitar (the nearest playable shape of each inversion). The chord always shows which it is, for example "1st inversion" or "+1 octave", so an inversion step can't be mistaken for a perfect-octave move. ✅
+10. Write a phrase into a chosen bar (added 2026-10-24, David's note): the Melody tab's Write a phrase lets you pick which bar is active, the bar the phrase is written into, rather than always after the last note.
+11. Rows for the melody, harmonies and countermelody (added 2026-10-24, David's note): each plays on its own row under the chords, lined up bar by bar with the others.
+12. Separate rows with their own clear (added 2026-10-24, David's note): the melody, each arpeggio row and each line row sit on rows of their own, each with its own delete or clear, so clearing one never touches another.
+13. Hold the light while a note sounds (added 2026-10-24, David's note): when chords, melody or arpeggios play, the box of the note or chord sounding stays the darker colour until the next one takes over, including through held notes.
+14. A Harmony tab (added 2026-10-24, David's note): harmonies and the countermelody move out of the Melody tab into their own tab beside it.
+15. Fix the harmony cards' layout (added 2026-10-24, David's note): the note lists in the Harmony cards (3rds above, 6ths below, countermelody, 3rds below) run on in long grey blocks; show them so they read clearly, for example bar by bar.
 
 - [x] Every suggestion stays in range and is tagged (chord tone, passing, neighbour, leap, chromatic)
 - [x] A motif option appears whenever the melody contains a motif
