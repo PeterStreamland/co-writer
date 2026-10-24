@@ -2,6 +2,8 @@ import { useState } from 'preact/hooks'
 import {
   barLength,
   chordInsight,
+  CHORD_STYLES,
+  chordStyle,
   chordSymbol,
   durEquals,
   keyName,
@@ -22,6 +24,7 @@ import {
   alternatives,
   keyAt,
   pathNodes,
+  styleAt,
   type ChordNode,
   type Progression,
 } from '../sketch/progression'
@@ -75,6 +78,8 @@ export function ProgressionStrip({
   onShift,
   onRemove,
   onShiftAll,
+  onChordStyle,
+  onStyleAt,
 }: {
   progression: Progression
   sectionKey: Key
@@ -112,6 +117,10 @@ export function ProgressionStrip({
   // Takes the chord at a slot out of the progression (David's request).
   onRemove: (index: number) => void
   onShiftAll: (by: number) => void
+  // How the chords are played (David's request): for the whole
+  // progression, and a chord's own, undefined to play as the rest do.
+  onChordStyle: (style: string) => void
+  onStyleAt: (index: number, style: string | undefined) => void
 }) {
   const [treeOpen, setTreeOpen] = useState(false)
   const path = pathNodes(progression)
@@ -226,6 +235,28 @@ export function ProgressionStrip({
           </button>
         </div>
       </div>
+      {path.length > 0 && (
+        <label
+          class="chord-style"
+          title={
+            CHORD_STYLES.find(
+              (s) => s.id === chordStyle(progression.chordStyle),
+            )?.explanation
+          }
+        >
+          Chords play
+          <select
+            value={chordStyle(progression.chordStyle)}
+            onChange={(e) => onChordStyle(e.currentTarget.value)}
+          >
+            {CHORD_STYLES.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <ol class="chips">
         {path.map((n, i) => {
           const options = alternatives(progression, i)
@@ -262,6 +293,14 @@ export function ProgressionStrip({
                 <BeatDots placed={placed} />
                 {n.keyChange && (
                   <span class="key-change">→ {keyName(n.keyChange)}</span>
+                )}
+                {n.style !== undefined && (
+                  <span class="style-label">
+                    {
+                      CHORD_STYLES.find((s) => s.id === styleAt(progression, i))
+                        ?.label
+                    }
+                  </span>
                 )}
                 {n.octave ? (
                   <span class="octave-label">
@@ -371,6 +410,34 @@ export function ProgressionStrip({
               onToggle={toggleInfo}
             />
           </p>
+          <label class="chord-style">
+            This chord plays
+            <select
+              value={
+                selectedNode.style === undefined
+                  ? ''
+                  : styleAt(progression, selected)
+              }
+              onChange={(e) =>
+                onStyleAt(selected, e.currentTarget.value || undefined)
+              }
+            >
+              <option value="">
+                As the progression (
+                {
+                  CHORD_STYLES.find(
+                    (s) => s.id === chordStyle(progression.chordStyle),
+                  )?.label
+                }
+                )
+              </option>
+              {CHORD_STYLES.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <ChordTime
             time={time}
             placed={timing[selected]}

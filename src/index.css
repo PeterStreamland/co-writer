@@ -2517,6 +2517,22 @@ button.remove-note {
   font-weight: 600;
 }
 
+/* Chord styles (Phase 7 task 8): the menu above the chord names, and a
+   chord's own style on its chip. */
+label.chord-style {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.2rem 0 0.4rem;
+  font-size: 0.85rem;
+}
+
+.style-label {
+  font-size: 0.7rem;
+  color: var(--accent);
+  font-style: italic;
+}
+
 /* Melody entry (Phase 7 task 1): the Melody tab and the lane under the
    strip. */
 .melody h3 {

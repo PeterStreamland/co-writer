@@ -7,7 +7,9 @@
 // Every function returns a new progression and leaves its input alone.
 import { isPart, type Part } from './parts'
 import {
+  chordStyle,
   layOut,
+  type ChordStyleId,
   type ChordName,
   type Dur,
   type Key,
@@ -51,6 +53,9 @@ export type ChordNode = {
   // How many octaves it has been moved up (or down, below 0) from where it
   // was voiced (David's request); its voicing holds the moved notes.
   octave?: number
+  // How this chord is played, over the progression's style (CHORD_STYLES
+  // id; David's request, 2026-10-24).
+  style?: string
 }
 
 export type Progression = {
@@ -68,6 +73,8 @@ export type Progression = {
   // Harmonies that play with the melody (SPEC 7.4), by HARMONY_KINDS id:
   // each follows the melody as it changes.
   harmonies?: string[]
+  // How the chords are played (CHORD_STYLES id); block when unset.
+  chordStyle?: string
 }
 
 export type MelodyRangeSetting = { preset: string; low?: Note; high?: Note }
@@ -472,13 +479,15 @@ export function isProgression(value: unknown): value is Progression {
         Array.isArray(n.children) &&
         n.children.every(known) &&
         (n.parent === undefined || known(n.parent)) &&
-        (n.octave === undefined || Number.isInteger(n.octave)),
+        (n.octave === undefined || Number.isInteger(n.octave)) &&
+        (n.style === undefined || typeof n.style === 'string'),
     ) &&
     (p.parts === undefined ||
       (Array.isArray(p.parts) && p.parts.every((r) => isPart(r, ids)))) &&
     (p.melody === undefined ||
       (Array.isArray(p.melody) && p.melody.every(isMelodyNote))) &&
     (p.melodyRange === undefined || isRangeSetting(p.melodyRange)) &&
+    (p.chordStyle === undefined || typeof p.chordStyle === 'string') &&
     (p.harmonies === undefined ||
       (Array.isArray(p.harmonies) &&
         p.harmonies.every((h) => typeof h === 'string')))
@@ -526,6 +535,33 @@ function isRangeSetting(value: unknown): value is MelodyRangeSetting {
 // becomes the moved notes, and it counts the octaves moved, giving the
 // slot its own copy first if it was shared. Its chord, length and any key
 // change stay.
+// How the progression's chords are played; a chord's own style wins.
+export function setChordStyle(p: Progression, style: string): Progression {
+  return { ...p, chordStyle: style }
+}
+
+// A chord's own style, or undefined to play as the progression does.
+export function setStyleAt(
+  p: Progression,
+  index: number,
+  style: string | undefined,
+): Progression {
+  const own = materialise(p, index)
+  const id = own.activePath[index]
+  if (!id) return p
+  const styled: ChordNode = { ...node(own, id) }
+  if (style === undefined) delete styled.style
+  else styled.style = style
+  return { ...own, nodes: { ...own.nodes, [id]: styled } }
+}
+
+// How the chord at a slot is played: its own style, else the
+// progression's, else block.
+export function styleAt(p: Progression, index: number): ChordStyleId {
+  const id = p.activePath[index]
+  return chordStyle(p.nodes[id]?.style ?? p.chordStyle)
+}
+
 export function shiftAt(
   p: Progression,
   index: number,

@@ -37,14 +37,21 @@ export function preparePiano(): void {
 
 // keep: let notes already sounding ring on (a line playing over the
 // chords), rather than cutting them off.
-export type PlayOptions = { strum?: boolean; seconds?: number; keep?: boolean }
+// strum: true or 'down' strums low to high, 'up' high to low; gap is the
+// seconds between strings.
+export type PlayOptions = {
+  strum?: boolean | 'down' | 'up'
+  gap?: number
+  seconds?: number
+  keep?: boolean
+}
 
 // Plays the notes as a chord. The samples are fetched the first time, and the
 // browser only allows sound after a click or key press, so call this from
 // one.
 export async function playChord(
   notes: Note[],
-  { strum = false, seconds = 1.5, keep = false }: PlayOptions = {},
+  { strum = false, gap, seconds = 1.5, keep = false }: PlayOptions = {},
 ): Promise<void> {
   await Tone.start()
   const piano = sampler()
@@ -52,7 +59,7 @@ export async function playChord(
   if (!keep) piano.releaseAll()
   const now = Tone.now()
   if (strum) {
-    for (const { note, offset } of strumSchedule(notes)) {
+    for (const { note, offset } of strumSchedule(notes, gap, strum === 'up')) {
       piano.triggerAttackRelease(frequency(note), seconds, now + offset)
     }
   } else {
