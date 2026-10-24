@@ -34,4 +34,18 @@ describe('strumSchedule', () => {
     ])
     expect(schedule.map((s) => s.offset)).toEqual([0, 0.015, 0.03, 0.045])
   })
+
+  it('strums high to low for an up-strum, at the gap given', () => {
+    const notes = ['G3', 'E4', 'C4', 'C3'].map((n) => parseNote(n)!)
+    const schedule = strumSchedule(notes, 0.05, true)
+    expect(schedule.map((s) => formatNote(s.note))).toEqual([
+      'E4',
+      'C4',
+      'G3',
+      'C3',
+    ])
+    expect(schedule.map((s) => Math.round(s.offset * 1000))).toEqual([
+      0, 50, 100, 150,
+    ])
+  })
 })

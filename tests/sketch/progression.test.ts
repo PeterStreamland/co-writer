@@ -20,6 +20,9 @@ import {
   switchAt,
   type Progression,
   shiftAt,
+  setChordStyle,
+  setStyleAt,
+  styleAt,
 } from '../../src/sketch/progression'
 import { record, redo, startHistory, undo } from '../../src/sketch/history'
 import {
@@ -434,5 +437,62 @@ describe('removing a chord (David’s request)', () => {
     const p = build('C')
     expect(removeAt(p, 4)).toBe(p)
     expect(removeAt(p, -1)).toBe(p)
+  })
+})
+
+describe('chord styles (Phase 7 task 8, David’s request)', () => {
+  const p = ['C', 'Am', 'F', 'G'].reduce(
+    (q, s) => addAfter(q, q.activePath.length - 1, parse(s)),
+    EMPTY_PROGRESSION,
+  )
+  it('plays block until a style is chosen', () => {
+    expect([0, 1, 2, 3].map((i) => styleAt(p, i))).toEqual([
+      'block',
+      'block',
+      'block',
+      'block',
+    ])
+  })
+  it('lets a single chord’s own style override the progression’s', () => {
+    let q = setChordStyle(p, 'pulse')
+    q = setStyleAt(q, 2, 'oom-pah')
+    expect([0, 1, 2, 3].map((i) => styleAt(q, i))).toEqual([
+      'pulse',
+      'pulse',
+      'oom-pah',
+      'pulse',
+    ])
+    // Changing the progression's style leaves the chord's own alone.
+    q = setChordStyle(q, 'stabs')
+    expect(styleAt(q, 2)).toBe('oom-pah')
+    expect(styleAt(q, 3)).toBe('stabs')
+    // And a chord can go back to the progression's.
+    q = setStyleAt(q, 2, undefined)
+    expect(styleAt(q, 2)).toBe('stabs')
+    expect(pathNodes(q)[2].style).toBeUndefined()
+  })
+  it('keeps a chord’s style when the chord is changed', () => {
+    const q = changeAt(setStyleAt(p, 1, 'broken'), 1, parse('Em'))
+    expect(styleAt(q, 1)).toBe('broken')
+  })
+  it('saves and reads back styles, rejecting broken ones', () => {
+    const q = setStyleAt(setChordStyle(p, 'down-up'), 0, 'strum')
+    const saved = JSON.parse(JSON.stringify(q))
+    expect(isProgression(saved)).toBe(true)
+    expect(styleAt(saved, 0)).toBe('strum')
+    expect(isProgression({ ...saved, chordStyle: 3 })).toBe(false)
+    const id = q.activePath[0]
+    expect(
+      isProgression({
+        ...saved,
+        nodes: { ...saved.nodes, [id]: { ...saved.nodes[id], style: 7 } },
+      }),
+    ).toBe(false)
+  })
+  it('undoes a change of style', () => {
+    let h = startHistory(p)
+    h = record(h, setChordStyle(p, 'pulse'))
+    expect(styleAt(undo(h).present, 0)).toBe('block')
+    expect(styleAt(redo(undo(h)).present, 0)).toBe('pulse')
   })
 })

@@ -20,12 +20,20 @@ export function sampleMap(): Record<string, string> {
 // Seconds between strings in a strum: about 15 ms (SPEC 5).
 export const STRUM_GAP = 0.015
 
-// When each note of a strummed chord starts, lowest note first.
+// The Strum chord style's slower strum, so it is heard as one (David's
+// request, 2026-10-24).
+export const SLOW_STRUM_GAP = 0.05
+
+// When each note of a strummed chord starts: lowest note first, or highest
+// first for an up-strum.
 export function strumSchedule(
   notes: Note[],
   gap = STRUM_GAP,
+  up = false,
 ): { note: Note; offset: number }[] {
-  return [...notes]
-    .sort((a, b) => (midiNumber(a) as number) - (midiNumber(b) as number))
-    .map((note, i) => ({ note, offset: i * gap }))
+  const sorted = [...notes].sort(
+    (a, b) => (midiNumber(a) as number) - (midiNumber(b) as number),
+  )
+  if (up) sorted.reverse()
+  return sorted.map((note, i) => ({ note, offset: i * gap }))
 }

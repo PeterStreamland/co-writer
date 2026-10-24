@@ -161,6 +161,7 @@ These are the musical truths the golden tests check. `.claude/skills/music-conve
   - pad/organ (for hearing voice leading)
 - **Guitar chords:** played as a **quick strum**, low to high strings about 15 ms apart, using the notes of the fingering on screen.
 - **Keyboard chords:** played as block chords.
+- **Chord styles (2026-10-24):** a menu above the chord names sets how the chords are played, and any chord can have its own: block (as above), strum, pulse on every beat, bass then chord, broken (rolled), off-beat stabs, or a down-up strum pattern.
 - A count-in click is heard only when recording (7.2). There is no metronome or drum loop during normal playback.
 
 ## 6. Next-chord engine and next-token mode (Phase 4)
@@ -349,6 +350,7 @@ type ChordNode = {
   children: string[]
   keyChange?: Key
   octave?: number // octaves moved up or down; its voicing holds the moved notes (2026-10-23)
+  style?: string // how this chord is played, over the progression's (2026-10-24)
 }
 type Progression = {
   nodes: Record<string, ChordNode>
@@ -358,6 +360,7 @@ type Progression = {
   melody?: MelodyNote[] // the section's melody, until sections arrive (2026-10-23)
   melodyRange?: { preset: string; low?: Note; high?: Note } // its range; tenor when unset (2026-10-23)
   harmonies?: string[] // harmonies playing with the melody, by id ('3rd-above', 'counter'); each follows the melody (2026-10-24)
+  chordStyle?: string // how the chords are played: block, strum, pulse, oom-pah, broken, stabs, down-up; block when unset (2026-10-24)
 }
 type Part = {
   id: string

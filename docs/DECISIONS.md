@@ -1564,3 +1564,22 @@ David asked to move a note up or down an octave when it is tapped in the melody 
   - Freezing the row keeps the moves.
 - **Frozen rows:** a tapped note has ▼ ▲ alongside Play instead and the rest.
 - **Line rows that follow the chords** don't move single notes: their notes are rewritten whenever the chords change, so there is no fixed note to move. A tapped line note offers ❄ Freeze instead, then ▼ ▲.
+
+## 2026-10-24 — Chord styles (Phase 7 task 8)
+
+**Chords play** sits above the chord names. It sets how every chord is played, and any chord can have a style of its own: select the chord, then **This chord plays** under the strip. A chord with its own style shows it on its chip. The theory is in `src/theory/chord-style.ts`, with the styles and patterns as data in `chord-style-data.ts` and hand-worked cases in `tests/fixtures/chord-styles.ts`.
+
+- **The styles,** laid on the beats each chord covers as the time signature counts them. A dotted beat (6/8, 12/8) and an uneven group (7/8) are counted in quavers.
+  - **Block:** all together for the whole chord, as before. On guitar that is still the quick strum.
+  - **Strum:** one slow strum down, 50 ms a string, held.
+  - **Pulse:** the whole chord on every beat.
+  - **Bass then chord:** the lowest note on the strong beats, the rest on the others, so oom-pah in 4/4 and oom-pah-pah in 3/4. A dotted or grouped beat takes the bass on its first quaver and the chord on the rest (6/8: bass, chord, chord, twice).
+  - **Broken:** rolled, each note a demisemiquaver after the one before, low to high, all ringing to the end. The notes come closer together on a short chord.
+  - **Off-beat stabs:** silence on each beat, a short chord on its "and" (on each later quaver of a dotted beat).
+  - **Down-up strum:** in 4/4, the classic down, down-up, up-down-up in quavers, the missed strokes letting the strum before ring on. Other meters strum down on each beat and up between (a dotted beat: down, miss, up). Up-strums catch the top three notes, as up-strokes catch the top strings.
+- **Where a chord falls:** a style follows the bar, not the chord. A half-bar chord on beat 3 takes the second half of the strum pattern. A chord is always struck as it starts, even on a stroke the pattern misses; only stabs begin with silence.
+- **Exit criterion ticked:**
+  - Every style fills each chord exactly. Tested in seven meters, eight chord lengths and four starting points: the slots follow one another from the chord's start to its end, and nothing rings past it.
+  - A chord's own style overrides the progression's, and keeps it when the progression's style changes.
+- **What follows the style:** ▶ Play on the strip, and ▶ Bar n in the melody lane and in the rows (each plays its stretch of the chords in style). Tapping a chord still plays it once, as a block, so you hear it straight away.
+- **Saving:** the progression's style and each chord's own are saved with it, and changes can be undone (`chordStyle` on the progression and `style` on a chord; SPEC 12 updated).

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import {
   barLength,
   chordSymbol,
+  chordHits,
   formatNote,
   lengthLabel,
   meterOfBar,
@@ -37,6 +38,7 @@ import {
 } from '../theory'
 import { OCTAVE_LIMIT, shiftNotes, shiftShape } from '../instruments/octave'
 import { playChord, playNote, preparePiano } from '../audio/player'
+import { SLOW_STRUM_GAP } from '../audio/sounds'
 import { useMidi } from '../midi/useMidi'
 import { IDLE, nextRecorder } from '../midi/record'
 import { findFingerings } from '../instruments/fingering'
@@ -119,6 +121,9 @@ import {
   keyAfter,
   keyAt,
   pathNodes,
+  setChordStyle,
+  setStyleAt,
+  styleAt,
   selectNode,
   shiftAt,
   switchAt,
@@ -508,6 +513,48 @@ export function Workspace() {
       keep,
     })
   }
+  // Plays the chord at a slot in its style (David's request): block as
+  // ever, or each hit of the style in time. From `from` to `to` (from the
+  // chord's start) plays just that stretch, for a bar played on its own; a
+  // hit already ringing at `from` sounds for the rest of it. Returns the
+  // timers, to stop it.
+  function playStyled(
+    i: number,
+    keep: boolean,
+    from: Dur = ZERO,
+    to?: Dur,
+  ): number[] {
+    const n = path[i]
+    const placed = timing[i]
+    const style = styleAt(progression, i)
+    const end = to ?? placed.length
+    const seconds = (d: Dur) => secondsOf(d, bpm, time.meter)
+    if (style === 'block') {
+      playNode(n, seconds(subDur(end, from)), keep)
+      return []
+    }
+    const v = voicingOf(n)
+    if (!v) return []
+    return chordHits(style, v.notes, placed, time).flatMap((h) => {
+      const ringsTo = addDur(h.onset, h.sound)
+      if (!h.notes.length || compareDur(ringsTo, from) <= 0) return []
+      const start = compareDur(h.onset, from) < 0 ? from : h.onset
+      if (compareDur(start, end) >= 0) return []
+      const stop = compareDur(ringsTo, end) < 0 ? ringsTo : end
+      return [
+        window.setTimeout(
+          () =>
+            void playChord(h.notes, {
+              strum: h.strum ?? v.instrument === 'guitar',
+              gap: style === 'strum' ? SLOW_STRUM_GAP : undefined,
+              seconds: seconds(subDur(stop, start)),
+              keep: keep || compareDur(start, from) > 0,
+            }),
+          seconds(subDur(start, from)) * 1000,
+        ),
+      ]
+    })
+  }
   // A progression chord's notes as they play now: the voicing it keeps, or
   // the one the instrument view would give it.
   function voicingOf(n: ChordNode): ChordVoicing | undefined {
@@ -593,7 +640,7 @@ export function Workspace() {
     const seconds = secondsOf(timing[playingAt].length, bpm, time.meter)
     setPlayingChord(n.chord)
     showNode(n)
-    playNode(n, seconds, along !== undefined)
+    const chordTimers = playStyled(playingAt, along !== undefined)
     // Notes playing along sound over this chord.
     const lineTimers = (along?.notes ?? []).flatMap((note) =>
       note.step !== playingAt
@@ -634,6 +681,7 @@ export function Workspace() {
     )
     return () => {
       clearTimeout(timer)
+      chordTimers.forEach(clearTimeout)
       flashes.forEach(clearTimeout)
       lineTimers.forEach(clearTimeout)
     }
@@ -761,7 +809,7 @@ export function Workspace() {
     setPlayingAt(undefined)
     const end = addDur(start, length)
     const ms = (d: Dur) => secondsOf(d, bpm, time.meter) * 1000
-    path.forEach((n, i) => {
+    path.forEach((_, i) => {
       const t = timing[i]
       const tEnd = addDur(t.start, t.length)
       if (compareDur(t.start, end) >= 0 || compareDur(tEnd, start) <= 0) return
@@ -769,7 +817,15 @@ export function Workspace() {
       const to = compareDur(tEnd, end) < 0 ? tEnd : end
       spanTimers.current.push(
         window.setTimeout(
-          () => playNode(n, ms(subDur(to, from)) / 1000, true),
+          () =>
+            spanTimers.current.push(
+              ...playStyled(
+                i,
+                true,
+                subDur(from, t.start),
+                subDur(to, t.start),
+              ),
+            ),
           ms(subDur(from, start)),
         ),
       )
@@ -938,6 +994,12 @@ export function Workspace() {
         change(removeAt(progression, index), Math.max(0, index - 1))
       }
       onShiftAll={shiftAll}
+      onChordStyle={(style) =>
+        change(setChordStyle(progression, style), selected)
+      }
+      onStyleAt={(index, style) =>
+        change(setStyleAt(progression, index, style), index)
+      }
       onBetween={(index) => {
         setBetweenAt(between === index ? undefined : index)
         setTab('suggest')
