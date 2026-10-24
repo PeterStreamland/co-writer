@@ -937,6 +937,7 @@ export function Workspace() {
       onChange={setMelody}
       entry={melodyEntry}
       onEntry={setMelodyEntry}
+      barCount={laneBars}
       keyValue={key}
       bpm={bpm}
       time={time}
@@ -1374,12 +1375,14 @@ export function Workspace() {
                 setLaneAt(undefined)
                 change(next, selected)
               }}
-              onPlayBar={(start, length) =>
+              activeBar={melodyEntry.phraseBar}
+              onPlayBar={(start, length, bar) => {
+                setMelodyEntry((e) => ({ ...e, phraseBar: bar }))
                 playSpan(start, length, [
                   ...melody.map((m, ref) => ({ ...m, ref, look: MELODY_LOOK })),
                   ...harmonyNotes,
                 ])
-              }
+              }}
               onOctave={(by) => {
                 if (laneSelected === undefined) return
                 const moved = shiftMelodyNote(melody, laneSelected, by)

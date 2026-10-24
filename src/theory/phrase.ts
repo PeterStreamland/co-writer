@@ -8,6 +8,8 @@
 // - the phrase ends on a chord tone where it can
 // Rhythms come beat by beat from rhythm cells, as data. The same melody,
 // chords and take always give the same phrase; another take, another.
+// A phrase can also go into a bar chosen (Phase 7 task 10, David's note):
+// it replaces the notes starting there, and leads into the note after.
 import { chordNotes } from './chord-symbol'
 import {
   addDur,
@@ -19,7 +21,13 @@ import {
   type Dur,
 } from './duration'
 import { seededRandom } from './lens'
-import { barPosition, melodyEnd, type MelodyNote } from './melody'
+import {
+  barPosition,
+  barStart,
+  clearSpan,
+  melodyEnd,
+  type MelodyNote,
+} from './melody'
 import { melodySeed } from './melody-ranker'
 import { barLength, beatsOf, meterOfBar, type MeterMap } from './meter'
 import {
@@ -46,6 +54,41 @@ type Slot = { onset: Dur; length: Dur }
 export function phraseStart(ctx: NextNoteContext): Dur {
   return addDur(melodyEnd(ctx.melody), ctx.gap ?? ZERO)
 }
+
+// Where a phrase goes: from its start up to its end.
+export type PhraseSpan = { start: Dur; end: Dur }
+
+// The span a phrase of a size fills: after the melody and any rest before
+// the next note, or from the start of a bar chosen (counted from 1).
+export function phraseSpan(
+  ctx: NextNoteContext,
+  size: PhraseSize,
+  bar?: number,
+): PhraseSpan {
+  const which = sizeOf(size)
+  const start = bar === undefined ? phraseStart(ctx) : barStart(ctx.time, bar)
+  const end =
+    'bars' in which
+      ? barsEnd(ctx.time, start, which.bars)
+      : addDur(start, timesDur(ctx.length, which.notes))
+  return { start, end }
+}
+
+// The melody with a phrase in its span: the notes starting there go, a
+// note ringing in stops at its start, and the notes after stay put.
+export function placePhrase(
+  melody: MelodyNote[],
+  phrase: MelodyNote[],
+  span: PhraseSpan,
+): MelodyNote[] {
+  const kept = clearSpan(melody, span.start, span.end)
+  const before = kept.filter((m) => compareDur(m.onset, span.start) < 0)
+  const after = kept.filter((m) => compareDur(m.onset, span.start) >= 0)
+  return [...before, ...phrase, ...after]
+}
+
+const sizeOf = (size: PhraseSize) =>
+  PHRASE_SIZES.find((p) => p.id === size) ?? PHRASE_SIZES[0]
 
 // Where a bar or two from a point ends: the next barline, and the one after.
 function barsEnd(time: MeterMap, at: Dur, bars: number): Dur {
@@ -146,6 +189,7 @@ function keepsRules(
   ctx: NextNoteContext,
   melody: MelodyNote[],
   ending: boolean,
+  next?: number,
 ): boolean {
   const m = midiOf(s)
   const low = midiNumber(ctx.range.low) as number
@@ -166,6 +210,14 @@ function keepsRules(
   if (a !== undefined && b !== undefined && Math.abs(b - a) >= BIG_LEAP) {
     // After a leap, turn back.
     if (Math.sign(m - b) !== -Math.sign(b - a)) return false
+  }
+  // The last note leads into the note after: less than a leap away, and
+  // turning back if it was reached by a leap.
+  if (ending && next !== undefined) {
+    if (Math.abs(next - m) >= BIG_LEAP) return false
+    if (b !== undefined && Math.abs(m - b) >= BIG_LEAP) {
+      if (Math.sign(next - m) !== -Math.sign(m - b)) return false
+    }
   }
   return true
 }
@@ -207,33 +259,50 @@ function chordAt(ctx: NextNoteContext, at: Dur): Set<number> | undefined {
   return undefined
 }
 
-// A phrase after the melody: its notes as suggestions, each explained by
-// the rules that chose it. Empty when no note keeps the rules.
+// A phrase after the melody, or into a bar chosen (counted from 1): its
+// notes as suggestions, each explained by the rules that chose it. Empty
+// when no note keeps the rules. Into a bar, the notes before lead into it
+// and it leads into the note after; `placePhrase` puts it in its place.
 export function generatePhrase(
   ctx: NextNoteContext,
   size: PhraseSize,
   take = 0,
+  bar?: number,
 ): NextNoteSuggestion[] {
-  const which = PHRASE_SIZES.find((p) => p.id === size) ?? PHRASE_SIZES[0]
-  const random = seededRandom(melodySeed(ctx) + 7919 * take + which.id.length)
-  const start = phraseStart(ctx)
+  const which = sizeOf(size)
+  const random = seededRandom(
+    melodySeed(ctx) + 7919 * take + which.id.length + 104729 * (bar ?? 0),
+  )
+  const { start, end } = phraseSpan(ctx, size, bar)
+  const kept = clearSpan(ctx.melody, start, end)
+  const before = kept.filter((m) => compareDur(m.onset, start) < 0)
+  const after = kept.find((m) => compareDur(m.onset, start) >= 0)
+  const next = after && (midiNumber(after.note) as number)
   let best: NextNoteSuggestion[] = []
+  // A whole phrase that couldn't lead into the note after: kept in case no
+  // take can.
+  let loose: NextNoteSuggestion[] | undefined
   for (let attempt = 0; attempt < PHRASE_CHOICE.tries; attempt++) {
     const slots =
       'bars' in which
-        ? rhythm(ctx.time, start, barsEnd(ctx.time, start, which.bars), random)
+        ? rhythm(ctx.time, start, end, random)
         : Array.from({ length: which.notes }, (_, k) => ({
             onset: addDur(start, timesDur(ctx.length, k)),
             length: ctx.length,
           }))
     const chosen: NextNoteSuggestion[] = []
-    let melody = ctx.melody
+    let melody = before
+    let leads = true
     for (const [k, slot] of slots.entries()) {
       const gap = k === 0 ? subDur(slot.onset, melodyEnd(melody)) : ZERO
       const here = { ...ctx, melody, length: slot.length, gap }
       const ending = k === slots.length - 1
       const ranked = rankNextNotes(here)
-      let fit = ranked.filter((s) => keepsRules(s, ctx, melody, ending))
+      let fit = ranked.filter((s) => keepsRules(s, ctx, melody, ending, next))
+      if (!fit.length && ending && next !== undefined) {
+        fit = ranked.filter((s) => keepsRules(s, ctx, melody, ending))
+        leads = false
+      }
       if (!fit.length && ending)
         fit = ranked.filter((s) => keepsRules(s, ctx, melody, false))
       if (!fit.length) break
@@ -257,8 +326,10 @@ export function generatePhrase(
       chosen.push(s)
       melody = [...melody, s.candidate]
     }
-    if (chosen.length === slots.length) return chosen
-    if (chosen.length > best.length) best = chosen
+    if (chosen.length === slots.length) {
+      if (leads) return chosen
+      loose ??= chosen
+    } else if (chosen.length > best.length) best = chosen
   }
-  return best
+  return loose ?? best
 }

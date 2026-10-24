@@ -4,7 +4,10 @@ import {
   NOTE_VALUES,
   PHRASE_SIZES,
   generatePhrase,
+  phraseSpan,
+  placePhrase,
   valueSymbol,
+  type PhraseSpan,
   type PhraseSize,
   ZERO,
   addDur,
@@ -60,6 +63,9 @@ export type MelodyEntry = {
   gap: Dur // a rest waiting before the next note
   tap: boolean // whether tapping the instrument adds notes
   grid: GridId
+  // The bar Write a phrase writes into, counted from 1 (Phase 7 task 10,
+  // David's note); none for after the melody.
+  phraseBar?: number
 }
 
 type Phase = 'idle' | 'count-in' | 'recording'
@@ -101,6 +107,7 @@ export function MelodyPanel({
   onLight,
   harmonies,
   onHarmonies,
+  barCount,
 }: {
   melody: MelodyNote[]
   // Every change is undoable, with the strip's undo.
@@ -131,6 +138,8 @@ export function MelodyPanel({
   // The harmonies playing with the melody, by id; changes are undoable.
   harmonies: string[]
   onHarmonies: (ids: string[]) => void
+  // How many bars the melody lane shows, for the bars a phrase can go into.
+  barCount: number
 }) {
   const set = (part: Partial<MelodyEntry>) => onEntry({ ...entry, ...part })
   const value =
@@ -219,36 +228,49 @@ export function MelodyPanel({
   // notes, or a bar or two, chosen from the next notes with a little
   // chance. The take goes straight into the melody, to see in the lane and
   // hear; another press gives another take in its place, and it can be
-  // kept, trimmed a note at a time or undone.
+  // kept, trimmed a note at a time or undone. It goes after the melody, or
+  // into the bar chosen (task 10, David's note), in place of its notes.
   const [phraseSize, setPhraseSize] = useState<PhraseSize>('bar')
   const [phrase, setPhrase] = useState<{
     base: MelodyNote[]
     gap: Dur
     take: number
     notes: MelodyNote[]
+    bar?: number
+    span: PhraseSpan
   }>()
   const melodyText = (m: MelodyNote[]) =>
     m.map((n) => `${formatNote(n.note)}@${n.onset.n}/${n.onset.d}`).join(' ')
-  // A take stands while the melody is the take; any other change keeps it.
+  // A take stands while the melody is the take and its bar is still the
+  // one chosen; any other change keeps it.
   const pending =
     phrase &&
-    melodyText(melody) === melodyText([...phrase.base, ...phrase.notes])
+    phrase.bar === entry.phraseBar &&
+    melodyText(melody) ===
+      melodyText(placePhrase(phrase.base, phrase.notes, phrase.span))
       ? phrase
       : undefined
   const writePhrase = (take: number) => {
     const base = pending?.base ?? melody
     const gap = pending?.gap ?? entry.gap
-    const notes = generatePhrase(
-      { ...noteContext, melody: base, gap },
-      phraseSize,
-      take,
-    ).map((s) => s.candidate)
+    const bar = entry.phraseBar
+    const ctx = { ...noteContext, melody: base, gap }
+    const notes = generatePhrase(ctx, phraseSize, take, bar).map(
+      (s) => s.candidate,
+    )
     if (!notes.length) return
-    setPhrase({ base, gap, take, notes })
-    onChange([...base, ...notes])
-    set({ gap: ZERO })
+    const span = phraseSpan(ctx, phraseSize, bar)
+    setPhrase({ base, gap, take, notes, bar, span })
+    onChange(placePhrase(base, notes, span))
+    // A rest waiting after the melody is used up once a phrase runs past it.
+    if (compareDur(span.end, melodyEnd(base)) >= 0) set({ gap: ZERO })
     hear(notes)
   }
+  // The bars a phrase can go into: every bar in the lane, and one more.
+  const phraseBars = Array.from(
+    { length: Math.max(barCount, entry.phraseBar ?? 0) + 1 },
+    (_, k) => k + 1,
+  )
   // A next note's card: tap to preview, + to add, ⓘ for more.
   const noteCard = (s: NextNoteSuggestion, wildcard = false) => {
     const id = `note-${formatNote(s.candidate.note)}`
@@ -745,13 +767,33 @@ export function MelodyPanel({
             ))}
           </select>
         </label>
+        <label>
+          Into
+          <select
+            value={entry.phraseBar ?? ''}
+            title="The active bar: a phrase there takes the place of its notes"
+            onChange={(e) => {
+              const v = e.currentTarget.value
+              set({ phraseBar: v ? Number(v) : undefined })
+            }}
+          >
+            <option value="">After the melody</option>
+            {phraseBars.map((b) => (
+              <option key={b} value={b}>
+                Bar {b}
+              </option>
+            ))}
+          </select>
+        </label>
         <button
           type="button"
           class="accept"
           title={
             pending
               ? 'Another take in its place'
-              : 'Write the next notes from the next-note suggestions, with a little chance'
+              : entry.phraseBar
+                ? `Write into bar ${entry.phraseBar} from the next-note suggestions, in place of its notes`
+                : 'Write the next notes from the next-note suggestions, with a little chance'
           }
           onClick={() => writePhrase(pending ? pending.take + 1 : 0)}
         >
@@ -771,7 +813,7 @@ export function MelodyPanel({
               title="Take its last note off"
               onClick={() => {
                 const notes = pending.notes.slice(0, -1)
-                onChange([...pending.base, ...notes])
+                onChange(placePhrase(pending.base, notes, pending.span))
                 setPhrase(notes.length ? { ...pending, notes } : undefined)
               }}
             >
@@ -797,6 +839,9 @@ export function MelodyPanel({
           : ''}
         Each note keeps the next-note rules: in range, in the key, a chord tone
         on each strong beat, and a turn back after a leap.
+        {entry.phraseBar
+          ? ` Into bar ${entry.phraseBar}, it takes the place of the notes there and leads into the note after. Tap ▶ on a bar in the melody lane to make it the active bar.`
+          : ' Tap ▶ on a bar in the melody lane to write into that bar.'}
       </p>
 
       <form

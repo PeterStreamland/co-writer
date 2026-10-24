@@ -1637,3 +1637,23 @@ David wrote down six things to do after trying the app. They join Phase 7 before
 15. The Harmony cards' note lists are laid out so they read clearly. His screenshot shows them as long grey runs of notes.
 
 None of them has an exit criterion of its own; each is checked when it's built and in David's play-test.
+
+## 2026-10-24 — Writing a phrase into a chosen bar (Phase 7 task 10, David's choices)
+
+Write a phrase in the Melody tab can now write into a bar you pick, not only after the last note. The theory is `phraseSpan`, `placePhrase` and a bar for `generatePhrase` in `src/theory/phrase.ts`, with the cases in `tests/fixtures/phrases-into.ts`.
+
+- **Picking the bar (David's choice: menu and lane):** an **Into** menu beside **How much** offers **After the melody** (as before) or any bar in the lane, and one more. Tapping **▶ Bar n** in the melody lane plays that bar and makes it the active bar too; the active bar is outlined.
+- **A bar with notes in it (David's choice: replace them):** the phrase takes their place. It starts on the bar's downbeat and fills what **How much** says from there: four notes, to the bar's end, or two bars.
+  - The notes starting in that span go.
+  - A note ringing in from before stops at the barline, as clearing a bar does.
+  - The notes after stay where they are.
+  - **⟲ Undo it** brings the old notes back, and **✂ Trim a note** leaves a rest at the end of the bar.
+- **Joining up:** the notes before the bar are what the phrase follows, as with a phrase after the melody. Its last note also leads into the note after:
+  - it is less than a 4th away from that note (my choice, matching the leap size the next-note rules turn back from);
+  - after a leap, it turns back.
+
+  Other takes are tried first. Only if none can do this is the join left as it falls, and every other rule still holds.
+
+- **An empty bar past the melody** starts with a rest from the melody's end to its downbeat.
+- **Every rule a phrase keeps still holds** (the Phase 7 exit criterion): tested over six melodies (major, minor, harmonic minor; 4/4, 3/4 and 6/8; first, middle and empty bars; a note ringing in), all three sizes and twelve takes each. A phrase after the melody comes out exactly as before.
+- **Changing the bar** keeps the take as it stands. The next press writes a fresh take into the new bar.
