@@ -1963,3 +1963,19 @@ My choices within that:
 - **Rows:** they keep their layout; only their card surface matches the rest.
 
 All of it is in `src/index.css`: the colour tokens at the top, then the shared button and input styles.
+
+## 2026-10-24 — White page, grey boxes, centred (David's request)
+
+David preferred the earlier look: a white page with light grey boxes. The warm paper is replaced by neutral greys: white page, light grey cards, white buttons and menus. The ink-blue accent and every other choice in the entry above stay, and dark mode follows the same pattern. Piano keys are plain white again.
+
+Things now sit in the middle of the page instead of hugging the left:
+
+- the header;
+- the scale and its degrees;
+- the instrument with its box;
+- the colour key;
+- the tabs;
+- each tab's content with the chord box beside it;
+- the footer.
+
+Text inside a box stays left-aligned, so it still reads easily.

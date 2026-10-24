@@ -1,6 +1,6 @@
-/* The look (David's request, 2026-10-24): warm paper with charcoal text and
-   one deep ink-blue accent, following the device into dark mode. Every
-   colour comes from these tokens. */
+/* The look (David's request, 2026-10-24): a white page with light grey
+   boxes, charcoal text and one deep ink-blue accent, following the device
+   into dark mode. Every colour comes from these tokens. */
 :root {
   --font-sans:
     -apple-system, BlinkMacSystemFont, 'Segoe UI Variable', 'Segoe UI',
@@ -8,18 +8,18 @@
   --font-serif:
     'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
 
-  --bg: #f7f5f0;
-  --surface: #fffefb;
-  --surface-2: #efebe3;
-  --text: #24211d;
-  --muted: #7a746b;
-  --line: #e3ded4;
-  --line-strong: #cbc4b7;
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #ebebee;
+  --text: #1f2328;
+  --muted: #6b7280;
+  --line: #e2e2e6;
+  --line-strong: #cdcdd3;
   --accent: #2c4a7e;
   --accent-hover: #213a64;
   --accent-soft: color-mix(in srgb, var(--accent) 10%, var(--surface));
   --on-accent: #ffffff;
-  --shadow: 0 1px 2px rgb(60 45 25 / 0.06), 0 2px 8px rgb(60 45 25 / 0.04);
+  --shadow: none;
   --radius: 10px;
   --radius-sm: 7px;
 
@@ -36,7 +36,7 @@
   --c-amber: #e0a020;
   --c-indigo: #5a5f9e;
 
-  --card: var(--surface);
+  --card: #f4f4f6;
   --divider: var(--line-strong);
 
   font-family: var(--font-sans);
@@ -46,18 +46,19 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #1a1917;
-    --surface: #232220;
-    --surface-2: #2c2a27;
-    --text: #ebe7df;
-    --muted: #9c968c;
-    --line: #36342f;
-    --line-strong: #4a4740;
+    --bg: #18181b;
+    --surface: #2a2a2f;
+    --surface-2: #34343a;
+    --card: #222226;
+    --text: #e8e8eb;
+    --muted: #9ca3af;
+    --line: #34343a;
+    --line-strong: #4a4a52;
     --accent: #9fb5e0;
     --accent-hover: #bccbea;
     --accent-soft: color-mix(in srgb, var(--accent) 14%, var(--surface));
     --on-accent: #161a22;
-    --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow: none;
     color-scheme: dark;
   }
 }
@@ -440,7 +441,7 @@ body:has(.workspace) #app {
     padding: 0 1rem;
     border-top: 1px solid var(--line);
     border-radius: 14px 14px 0 0;
-    background: var(--surface);
+    background: var(--bg);
     box-shadow: 0 -4px 20px rgb(0 0 0 / 0.12);
   }
 
@@ -588,7 +589,7 @@ body:has(.workspace) #app {
   border-spacing: 0;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--surface);
+  background: var(--card);
   box-shadow: var(--shadow);
   overflow: hidden;
 }
@@ -680,7 +681,7 @@ body:has(.workspace) #app {
 .chords thead th:first-child {
   position: sticky;
   left: 0;
-  background: var(--surface);
+  background: var(--card);
   z-index: 1;
 }
 
@@ -735,7 +736,7 @@ body:has(.workspace) #app {
   border-color: var(--line);
   color: var(--text);
   font-weight: 600;
-  box-shadow: var(--shadow);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
 }
 
 .instrument .dot {
@@ -786,7 +787,7 @@ body:has(.workspace) #app {
   align-items: flex-end;
   justify-content: center;
   padding: 0 0 0.4rem;
-  border: 1px solid #bdb6a9;
+  border: 1px solid #c4c4ca;
   cursor: pointer;
   transition: none;
 }
@@ -798,7 +799,7 @@ body:has(.workspace) #app {
 
 .keyboard .white {
   height: 100%;
-  background: #fbf9f4;
+  background: #ffffff;
   border-radius: 0 0 6px 6px;
   z-index: 0;
 }
@@ -996,8 +997,8 @@ body:has(.workspace) #app {
 }
 
 .mini-keyboard .white-key {
-  fill: #fbf9f4;
-  stroke: #bdb6a9;
+  fill: #ffffff;
+  stroke: #c4c4ca;
   stroke-width: 0.6;
 }
 
@@ -1164,7 +1165,7 @@ body:has(.workspace) #app {
 .midi-drawer {
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--surface);
+  background: var(--card);
   box-shadow: var(--shadow);
   padding: 0.25rem 0.9rem;
   margin: 0.5rem 0;
@@ -1873,7 +1874,7 @@ body:has(.workspace) #app {
 .strip-info .info-panel {
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--surface);
+  background: var(--card);
   padding: 0.4rem 0.6rem;
 }
 
@@ -2102,7 +2103,7 @@ body:has(.workspace) #app {
 .lens-column {
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--surface);
+  background: var(--card);
   box-shadow: var(--shadow);
   padding: 0.7rem 0.8rem;
   min-width: 0;
@@ -2320,7 +2321,7 @@ body:has(.workspace) #app {
   padding: 0.45rem 0.55rem;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--surface);
+  background: var(--card);
   box-shadow: var(--shadow);
 }
 
@@ -2461,7 +2462,7 @@ body:has(.workspace) #app {
 .lines .info-panel {
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--surface);
+  background: var(--card);
   padding: 0.4rem 0.6rem;
   margin-bottom: 0.5rem;
 }
@@ -2531,7 +2532,7 @@ body:has(.workspace) #app {
 .part-row {
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--surface);
+  background: var(--card);
   box-shadow: var(--shadow);
   padding: 0.4rem 0.6rem;
 }
@@ -2709,7 +2710,7 @@ button.bar-reset {
   margin-bottom: 0.6rem;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: var(--surface);
+  background: var(--card);
 }
 
 button.remove-note {
@@ -3325,4 +3326,44 @@ button.octave-step {
   font-family: var(--font-serif);
   font-weight: 600;
   letter-spacing: -0.01em;
+}
+
+/* Centred rather than left-aligned (David's request, 2026-10-24): the header,
+   the scale, the instrument and its box, the tabs and each tab's content sit
+   in the middle of the page. Text inside a box stays left-aligned. */
+.workspace .top,
+.explore,
+.instrument .toolbar,
+.with-box,
+.octaves {
+  justify-content: center;
+}
+
+.explore .degrees {
+  justify-content: center;
+}
+
+.instrument .legend,
+.layout footer {
+  text-align: center;
+}
+
+.tabs {
+  justify-content: safe center;
+}
+
+.side-bar {
+  justify-content: center;
+}
+
+@media (min-width: 40rem) {
+  .side-body {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 39.99rem) {
+  .side-bar {
+    justify-content: space-between;
+  }
 }
