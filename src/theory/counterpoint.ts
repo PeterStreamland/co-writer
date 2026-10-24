@@ -293,6 +293,27 @@ class Setting {
       raised.accidental === n.note.accidental
     )
   }
+  // The raised 6th, a whole step below the raised leading note, where the
+  // key lacks it (F♯ in A Aeolian): it steps up to the leading note so
+  // the line climbs 6–7–8 without an augmented 2nd.
+  raisedSixth(): Note | undefined {
+    if (this.sixth !== null) return this.sixth
+    const lead = this.raisedLead()
+    const final = this.ctx.melody.at(-1)!
+    const key = this.place(final.onset).key
+    const sixth = lead && transposeDown(lead, parseInterval('M2')!)
+    this.sixth = sixth && !inKey(key, sixth) ? sixth : undefined
+    return this.sixth
+  }
+  private sixth: Note | undefined | null = null
+  isRaisedSixth(n: LineNote): boolean {
+    const sixth = this.raisedSixth()
+    return (
+      !!sixth &&
+      sixth.letter === n.note.letter &&
+      sixth.accidental === n.note.accidental
+    )
+  }
   // The note a semitone below the melody's last, a letter below it.
   isLead(n: LineNote): boolean {
     const final = this.ctx.melody.at(-1)!.note
@@ -499,7 +520,26 @@ function judge(
         !!towards?.step &&
         !!onwards?.step &&
         Math.sign(towards.semis) === -Math.sign(onwards.semis)
-      if (pending) {
+      // A nota cambiata (third and fifth species): stepping down to the
+      // dissonance, then a 3rd down; the note after steps back up.
+      const cambiata =
+        (o.species === 3 || o.species === 5) &&
+        !!towards?.step &&
+        towards.semis < 0 &&
+        (pending || onwards?.letters === -2)
+      if (cambiata) {
+        tags.push('cambiata')
+        if (explain && after) {
+          reasons.push(
+            fillTemplate(T.cambiata, {
+              note: formatNote(n.note),
+              interval: v.text,
+              from: formatNote(before!.note),
+              to: formatNote(after.note),
+            }),
+          )
+        }
+      } else if (pending) {
         if (!towards?.step) add('cp-dissonance-step', {}, p)
       } else if (!passing && !neighbour) add('cp-dissonance-step', {}, p)
       else if (neighbour && add('cp-passing-only', {}, p)) {
@@ -553,6 +593,12 @@ function judge(
             { kind, short: onset.v.perfect === 'fifth' ? '5th' : 'octave' },
             onset,
           )
+        } else if (
+          onset.v.perfect === 'fifth' &&
+          from.v.simple === 5 &&
+          from.v.quality.startsWith('d')
+        ) {
+          add('cp-unequal', {}, onset)
         } else if (onset.v.perfect && similar && upperLeaps) {
           add(
             'cp-hidden',
@@ -573,6 +619,48 @@ function judge(
         prefer += W.oblique
         tags.push('oblique')
       }
+    }
+  }
+
+  // After a cambiata's leap, the line steps back up.
+  if (before && k >= 2 && (o.species === 3 || o.species === 5)) {
+    const before2 = line[k - 2]
+    const into = before2 && joined(before2, before) && move(before2, before)
+    const leap = move(before, n)
+    const was = pointsOf(s, before)[0]
+    if (
+      into &&
+      into.step &&
+      into.semis < 0 &&
+      leap.letters === -2 &&
+      was &&
+      !was.strong &&
+      was.v.kind === 'dissonant' &&
+      !pending &&
+      !(onwards && onwards.letters === 1 && onwards.step)
+    ) {
+      add('cp-cambiata', {})
+    }
+  }
+
+  // Off-beats in a row (fourth species): 5ths or octaves on one off-beat
+  // and the next, both voices moving.
+  if (onset && !onset.strong && before) {
+    const was = pointsOf(s, before)[0]
+    if (
+      was &&
+      !was.strong &&
+      was.m === onset.m - 1 &&
+      onset.v.perfect &&
+      was.v.perfect === onset.v.perfect &&
+      s.melodyMidi[was.m] !== s.melodyMidi[onset.m] &&
+      before.midi !== n.midi
+    ) {
+      add(
+        'cp-offbeat-parallel',
+        { kind: onset.v.perfect === 'fifth' ? '5ths' : 'octaves' },
+        onset,
+      )
     }
   }
 
@@ -677,8 +765,23 @@ function judge(
   if (outside) {
     tags.push('chromatic')
     const raised = s.isRaisedLead(n)
+    const sixth =
+      s.isRaisedSixth(n) &&
+      (pending || (!!after && onwards!.step && s.isRaisedLead(after)))
+    if (sixth) {
+      tags.push('raised-sixth')
+      if (explain && after) {
+        reasons.push(
+          fillTemplate(T.raisedSixth, {
+            note: formatNote(n.note),
+            to: formatNote(after.note),
+          }),
+        )
+      }
+    }
     const allowed =
       (leading && raised) ||
+      sixth ||
       (o.mode === 'freer' && !!tone) ||
       (pending && raised)
     if (!allowed) {
@@ -897,11 +1000,12 @@ function candidates(
   t: Dur,
   before: LineNote | undefined,
   lead: boolean,
+  sixth = false,
 ): LineNote[] {
-  const cached = `${durKey(t)} ${lead}`
+  const cached = `${durKey(t)} ${lead} ${sixth}`
   let all = s.reach.get(cached)
   if (!all) {
-    all = reachable(s, t, lead)
+    all = reachable(s, t, lead, sixth)
     s.reach.set(cached, all)
   }
   return before
@@ -909,7 +1013,12 @@ function candidates(
     : all
 }
 
-function reachable(s: Setting, t: Dur, lead: boolean): LineNote[] {
+function reachable(
+  s: Setting,
+  t: Dur,
+  lead: boolean,
+  sixth: boolean,
+): LineNote[] {
   const at = s.melodyAt(t)
   const mel = s.melodyMidi[at]
   const place = s.place(t)
@@ -918,6 +1027,8 @@ function reachable(s: Setting, t: Dur, lead: boolean): LineNote[] {
     spellings.push(...chordNotes(place.chord))
   const raised = lead ? s.raisedLead() : undefined
   if (raised) spellings.push(raised)
+  const raisedSixth = sixth ? s.raisedSixth() : undefined
+  if (raisedSixth) spellings.push(raisedSixth)
   const [lo, hi] =
     s.o.side === 'above'
       ? [mel, mel + CP_SPACING.max]
@@ -1038,7 +1149,9 @@ export function counterpoint(
         const grown: State[] = []
         for (const st of partial) {
           const before = st.last?.n
-          for (const c of candidates(s, piece.onset, before, lead)) {
+          // The raised 6th may lead up to the leading note.
+          const sixth = !lead && i >= lastMel - 2 && i < lastMel
+          for (const c of candidates(s, piece.onset, before, lead, sixth)) {
             const n = { ...c, length: piece.length }
             const cost = st.last
               ? st.cost + judgeLast(s, st, n, { nextLast: final })
@@ -1266,6 +1379,7 @@ export function counterpointAlternatives(
     target.onset,
     at > 0 ? notes[at - 1] : undefined,
     lead,
+    at === notes.length - 3,
   )) {
     if (sameNote(c.note, current)) continue
     const trial = [...notes]

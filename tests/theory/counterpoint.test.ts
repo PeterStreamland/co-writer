@@ -109,6 +109,34 @@ describe('suspensions and the leading note', () => {
     ).toContain('cp-suspension')
   })
 
+  it('a diminished 5th moving to a perfect 5th: unequal 5ths', () => {
+    // Halves over B: F♯5 (P5), F5 (d5) | over C: G5 (P5), both rising.
+    const ctx = cantusContext('C major', 'B4 C5 B4 C5')
+    const line = typeMelody('F#5 F5 G5 E5 D5 B4 C5 -', dur(1, 2)).notes
+    const o = { species: 2, side: 'above', mode: 'strict' } as const
+    expect(
+      checkCounterpoint(ctx, o, line).breaks.map(
+        (b) => `${b.ruleId}@${b.place}`,
+      ),
+    ).toContain('cp-unequal@2')
+    expect(
+      checkCounterpoint(ctx, { ...o, mode: 'freer' }, line).breaks.map(
+        (b) => b.ruleId,
+      ),
+    ).not.toContain('cp-unequal')
+  })
+
+  it('a cambiata must step back up after its leap', () => {
+    const ctx = cantusContext('C major', 'C4 D4 C4')
+    const line = typeMelody('C5 B4 G4 F4 B4 C5 D5 B4 C5 - - -', dur(1, 4)).notes
+    const o = { species: 3, side: 'above', mode: 'strict' } as const
+    expect(
+      checkCounterpoint(ctx, o, line).breaks.map(
+        (b) => `${b.ruleId}@${b.place}`,
+      ),
+    ).toContain('cp-cambiata@2')
+  })
+
   it('Phrygian keeps its own 2nd: no raised leading note', () => {
     const ctx = cantusContext('E phrygian', 'E4 F4 E4')
     const line = typeMelody('B4 D#5 E5', dur(1, 1)).notes

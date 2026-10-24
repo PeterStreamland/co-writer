@@ -151,6 +151,26 @@ export const CP_RULES: CounterpointRule[] = [
     text: '{note} makes {interval} on this beat and on the last one too: {kind} on successive beats.',
   },
   {
+    id: 'cp-offbeat-parallel',
+    modes: ['strict'],
+    species: [4],
+    label: 'no 5ths or octaves on successive off-beats',
+    text: '{note} makes {interval} on this off-beat and on the last one too: {kind} on successive off-beats, which the ties don’t hide.',
+  },
+  {
+    id: 'cp-unequal',
+    modes: ['strict'],
+    label: 'no diminished 5th to a perfect 5th',
+    text: '{note} moves from a diminished 5th to {interval}, both voices moving: unequal 5ths, which sound like parallel 5ths.',
+  },
+  {
+    id: 'cp-cambiata',
+    modes: ['strict', 'freer'],
+    species: [3, 5],
+    label: 'a cambiata steps back up',
+    text: '{note} ends a nota cambiata’s leap, so the line should step back up from it.',
+  },
+  {
     id: 'cp-hidden',
     modes: ['strict'],
     label: 'no hidden 5ths or octaves',
@@ -244,6 +264,9 @@ export const CP_TEXT = {
   oblique: 'It holds while the melody moves.',
   similar: 'It moves {way} with the melody.',
   edited: 'Your choice, in place of {was}.',
+  cambiata:
+    '{note}, {interval}, a nota cambiata: it steps down from {from}, then leaps a 3rd down to {to}, which steps back up.',
+  raisedSixth: '{note}, the raised 6th, steps up to {to}, the leading note.',
   breaks: 'Breaks a rule: ',
   noFinal:
     'The melody reaches its last note by a leap, so the line can’t step into a cadence with it.',
@@ -256,7 +279,7 @@ export const CP_TEXT = {
   keeps: 'Keeps every rule of {mode} counterpoint.',
   broken: 'Breaks {count} rule{s} of {mode} counterpoint: ',
   freerNote:
-    'Freer rules allow a passing dissonance against a melody note off the beat, neighbour notes in second species, held dissonances of any size, repeated notes, unisons mid-line, hidden 5ths and octaves, long runs of 3rds or 6ths, any 6th as a leap, any consonance to start, and the chord’s own notes.',
+    'Freer rules allow a passing dissonance against a melody note off the beat, neighbour notes in second species, held dissonances of any size, repeated notes, unisons mid-line, hidden 5ths and octaves, long runs of 3rds or 6ths, any 6th as a leap, 5ths or octaves on successive off-beats, a diminished 5th moving to a perfect 5th, any consonance to start, and the chord’s own notes.',
   short: 'Some melody notes are too short to split, so they get fewer notes.',
   tieBroken: 'The tie is broken here: the line moves on the beat.',
 }
@@ -294,6 +317,8 @@ export const CP_TAG_TEXT: Record<string, string> = {
   suspension: 'suspension',
   tied: 'tied',
   'leading-note': 'leading note',
+  'raised-sixth': 'raised 6th',
+  cambiata: 'cambiata',
   cadence: 'cadence',
   'chord-tone': 'chord tone',
   chromatic: 'chromatic',
