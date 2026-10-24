@@ -26,6 +26,7 @@ import {
   compareDur,
   countUnit,
   holdOver,
+  harmonise,
   rankNoteInPlace,
   restBefore,
   setNoteLength,
@@ -72,7 +73,12 @@ import type { Along, AlongNote } from './along'
 import { PartRows, type PartView } from './PartRows'
 import { MelodyLane } from './MelodyLane'
 import { MelodyPanel, type MelodyEntry, type MelodyLight } from './MelodyPanel'
-import { MELODY_LOOK, melodyAlong, rangeFromSetting } from './melody-view'
+import {
+  HARMONY_LOOK,
+  MELODY_LOOK,
+  melodyAlong,
+  rangeFromSetting,
+} from './melody-view'
 import { partLabel, partNotes } from './parts-view'
 import {
   addCell,
@@ -699,6 +705,14 @@ export function Workspace() {
         }, ms(m.onset)),
       )
     })
+    harmonyNotes.forEach((m) => {
+      soloTimers.current.push(
+        window.setTimeout(
+          () => void playNote(m.note, secondsOf(m.length, bpm, time.meter)),
+          ms(m.onset),
+        ),
+      )
+    })
     const last = melody.at(-1)
     if (last) {
       soloTimers.current.push(
@@ -771,6 +785,19 @@ export function Workspace() {
     start: timing[i].start,
     length: timing[i].length,
   }))
+  // The harmonies playing with the melody (SPEC 7.4), rewritten as it
+  // changes.
+  const harmonyIds = progression.harmonies ?? []
+  const harmonyNotes = harmonyIds.flatMap(
+    (id) => harmonise({ melody, key, chords: melodyChords, time }, id).notes,
+  )
+  function setHarmonies(ids: string[]) {
+    setHistory((h) => {
+      const p: Progression = { ...h.present, harmonies: ids }
+      if (!ids.length) delete p.harmonies
+      return record(h, p)
+    })
+  }
   const [laneAt, setLaneAt] = useState<number>()
   const laneSelected =
     laneAt !== undefined && laneAt < melody.length ? laneAt : undefined
@@ -805,7 +832,13 @@ export function Workspace() {
           return
         }
         stopSolo()
-        playAlong({ source: melody, notes: melodyAlong(melody, timing) })
+        playAlong({
+          source: melody,
+          notes: [
+            ...melodyAlong(melody, timing),
+            ...melodyAlong(harmonyNotes, timing, HARMONY_LOOK),
+          ],
+        })
       }}
       onPlayChords={() => {
         stopSolo()
@@ -823,6 +856,8 @@ export function Workspace() {
       onRangeSetting={(melodyRange) =>
         setHistory((h) => record(h, { ...h.present, melodyRange }))
       }
+      harmonies={harmonyIds}
+      onHarmonies={setHarmonies}
     />
   )
   const strip = (
@@ -845,6 +880,7 @@ export function Workspace() {
         const notes = [
           ...playing.flatMap((r) => r.notes),
           ...melodyAlong(melody, timing),
+          ...melodyAlong(harmonyNotes, timing, HARMONY_LOOK),
         ]
         setAlong(notes.length ? { source: rows, notes } : undefined)
         setPlayingAt(0)
@@ -860,6 +896,9 @@ export function Workspace() {
             ...(progression.melody && { melody: progression.melody }),
             ...(progression.melodyRange && {
               melodyRange: progression.melodyRange,
+            }),
+            ...(progression.harmonies && {
+              harmonies: progression.harmonies,
             }),
           },
           -1,
@@ -1164,11 +1203,10 @@ export function Workspace() {
             }))}
             barCount={chordBars}
             onPlayBar={(start, length) =>
-              playSpan(
-                start,
-                length,
-                melody.map((m, ref) => ({ ...m, ref, look: MELODY_LOOK })),
-              )
+              playSpan(start, length, [
+                ...melody.map((m, ref) => ({ ...m, ref, look: MELODY_LOOK })),
+                ...harmonyNotes,
+              ])
             }
             onRestAfter={() => {
               if (laneSelected === undefined) return

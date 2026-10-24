@@ -20,6 +20,10 @@ import {
   noteInsight,
   rankMelody,
   parseNote,
+  harmonyOptions,
+  harmonyKind,
+  HARMONY_TAG_TEXT,
+  type HarmonySuggestion,
   meterOfBar,
   quantise,
   removeLast,
@@ -70,7 +74,8 @@ const PREVIEW_GAP_MS = 600
 // snapped to the grid. The melody shows in the lane under the strip. Next
 // note (task 2, SPEC 7.3) lists what could come next within the melody's
 // range, best first, each tagged and explained; Motif (task 3) offers a
-// motif of the melody again in the next free bar.
+// motif of the melody again in the next free bar. Harmony (task 5, SPEC
+// 7.4) offers twin-guitar harmonies and a countermelody to play with it.
 export function MelodyPanel({
   melody,
   onChange,
@@ -90,6 +95,8 @@ export function MelodyPanel({
   rangeSetting,
   onRangeSetting,
   onLight,
+  harmonies,
+  onHarmonies,
 }: {
   melody: MelodyNote[]
   // Every change is undoable, with the strip's undo.
@@ -117,6 +124,9 @@ export function MelodyPanel({
   onRangeSetting: (setting: MelodyRangeSetting) => void
   // Lights notes on the instrument while previewing; undefined clears.
   onLight: (light: MelodyLight | undefined) => void
+  // The harmonies playing with the melody, by id; changes are undoable.
+  harmonies: string[]
+  onHarmonies: (ids: string[]) => void
 }) {
   const set = (part: Partial<MelodyEntry>) => onEntry({ ...entry, ...part })
   const value =
@@ -310,6 +320,94 @@ export function MelodyPanel({
           +
         </button>
         <p class="why">{s.explanation}</p>
+      </li>
+    )
+  }
+  // Harmonies (Phase 7 task 5): 3rds above first, 6ths below next, a
+  // countermelody, the rest behind More. Tap one to hear it with the
+  // melody; + to play it with the melody from then on.
+  const harmonyChoices = harmonyOptions({
+    melody,
+    key: keyValue,
+    chords,
+    time,
+  })
+  const [moreHarmonies, setMoreHarmonies] = useState(false)
+  const shownHarmonies = harmonyChoices.filter(
+    (s) => moreHarmonies || harmonyKind(s.candidate.kind)?.common,
+  )
+  const harmonyCard = (s: HarmonySuggestion) => {
+    const kind = harmonyKind(s.candidate.kind)!
+    const id = `harmony-${kind.id}`
+    const on = harmonies.includes(kind.id)
+    const notes = s.candidate.notes
+    return (
+      <li
+        key={id}
+        class={previewId === id ? 'suggestion previewing' : 'suggestion'}
+      >
+        <button
+          type="button"
+          class="preview"
+          aria-pressed={previewId === id}
+          onClick={() => {
+            setPreviewId(id)
+            onLight({ notes: notes.map((n) => n.note) })
+            hear([...melody, ...notes])
+          }}
+        >
+          <span class="symbol">{kind.label}</span>
+          <span class="numeral">{motifText(notes)}</span>
+          {on && <span class="badge">Playing</span>}
+        </button>
+        <button
+          type="button"
+          class="accept"
+          aria-pressed={on}
+          aria-label={
+            on
+              ? `Stop playing ${kind.label}`
+              : `Play ${kind.label} with the melody`
+          }
+          title={
+            on
+              ? `Stop playing ${kind.label}`
+              : `Play ${kind.label} with the melody`
+          }
+          onClick={() =>
+            onHarmonies(
+              on
+                ? harmonies.filter((h) => h !== kind.id)
+                : [...harmonies, kind.id],
+            )
+          }
+        >
+          {on ? '✓' : '+'}
+        </button>
+        <p class="why">
+          {s.explanation}{' '}
+          <InfoToggle
+            open={openId === id}
+            label={kind.label}
+            onToggle={() => setOpenId(openId === id ? undefined : id)}
+          />
+        </p>
+        {openId === id && (
+          <div class="info-panel">
+            <h4>Note by note</h4>
+            {notes.map((n, i) => (
+              <p key={i} class="context">
+                <strong>{formatNote(n.note)}</strong>{' '}
+                {n.tags.map((t) => (
+                  <span key={t} class={`melody-tag tag-${t}`}>
+                    {HARMONY_TAG_TEXT[t] ?? t}
+                  </span>
+                ))}{' '}
+                {n.explanation}
+              </p>
+            ))}
+          </div>
+        )}
       </li>
     )
   }
@@ -619,6 +717,33 @@ export function MelodyPanel({
       </p>
       {unknown.length > 0 && (
         <p class="off-chord">Couldn’t read: {unknown.join(' ')}</p>
+      )}
+
+      <h3>Harmony</h3>
+      {melody.length === 0 ? (
+        <p class="muted">
+          Add a melody first: harmonies move with it, note for note.
+        </p>
+      ) : (
+        <div class="suggest melody-suggest">
+          <p class="muted">
+            {harmonies.length
+              ? `Playing with the melody: ${harmonies
+                  .map((h) => harmonyKind(h)?.label ?? h)
+                  .join(
+                    ', ',
+                  )}. They follow the melody as it changes; ✓ stops one.`
+              : 'Tap one to hear it with the melody; + plays it with the melody from then on.'}
+          </p>
+          <ul>{shownHarmonies.map(harmonyCard)}</ul>
+          <button
+            type="button"
+            class="another"
+            onClick={() => setMoreHarmonies(!moreHarmonies)}
+          >
+            {moreHarmonies ? 'Fewer harmonies' : 'More harmonies…'}
+          </button>
+        </div>
       )}
 
       <h3>Record on MIDI</h3>
