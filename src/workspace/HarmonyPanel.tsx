@@ -3,19 +3,20 @@ import {
   HARMONY_TAG_TEXT,
   ZERO,
   formatNote,
+  HARMONY_FILTERS,
   SPAN_UNITS,
   harmonyKind,
   harmonyOptions,
   harmonyPlayingId,
   harmonyPlayingLabel,
-  spanMelody,
+  harmonyHeard,
   subDur,
   type HarmonySuggestion,
   type Key,
   type MelodyChord,
   type MelodyNote,
   type MeterMap,
-  type SpanUnit,
+  type HarmonyStep,
 } from '../theory'
 import { playNote } from '../audio/player'
 import { secondsOf } from '../sketch/time'
@@ -81,8 +82,8 @@ export function HarmonyPanel({
   // melody; + to play it with the melody from then on.
   // How often the harmonies move (David's request): with each note, or
   // the note sounding at each step of a grid, held for the step.
-  const [unit, setUnit] = useState<SpanUnit>('note')
-  const heard = spanMelody(melody, time, unit)
+  const [unit, setUnit] = useState<HarmonyStep>('note')
+  const heard = harmonyHeard(melody, time, unit, chords)
   const harmonyChoices = harmonyOptions({
     melody: heard,
     key: keyValue,
@@ -232,16 +233,25 @@ export function HarmonyPanel({
             value={unit}
             title="How often the harmonies move: with each melody note, or the note sounding at each step, held for the step"
             onChange={(e) => {
-              setUnit(e.currentTarget.value as SpanUnit)
+              setUnit(e.currentTarget.value as HarmonyStep)
               setPreviewId(undefined)
               onLight(undefined)
             }}
           >
-            {SPAN_UNITS.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.label}
-              </option>
-            ))}
+            <optgroup label="Moving in steps">
+              {SPAN_UNITS.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.label}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Only some notes, each for its own length">
+              {HARMONY_FILTERS.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.label}
+                </option>
+              ))}
+            </optgroup>
           </select>
         </label>
       </div>

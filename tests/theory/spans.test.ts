@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   dur,
   formatNote,
+  harmonyHeard,
   melodySpans,
   spanMelody,
   typeMelody,
@@ -90,5 +91,89 @@ describe('steps of a grid against the melody', () => {
     expect(heard.slice(0, 4).every((n) => n.length.n * 2 === n.length.d)).toBe(
       true,
     )
+  })
+})
+
+describe('more steps: every beat and every chord', () => {
+  const melody = typeMelody('C4 D4 E4 F4 G4 F4 E4 D4 C4 - - -', dur(1, 4)).notes
+
+  it('every beat in 6/8 is a dotted crotchet', () => {
+    const six: MeterMap = { meter: { num: 6, den: 8 } }
+    const m = typeMelody('C4 D4 E4 F4 G4 A4 G4 - - - - -', dur(1, 8)).notes
+    expect(show(melodySpans(m, six, 'beat'))).toEqual([
+      '0/1+3/8:0',
+      '3/8+3/8:3',
+      '3/4+3/4:6',
+    ])
+  })
+
+  it('every chord: held until the chord changes', () => {
+    // C for a bar and a half, G for half a bar, C for a bar.
+    const chords = [
+      { start: dur(0, 1), length: dur(3, 2) },
+      { start: dur(3, 2), length: dur(1, 2) },
+      { start: dur(2, 1), length: dur(1, 1) },
+    ]
+    expect(show(melodySpans(melody, FOUR, 'chord', chords))).toEqual([
+      '0/1+3/2:0',
+      '3/2+1/2:6',
+      '2/1+1/1:8',
+    ])
+    // With no chords, a step to each bar.
+    expect(melodySpans(melody, FOUR, 'chord')).toEqual(
+      melodySpans(melody, FOUR, 'bar'),
+    )
+  })
+})
+
+describe('harmonising only some notes', () => {
+  const names = (notes: { note: Parameters<typeof formatNote>[0] }[]) =>
+    notes.map((n) => formatNote(n.note))
+  // Bar 1: crotchets; bar 2: a minim, two quavers, a crotchet.
+  const melody = typeMelody('C4 D4 E4 F4', dur(1, 4)).notes.concat(
+    typeMelody('G4 -', dur(1, 4), { start: dur(1, 1) }).notes,
+    typeMelody('A4 B4', dur(1, 8), { start: dur(3, 2) }).notes,
+    typeMelody('C5', dur(1, 4), { start: dur(7, 4) }).notes,
+  )
+
+  it('notes on strong beats: beats 1 and 3 in 4/4', () => {
+    expect(names(harmonyHeard(melody, FOUR, 'strong'))).toEqual([
+      'C4',
+      'E4',
+      'G4',
+      'A4',
+    ])
+  })
+
+  it('notes on a beat: not the quaver off it', () => {
+    expect(names(harmonyHeard(melody, FOUR, 'onbeat'))).toEqual([
+      'C4',
+      'D4',
+      'E4',
+      'F4',
+      'G4',
+      'A4',
+      'C5',
+    ])
+  })
+
+  it('the first note of each bar', () => {
+    expect(names(harmonyHeard(melody, FOUR, 'barfirst'))).toEqual(['C4', 'G4'])
+  })
+
+  it('long notes: a beat or more', () => {
+    expect(names(harmonyHeard(melody, FOUR, 'long'))).toEqual([
+      'C4',
+      'D4',
+      'E4',
+      'F4',
+      'G4',
+      'C5',
+    ])
+  })
+
+  it('each keeps its own length', () => {
+    const [, g] = harmonyHeard(melody, FOUR, 'barfirst')
+    expect(g.length).toEqual(dur(1, 2))
   })
 })

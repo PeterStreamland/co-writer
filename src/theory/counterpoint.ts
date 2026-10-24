@@ -248,7 +248,7 @@ class Setting {
     this.ctx = ctx
     this.o = o
     this.melodyMidi = ctx.melody.map((m) => midiOf(m.note))
-    this.spans = melodySpans(ctx.melody, ctx.time, o.unit ?? 'note')
+    this.spans = melodySpans(ctx.melody, ctx.time, o.unit ?? 'note', ctx.chords)
     this.starts = new Set(this.spans.map((sp) => durKey(sp.onset)))
   }
   isBeat(t: Dur): boolean {
